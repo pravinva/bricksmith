@@ -1,0 +1,19 @@
+vertex:
+  project_id: "fe-dev-sandbox"
+  location: "us-central1"
+  model_id: "imagen-3.0-generate-001"
+  temperature: 0.4
+  top_p: 0.95
+  max_output_tokens: 8192
+  image_size: "1024x1024"
+  seed: 42
+
+mlflow:
+  tracking_uri: "./mlruns"  # Use local file-based tracking
+  experiment_name: "vertexai-nanobanana-arch-diagrams"
+  artifact_location: null
+
+logo_kit:
+  logo_dir: "./examples/logo_kit"
+  max_logo_size_mb: 5.0
+  allowed_extensions: [".jpg", ".jpeg", ".png"]
