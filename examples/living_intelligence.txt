@@ -1,0 +1,185 @@
+Use uploaded logos exactly. No numbered labels.
+
+LOGO KIT (uploaded as image attachments):
+Use these EXACT logos - do NOT recreate or substitute.
+Do NOT add numbered labels or circles to the diagram.
+
+- Aws Logo: grey 'AWS' text with orange smile underneath
+- Azure Logo: blue Microsoft Azure symbol
+- Databricks Logo: red/orange stacked bars icon with 'databricks' text
+- Delta Lake Logo: teal triangle icon
+- Iceberg Logo
+- Kaluza Logo: three BLACK hexagons in triangular pattern
+- Postgres Logo
+
+LOGO RULES:
+- Use EXACT uploaded images - do NOT redraw or recreate
+- Only use logos mentioned in the prompt (EXCEPTION: GCP logo can be generated - it's not in the logo kit but you may create the Google Cloud Platform logo)
+- Do NOT add numbered circles or labels to logos
+- Scale logos uniformly
+- NO filenames in output
+- Unity Catalog: Do NOT use any logo for Unity Catalog - display it as text only ("Unity Catalog")
+
+Logo mapping:
+- Components/text mentioning 'Aws Logo' or related terms → Use Image 2 (Aws Logo logo)
+- Components/text mentioning 'Azure Logo' or related terms → Use Image 3 (Azure Logo logo)
+- Components/text mentioning 'Databricks Logo' or related terms → Use Image 4 (Databricks Logo logo)
+- Components/text mentioning 'Delta Lake Logo' or related terms → Use Image 5 (Delta Lake Logo logo)
+
+Clean, minimal design suitable for executive presentations.
+White or light grey background.
+Professional corporate style.
+Use the provided logo kit images exactly as uploaded.
+
+=== DATABRICKS BRAND STYLE GUIDE ===
+
+TYPOGRAPHY:
+- Primary font: Use a clean, modern, highly legible sans-serif font similar to Inter, Lato, or Open Sans
+- Font characteristics: Geometric or humanist sans-serif with single-story lowercase 'a' and 'g', well-spaced letterforms, clear and unembellished
+- Font weights: BOLD for all primary titles/headings (component names, layer titles), REGULAR/MEDIUM for descriptive text
+- Font colors: Dark grey/black (#1B3139 or darker) for primary titles, lighter grey for descriptions
+- Letter spacing: Well-spaced letters for excellent readability - avoid tight or condensed letterforms
+- Use clear hierarchy with sizes: 12px, 16px, 20px, 24px, 32px, 40px, 56px, 64px
+- CRITICAL: Match the font style from the reference diagram - clean, professional, minimalistic sans-serif with no serifs or decorative elements
+
+COLOR PALETTE (use these exact hex values):
+- Primary Orange: #FF3621 (main accent, CTAs, highlights)
+- Primary Orange Alt: #FF5F46 (hover states, secondary accent)
+- Navy: #1B3139 (headers, dark backgrounds, text)
+- Warm Gray: #A0ACBE (backgrounds, borders)
+- Light Gray: #C4CCD6 (subtle backgrounds)
+- White: #FFFFFF (backgrounds, contrast)
+
+ACCENT COLORS (for data visualization and highlights):
+- Teal: #42BA91 (success, positive)
+- Green: #00875C (success states)
+- Yellow: #FCBA33 (warnings, attention)
+- Amber: #FFAB00 (warnings)
+- Blue Slate: #143D4A (secondary headers)
+- Blue Steel: #1B5162 (borders, accents)
+
+VISUAL STYLE:
+- Clean, professional, modern aesthetic
+- White or light gray backgrounds preferred
+- Use orange sparingly for emphasis and key elements
+- Navy for text and structural elements
+- Flat 2D vector graphics, no 3D effects
+- Clear visual hierarchy with consistent spacing
+- 12-column grid alignment when possible
+
+DO NOT USE:
+- Bright saturated colors outside the palette
+- Gradients (unless subtle)
+- Drop shadows (keep minimal if used)
+- Decorative elements not in the prompt
+- NUMBERED CIRCLES or step indicators (1, 2, 3 in circles) - NEVER add these unless explicitly requested
+- Numbered labels or annotations on logos
+- Callout bubbles with numbers
+- Any numeric sequence markers
+
+**Subject:**
+A clean hierarchical architecture diagram titled "Living Intelligence Platform" with Databricks logo in top-left.
+
+**Style:**
+Clean, professional, modern. White background. Databricks orange (#FF3621) and navy (#1B3139) accents. Simple stacked layers with clear hierarchy.
+
+**Key Message:**
+Living Intelligence is not static models shipped once a year. It is continuous, closed-loop intelligence that senses real-world outcomes, learns from them, adapts models and policies in real time, and drives autonomous action through apps, APIs, IoT devices, and robotics. The paradigm shift: from "build once, deploy once" to "continuous sense → learn → act → measure → improve."
+
+DO NOT add numbered circles, step indicators, or annotations unless explicitly requested.
+
+=== LAYOUT (5 Horizontal Layers, Top to Bottom) ===
+
+REAL-WORLD ACTION (Top - the outcome layer):
+Teal/green accent bar, visually separated and prominent
+Title: "Real-World Outcomes & Autonomous Action"
+Three boxes showing impact:
+- "IoT & Edge Devices" - "Field sensors, predictive maintenance"
+- "Robotics & Automation" - "Autonomous workflows, physical actions"
+- "API-Driven Systems" - "Third-party integrations, real-time APIs"
+Small text below: "Living Intelligence made tangible • Where data becomes action"
+
+APP LAYER (where intelligence becomes decision):
+Orange-accented header bar
+Title: "Intelligent Apps & Decision Points"
+Three boxes side by side:
+- "AI/BI Dashboards" - "Natural language insights • Real-time guidance for humans"
+- "Agentic AI" - "Autonomous decision-making • Policy-guarded, explainable actions"
+- "Custom Apps" - "Embedded intelligence • Live API endpoints for edge systems"
+Small text below: "Data Intelligence operationalized • Apps and agents bridge data to action"
+
+INTELLIGENCE ENGINE:
+Large container with Databricks logo
+Title: "Databricks Intelligence Platform"
+Subtitle: "Unified compute for all workloads • Continuous model retraining and adaptation"
+Three components in a row:
+- "Lakeflow" (subtitle: Ingest, ETL, orchestration • Streaming and batch)
+- "DBSQL" (subtitle: Analytics, semantic models, feature stores)
+- "Agent Bricks" (subtitle: LLMs, fine-tuning, agents, RAG • Real-time inference)
+- "Lakebase" (subtitle: Serverless PostgreSQL for Agents)
+Add small caption under: "Closed-loop learning: outcomes feed back to retrain models continuously"
+
+GOVERNED DATA:
+Full-width bar (no logo - text only)
+Title: "Unity Catalog" (text only, no logo or icon)
+Subtitle: "Security • Governance • Lineage • Sharing • Policy-in-the-loop for safe automation"
+Add note: "All data access audited and controlled; policies gate autonomous actions"
+Show it spanning the full width - governance touches everything, especially critical for autonomous systems
+
+OPEN LAKEHOUSE (Bottom):
+Navy/dark background
+Title: "Open Data Lakehouse"
+Three elements: [Delta Lake logo] "Delta Lake" | [Iceberg Logo] "Iceberg" | "Postgres [Postgres Logo]"
+Subtitle: "Any data, any format, open standards • Event streams (telemetry from IoT & devices) + historical context"
+Add small text: "Operational data from devices, analytical data from apps, unstructured logs from systems"
+
+FOOTER - Cloud Foundation (subtle, grey):
+Light grey, less prominent
+[AWS logo] [Azure logo] [GCP logo]
+Text: "Multi-cloud • Serverless • Global inference and edge deployment"
+
+=== VISUAL FLOW (The Living Intelligence Loop) ===
+
+PRIMARY UPWARD FLOW (data to intelligence to action):
+- Show bold upward arrows from Lakehouse → Governance → Intelligence Engine → Apps → Real-World Action
+- Label at each transition with small text to show the transformation:
+  - Lakehouse → Intelligence: "Data is enriched"
+  - Intelligence → Apps: "Insights are generated"
+  - Apps → Real-World: "Actions are taken"
+
+FEEDBACK & LEARNING LOOP (outcomes back to system):
+- Show curved dotted arrows returning from "Real-World Outcomes" down through "Apps" → "Intelligence Engine" → back to "Lakehouse"
+- Label this loop: "Feedback & Continuous Learning (telemetry, outcomes, sensor signals, edge metrics)"
+- Use orange or teal color for feedback arrows to distinguish from primary flow
+- Emphasize: This is what makes intelligence "LIVING" — outcomes continuously improve models, retraining happens automatically, policies adapt based on real-world results.
+
+=== COLOR CODING ===
+- Real-World Action Layer: Teal or green accent (#42BA91 or #00875C) — represents outcomes, tangible impact
+- App Layer: Orange accent — this is where decisions are made
+- Intelligence: White with orange borders — active, dynamic computation
+- Governance: Orange bar (Unity Catalog) — trust and control
+- Lakehouse: Navy/dark — foundation
+- Cloud: Light grey (infrastructure fades away)
+- Feedback arrows: Dotted orange or teal to show continuous learning loop
+
+=== KEY DIFFERENTIATOR ===
+The Real-World Action Layer at the TOP is the paradigm shift. Living Intelligence is not:
+  ✗ A model built once and deployed once a year (the healthcare example: 1 year to build, then static)
+It is:
+  ✓ Continuous feedback loops where real-world outcomes (sensor data, device telemetry, IoT signals, automation results) feed back into the platform, triggering automatic model retraining and policy adaptation.
+  ✓ Autonomous action through APIs, robotics, IoT, and edge devices that execute decisions in real time.
+  ✓ Closed-loop: sense → learn → act → measure → learn again.
+
+The diagram shows the data journey: raw signals from IoT and devices become governed data, become intelligent insights, become autonomous actions that directly change the physical world, and those outcomes feed back as new learning signals.
+
+**AVOID (DO NOT include any of the following):**
+blurry, low quality, distorted text, spelling errors, typos, 3D render, isometric, realistic photo, noise, grain, handwriting, sketch, messy, cluttered, numbered circles, step numbers in circles, numeric sequence markers, callout numbers, serif fonts, decorative fonts, condensed fonts, fonts with unusual letterforms, Unity Catalog logo or icon (Unity Catalog should be text only)
+
+Ensure the output does NOT contain any of the above qualities or elements. Double-check all text for spelling accuracy.
+**SPECIFICALLY**:
+- Unity Catalog: Display "Unity Catalog" as text only - do NOT use any logo, icon, or visual symbol for Unity Catalog. Just show the text "Unity Catalog" without any accompanying graphic.
+- Do NOT add numbered circles (1, 2, 3) or step indicators unless explicitly requested in the prompt.
+- Do NOT add numeric labels or annotations to logos or components.
+- GCP logo: You may generate/create the Google Cloud Platform logo (it's not in the logo kit, but you know what it looks like - use the official GCP logo design).
+- FONT MATCHING: Use a clean, modern sans-serif font matching Inter/Lato/Open Sans style - single-story 'a' and 'g', well-spaced letters, bold for titles, regular for descriptions. The font should look professional and minimalistic, exactly like the reference diagram style.
+- CRITICAL - NO LAYER LABELS IN BOXES: Never include "LAYER 0", "LAYER 1", "LAYER 2", "LAYER 3", "LAYER 4", or "FOOTER" in any box titles, headers, or text within the diagram. These labels are only organizational references in the prompt, not part of the visual design. Box titles should be clean and contain only the actual content (e.g., "IoT & Edge Devices", not "LAYER 0: IoT & Edge Devices").
