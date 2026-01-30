@@ -13,28 +13,88 @@ from .models import LogoInfo
 
 
 # Logo name to description mapping (for prompt injection)
+# These descriptions are used instead of filenames to prevent filename leakage
 DEFAULT_LOGO_DESCRIPTIONS = {
+    # Databricks logos
     "databricks": "red/orange stacked bars icon with 'databricks' text",
     "databricks-logo": "red/orange stacked bars icon with 'databricks' text",
-    "delta-lake": "teal triangle icon",
-    "delta-lake-logo": "teal triangle icon",
+    "databricks-full": "red/orange stacked bars icon with 'databricks' text",
+
+    # Delta Lake logos
+    "delta": "teal/cyan triangle icon",
+    "delta-lake": "teal/cyan triangle icon",
+    "delta-lake-logo": "teal/cyan triangle icon",
+
+    # Iceberg
+    "iceberg": "blue iceberg icon",
+    "iceberg-logo": "blue iceberg icon",
+
+    # Unity Catalog logos
     "uc": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog",
     "uc-logo": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog",
     "unity-catalog": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog",
     "unity-catalog-logo": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog",
+    "unity-catalog-solo": "pink squares, yellow triangles, navy hexagon icon",
     "00-unity-catalog-logo": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog",
     "00-governance-catalog-logo": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog/Governance",
     "governance-catalog": "pink squares, yellow triangles, navy hexagon in center - USE THIS for Unity Catalog/Governance",
-    "kaluza": "three BLACK hexagons in triangular pattern",
-    "kaluza_logo_black": "three BLACK hexagons in triangular pattern",
-    "kaluza-logo": "three BLACK hexagons in triangular pattern",
-    "agl": "AGL Energy logo - cyan/teal rays with 'agl' text",
-    "agl-logo": "AGL Energy logo - cyan/teal rays with 'agl' text",
-    "agl_energy": "AGL Energy logo - cyan/teal rays with 'agl' text",
-    "aws": "grey 'AWS' text with orange smile underneath",
-    "aws-logo": "grey 'AWS' text with orange smile underneath",
+
+    # MLflow
+    "mlflow": "blue MLflow logo with text",
+    "mlflow-logo": "blue MLflow logo with text",
+    "mlflow-logo-final-black": "black MLflow logo with text",
+
+    # PostgreSQL
+    "postgres": "blue elephant icon",
+    "postgres-logo": "blue elephant icon",
+    "postgresql": "blue elephant icon",
+
+    # Cloud providers - AWS
+    "aws": "orange and black AWS logo",
+    "aws-logo": "orange and black AWS logo",
+    "amazon_web_services_logo": "orange and black AWS logo",
+
+    # Cloud providers - Azure
     "azure": "blue Microsoft Azure symbol",
     "azure-logo": "blue Microsoft Azure symbol",
+    "microsoft_azure": "blue Microsoft Azure symbol",
+
+    # Cloud providers - GCP
+    "gcp": "multi-color Google Cloud logo",
+    "gcp-logo": "multi-color Google Cloud logo",
+    "google_cloud": "multi-color Google Cloud logo",
+    "google-cloud": "multi-color Google Cloud logo",
+
+    # AGL Energy logos
+    "agl": "cyan/teal AGL Energy logo with rays",
+    "agl-logo": "cyan/teal AGL Energy logo with rays",
+    "agl_energy": "cyan/teal AGL Energy logo with rays",
+    "agl_energy_logo": "cyan/teal AGL Energy logo with rays",
+
+    # Kaluza
+    "kaluza": "three black hexagons in triangular pattern",
+    "kaluza_logo_black": "three black hexagons in triangular pattern",
+    "kaluza-logo": "three black hexagons in triangular pattern",
+
+    # AI/ML tools
+    "claude": "orange/coral Claude AI symbol",
+    "claude_ai_symbol": "orange/coral Claude AI symbol",
+    "claude-ai": "orange/coral Claude AI symbol",
+
+    "mcp": "purple Model Context Protocol logo",
+    "model_context_protocol_logo": "purple Model Context Protocol logo",
+    "model-context-protocol": "purple Model Context Protocol logo",
+
+    # Python
+    "python": "blue and yellow Python logo",
+    "python-logo": "blue and yellow Python logo",
+    "python_logo_and_wordmark": "blue and yellow Python logo with text",
+    "python-logo-notext": "blue and yellow Python logo without text",
+    "python-logo-notext.svg": "blue and yellow Python logo without text",
+
+    # Plotly
+    "plotly": "blue Plotly logo",
+    "plotly-logo": "blue Plotly logo",
 }
 
 
