@@ -183,3 +183,49 @@ class EvaluationScores(BaseModel):
         data = self.model_dump()
         data["overall_score"] = self.overall_score
         return data
+
+
+class PromptRefinement(BaseModel):
+    """Result of prompt refinement analysis."""
+
+    original_prompt: str = Field(..., description="Original prompt text")
+    refined_prompt: str = Field(..., description="Improved prompt text")
+    changes: list[str] = Field(..., description="List of key changes made")
+    expected_improvements: list[str] = Field(
+        ..., description="Expected improvements from changes"
+    )
+    analysis: dict[str, Any] = Field(..., description="Visual analysis results")
+    confidence_score: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Confidence in refinement (0-1)"
+    )
+
+    def save_template(self, output_path: Path) -> None:
+        """Save refined prompt as a template file.
+
+        Args:
+            output_path: Path to save template
+        """
+        with open(output_path, "w") as f:
+            f.write(self.refined_prompt)
+
+    def summary(self) -> str:
+        """Generate human-readable summary of refinement.
+
+        Returns:
+            Formatted summary string
+        """
+        summary = ["Prompt Refinement Summary", "=" * 50, ""]
+
+        summary.append("Key Changes:")
+        for i, change in enumerate(self.changes, 1):
+            summary.append(f"  {i}. {change}")
+
+        summary.append("")
+        summary.append("Expected Improvements:")
+        for i, improvement in enumerate(self.expected_improvements, 1):
+            summary.append(f"  {i}. {improvement}")
+
+        summary.append("")
+        summary.append(f"Confidence: {self.confidence_score:.1%}")
+
+        return "\n".join(summary)

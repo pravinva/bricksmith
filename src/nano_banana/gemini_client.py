@@ -248,6 +248,181 @@ class GeminiClient:
         except Exception as e:
             raise Exception(f"Image generation failed: {e}")
 
+    def analyze_image(
+        self,
+        image_path: str,
+        prompt: str,
+        temperature: float = 0.2,
+        max_output_tokens: int = 2048,
+    ) -> str:
+        """Analyze an image and return text description/analysis.
+
+        Args:
+            image_path: Path to image file to analyze
+            prompt: Analysis prompt (what to analyze about the image)
+            temperature: Sampling temperature (lower for more factual analysis)
+            max_output_tokens: Maximum tokens to generate
+
+        Returns:
+            Analysis text
+
+        Raises:
+            Exception: For API errors
+        """
+        from pathlib import Path
+
+        # Read image file
+        image_file = Path(image_path)
+        with open(image_file, "rb") as f:
+            image_data = f.read()
+
+        # Determine MIME type
+        suffix = image_file.suffix.lower()
+        mime_types = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+        }
+        mime_type = mime_types.get(suffix, "image/jpeg")
+
+        # Build content with image and prompt
+        content_parts = [
+            types.Part.from_bytes(data=image_data, mime_type=mime_type),
+            types.Part.from_text(text=prompt),
+        ]
+
+        contents = [types.Content(role="user", parts=content_parts)]
+
+        # Generate analysis
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            response_modalities=["TEXT"],
+        )
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
+            )
+
+            return response.text
+
+        except Exception as e:
+            raise Exception(f"Image analysis failed: {e}")
+
+    def analyze_images(
+        self,
+        image_paths: list[str],
+        prompt: str,
+        temperature: float = 0.2,
+        max_output_tokens: int = 2048,
+    ) -> str:
+        """Analyze multiple images and return comparative analysis.
+
+        Args:
+            image_paths: List of paths to image files to analyze
+            prompt: Analysis prompt (what to analyze about the images)
+            temperature: Sampling temperature (lower for more factual analysis)
+            max_output_tokens: Maximum tokens to generate
+
+        Returns:
+            Analysis text
+
+        Raises:
+            Exception: For API errors
+        """
+        from pathlib import Path
+
+        # Build content parts with all images
+        content_parts = []
+
+        for i, image_path in enumerate(image_paths, 1):
+            image_file = Path(image_path)
+            with open(image_file, "rb") as f:
+                image_data = f.read()
+
+            # Determine MIME type
+            suffix = image_file.suffix.lower()
+            mime_types = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            mime_type = mime_types.get(suffix, "image/jpeg")
+
+            content_parts.append(
+                types.Part.from_bytes(data=image_data, mime_type=mime_type)
+            )
+
+        # Add analysis prompt
+        content_parts.append(types.Part.from_text(text=prompt))
+
+        contents = [types.Content(role="user", parts=content_parts)]
+
+        # Generate analysis
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            response_modalities=["TEXT"],
+        )
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
+            )
+
+            return response.text
+
+        except Exception as e:
+            raise Exception(f"Image analysis failed: {e}")
+
+    def generate_text(
+        self,
+        prompt: str,
+        temperature: float = 0.4,
+        max_output_tokens: int = 2048,
+    ) -> str:
+        """Generate text response (no images).
+
+        Args:
+            prompt: Text prompt
+            temperature: Sampling temperature
+            max_output_tokens: Maximum tokens to generate
+
+        Returns:
+            Generated text
+
+        Raises:
+            Exception: For API errors
+        """
+        contents = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
+
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            response_modalities=["TEXT"],
+        )
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
+            )
+
+            return response.text
+
+        except Exception as e:
+            raise Exception(f"Text generation failed: {e}")
+
     def get_model_info(self) -> dict[str, Any]:
         """Get information about the model.
 
@@ -258,5 +433,11 @@ class GeminiClient:
             "model": self.model,
             "provider": "Google AI Studio",
             "authentication": "API Key",
-            "capabilities": ["text-to-image", "multimodal-input", "logo-integration"],
+            "capabilities": [
+                "text-to-image",
+                "multimodal-input",
+                "logo-integration",
+                "image-analysis",
+                "visual-comparison",
+            ],
         }
