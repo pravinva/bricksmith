@@ -73,7 +73,7 @@ class PromptDevelopmentLab:
         self.client = GeminiClient()
         self.logo_handler = LogoKitHandler(
             LogoKitConfig(
-                logo_dir=Path("examples/logo_kit"),
+                logo_dir=Path("logos/default"),
                 max_logo_size_mb=5.0,
                 allowed_extensions=[".jpg", ".jpeg", ".png"],
             )

@@ -16,7 +16,7 @@ class PromptBuilder:
         Args:
             template_dir: Directory containing prompt templates
         """
-        self.template_dir = template_dir or Path("examples/prompt_templates")
+        self.template_dir = template_dir or Path("prompts/prompt_templates")
         self._templates: dict[str, PromptTemplate] = {}
 
     def load_template(self, template_id: str) -> PromptTemplate:

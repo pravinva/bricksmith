@@ -105,7 +105,7 @@ def generate(
     Example:
 
         nano-banana generate \\
-            --diagram-spec examples/diagram_specs/example_basic.yaml \\
+            --diagram-spec prompts/diagram_specs/example_basic.yaml \\
             --template baseline \\
             --run-name "test-run-1" \\
             --tag "experiment=baseline" \\
@@ -294,8 +294,8 @@ def show_run(ctx: Context, run_id: str):
 @click.option(
     "--logo-dir",
     type=click.Path(exists=True, path_type=Path),
-    default="examples/logo_kit",
-    help="Directory containing logo files (default: examples/logo_kit). Ignored if --logo is used.",
+    default="logos/default",
+    help="Directory containing logo files (default: logos/default). Ignored if --logo is used.",
 )
 @click.option(
     "--logo",
@@ -307,7 +307,7 @@ def show_run(ctx: Context, run_id: str):
 @click.option(
     "--branding",
     type=click.Path(exists=True, path_type=Path),
-    default="examples/branding/minimal.txt",
+    default="prompts/branding/minimal.txt",
     help="Path to branding/style guide file (.txt or .md). Use minimal.txt for best logo fidelity.",
 )
 @click.option("--run-name", help="Optional run name for MLflow")
@@ -416,15 +416,15 @@ def generate_raw(
 
         # Load all logos from directory
         nano-banana generate-raw \\
-            --prompt-file examples/diagram_specs/agl_data_architecture.txt \\
-            --logo-dir examples/logo_kit \\
+            --prompt-file prompts/diagram_specs/agl_data_architecture.txt \\
+            --logo-dir logos/default \\
             --run-name "agl-arch-v1"
 
         # Use specific logos only
         nano-banana generate-raw \\
-            --prompt-file examples/diagram_specs/agl_data_architecture.txt \\
-            --logo examples/logo_kit/databricks-logo.png \\
-            --logo examples/logo_kit/azure-logo.png \\
+            --prompt-file prompts/diagram_specs/agl_data_architecture.txt \\
+            --logo logos/default/databricks-logo.png \\
+            --logo logos/default/azure-logo.png \\
             --run-name "minimal-diagram"
     """
     try:
@@ -780,7 +780,7 @@ def validate_logos(ctx: Context, logo_dir: Path):
 
     Example:
 
-        nano-banana validate-logos --logo-dir examples/logo_kit
+        nano-banana validate-logos --logo-dir logos/default
     """
     try:
         console.print(f"[bold]Validating logos in {logo_dir}...[/bold]\n")
@@ -1151,7 +1151,7 @@ Please regenerate addressing ALL of the above feedback.
 
         # Get logo directory from original params
         params = run_info["parameters"]
-        logo_dir = Path(params.get("logo_dir", "examples/logo_kit"))
+        logo_dir = Path(params.get("logo_dir", "logos/default"))
 
         # Load logos
         console.print(f"[bold]Loading logos from {logo_dir}...[/bold]")
@@ -1262,6 +1262,297 @@ Please regenerate addressing ALL of the above feedback.
             console.print(f"    ├── {meta}")
             console.print(f"    ├── prompt.txt")
             console.print(f"    └── feedback.txt")
+
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--run-id",
+    help="MLflow run ID to analyze",
+)
+@click.option(
+    "--reference-image",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to reference image (alternative to --run-id)",
+)
+@click.option(
+    "--original-prompt",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to original prompt file (required with --reference-image)",
+)
+@click.option(
+    "--feedback",
+    help="User feedback about what to improve",
+)
+@click.option(
+    "--output-template",
+    type=click.Path(path_type=Path),
+    help="Optional path to save refined prompt as template",
+)
+@click.pass_obj
+def refine_prompt(
+    ctx: Context,
+    run_id: Optional[str],
+    reference_image: Optional[Path],
+    original_prompt: Optional[Path],
+    feedback: Optional[str],
+    output_template: Optional[Path],
+):
+    """Analyze diagram and suggest prompt improvements.
+
+    Uses visual analysis to identify what worked and what didn't,
+    then generates concrete suggestions for improving the prompt.
+
+    Examples:
+        # Analyze a previous run
+        nano-banana refine-prompt --run-id abc123 --feedback "logos too small"
+
+        # Analyze any image
+        nano-banana refine-prompt \\
+            --reference-image path/to/diagram.png \\
+            --original-prompt path/to/prompt.txt \\
+            --feedback "need more spacing"
+    """
+    try:
+        console.print("\n[bold blue]🔍 Analyzing diagram for prompt improvements...[/bold blue]\n")
+
+        # Get refinement based on input type
+        if run_id:
+            console.print(f"Loading run: {run_id}")
+            refinement = ctx.prompt_refiner.refine_from_run(run_id, feedback)
+        elif reference_image and original_prompt:
+            console.print(f"Analyzing image: {reference_image}")
+            with open(original_prompt) as f:
+                prompt_text = f.read()
+            refinement = ctx.prompt_refiner.suggest_improvements(
+                reference_image, prompt_text, user_feedback=feedback
+            )
+        else:
+            console.print(
+                "[red]Error: Provide either --run-id or both --reference-image and --original-prompt[/red]"
+            )
+            raise SystemExit(1)
+
+        # Display summary
+        console.print("[bold green]✓ Analysis complete![/bold green]\n")
+        console.print(refinement.summary())
+
+        # Display refined prompt
+        console.print("\n[bold]Refined Prompt:[/bold]")
+        console.print("─" * 80)
+        console.print(refinement.refined_prompt)
+        console.print("─" * 80)
+
+        # Save as template if requested
+        if output_template:
+            refinement.save_template(output_template)
+            console.print(f"\n[green]✓ Saved refined prompt to: {output_template}[/green]")
+
+        console.print("\n[dim]Tip: Use the refined prompt for your next generation[/dim]")
+
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--good-run",
+    required=True,
+    help="MLflow run ID of the better diagram",
+)
+@click.option(
+    "--bad-run",
+    required=True,
+    help="MLflow run ID of the worse diagram",
+)
+@click.pass_obj
+def compare_diagrams(
+    ctx: Context,
+    good_run: str,
+    bad_run: str,
+):
+    """Compare two diagrams to identify what makes one better.
+
+    Analyzes both diagrams visually and compares their prompts to extract
+    concrete, actionable differences that explain quality improvements.
+
+    Example:
+        nano-banana compare-diagrams --good-run abc123 --bad-run def456
+    """
+    try:
+        console.print("\n[bold blue]🔍 Comparing diagrams...[/bold blue]\n")
+
+        comparison = ctx.prompt_refiner.compare_diagrams(good_run, bad_run)
+
+        console.print("[bold green]✓ Comparison complete![/bold green]\n")
+
+        # Display visual differences
+        if comparison.get("visual_differences"):
+            console.print("[bold]Visual Differences:[/bold]")
+            for diff in comparison["visual_differences"]:
+                console.print(f"  • {diff}")
+            console.print()
+
+        # Display prompt differences
+        if comparison.get("prompt_differences"):
+            console.print("[bold]Prompt Differences:[/bold]")
+            for diff in comparison["prompt_differences"]:
+                console.print(f"  • {diff}")
+            console.print()
+
+        # Display recommendations
+        if comparison.get("recommendations"):
+            console.print("[bold]Recommendations:[/bold]")
+            for rec in comparison["recommendations"]:
+                console.print(f"  • {rec}")
+            console.print()
+
+        # Display full analysis
+        console.print("[bold]Full Analysis:[/bold]")
+        console.print("─" * 80)
+        console.print(comparison.get("raw_analysis", "No detailed analysis available"))
+        console.print("─" * 80)
+
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--scenario",
+    required=True,
+    type=str,
+    help="Natural language description of the architecture scenario",
+)
+@click.option(
+    "--output",
+    type=click.Path(path_type=Path),
+    help="Path to save the generated diagram spec (default: prompts/diagram_specs/generated-<timestamp>.yaml)",
+)
+@click.pass_context
+def scenario_to_spec(ctx: click.Context, scenario: str, output: Optional[Path]):
+    """Generate a diagram specification from a scenario description.
+
+    Takes a natural language description of an architecture and uses AI to
+    generate a structured YAML diagram specification.
+
+    Examples:
+
+        # Generate spec from scenario
+        nano-banana scenario-to-spec \\
+            --scenario "Build a lakehouse on AWS with Databricks, S3, and Redshift" \\
+            --output prompts/diagram_specs/my-lakehouse.yaml
+
+        # Generate spec and print to console
+        nano-banana scenario-to-spec \\
+            --scenario "Real-time data pipeline with Kafka, Spark, and Delta Lake"
+    """
+    from datetime import datetime
+
+    from .scenario_generator import ScenarioGenerator
+
+    try:
+        # Create generator
+        generator = ScenarioGenerator(logo_handler=ctx.obj.logo_handler)
+
+        # Set default output path if not provided
+        if not output:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output = Path(f"prompts/diagram_specs/generated-{timestamp}.yaml")
+
+        # Generate specification
+        console.print(f"\n[bold cyan]Scenario:[/bold cyan] {scenario}\n")
+        diagram_spec = generator.generate_spec_from_scenario(scenario, output)
+
+        console.print(f"\n[bold green]✓ Generated specification:[/bold green]")
+        console.print(f"  • Name: {diagram_spec.name}")
+        console.print(f"  • Components: {len(diagram_spec.components)}")
+        console.print(f"  • Connections: {len(diagram_spec.connections)}")
+        console.print(f"\n[bold]Next steps:[/bold]")
+        console.print(f"  nano-banana generate --diagram-spec {output} --template baseline")
+
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--scenario",
+    required=True,
+    type=str,
+    help="Natural language description of the architecture scenario",
+)
+@click.option(
+    "--template",
+    default="baseline",
+    help="Prompt template to use (default: baseline)",
+)
+@click.option(
+    "--save-spec",
+    type=click.Path(path_type=Path),
+    help="Optional path to save the generated diagram spec",
+)
+@click.option(
+    "--run-name",
+    type=str,
+    help="Optional run name for MLflow tracking",
+)
+@click.pass_context
+def generate_from_scenario(
+    ctx: click.Context,
+    scenario: str,
+    template: str,
+    save_spec: Optional[Path],
+    run_name: Optional[str],
+):
+    """Generate diagram specification AND diagram from a scenario description.
+
+    This is a convenience command that combines scenario-to-spec and generate
+    into a single step. It uses AI to create a diagram spec from your scenario,
+    then immediately generates the diagram.
+
+    Examples:
+
+        # Generate diagram from scenario (one step)
+        nano-banana generate-from-scenario \\
+            --scenario "Build a lakehouse on AWS with Databricks processing data from S3 to Redshift"
+
+        # Generate with custom template and save spec
+        nano-banana generate-from-scenario \\
+            --scenario "Real-time streaming pipeline with Kafka and Spark" \\
+            --template detailed \\
+            --save-spec prompts/diagram_specs/streaming.yaml \\
+            --run-name "streaming-demo"
+    """
+    from .scenario_generator import ScenarioGenerator
+
+    try:
+        # Create generator
+        generator = ScenarioGenerator(logo_handler=ctx.obj.logo_handler)
+
+        # Generate spec and diagram
+        console.print(f"\n[bold cyan]Scenario:[/bold cyan] {scenario}\n")
+        diagram_spec, run_id = generator.generate_and_create_diagram(
+            scenario=scenario,
+            template=template,
+            spec_output=save_spec,
+            run_name=run_name,
+        )
+
+        console.print(f"\n[bold green]✓ Complete![/bold green]")
+        console.print(f"  • Diagram spec: {diagram_spec.name}")
+        console.print(f"  • Components: {len(diagram_spec.components)}")
+        console.print(f"  • Connections: {len(diagram_spec.connections)}")
+        console.print(f"  • MLflow run ID: {run_id}")
+        console.print(f"\n[bold]Next steps:[/bold]")
+        console.print(f"  nano-banana show-run {run_id}")
+        console.print(f"  nano-banana evaluate {run_id}")
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")

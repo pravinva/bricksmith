@@ -167,7 +167,7 @@ class DiagramRunner:
 
                 # Step 8: Save output
                 task = progress.add_task("Saving output...", total=None)
-                output_path = self._save_output(run_id, image_bytes)
+                output_path = self._save_output(run_id, image_bytes, run_name)
                 self.mlflow_tracker.log_output_image(output_path)
                 progress.update(
                     task, description=f"[green]✓ Saved to {output_path.name}"
@@ -219,19 +219,32 @@ class DiagramRunner:
                 error_message=error_msg,
             )
 
-    def _save_output(self, run_id: str, image_bytes: bytes) -> Path:
-        """Save output image to disk.
+    def _save_output(self, run_id: str, image_bytes: bytes, run_name: Optional[str] = None) -> Path:
+        """Save output image to disk in organized date-based folders.
 
         Args:
             run_id: MLflow run ID
             image_bytes: Image data
+            run_name: Optional run name for folder organization
 
         Returns:
             Path to saved image
         """
-        # Create filename with run ID
-        output_filename = f"output_{run_id[:8]}.png"
-        output_path = self.outputs_dir / output_filename
+        from datetime import datetime
+
+        # Create date-based output folder: outputs/YYYY-MM-DD/{run_name}/
+        now = datetime.now()
+        date_folder = now.strftime("%Y-%m-%d")
+        time_stamp = now.strftime("%H%M%S")
+
+        # Use run_name or fallback to run_id for folder name
+        folder_name = run_name or f"run-{run_id[:8]}"
+        run_dir = self.outputs_dir / date_folder / folder_name
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create filename with timestamp
+        output_filename = f"diagram_{time_stamp}.png"
+        output_path = run_dir / output_filename
 
         # Write image bytes
         with open(output_path, "wb") as f:

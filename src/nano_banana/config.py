@@ -45,7 +45,7 @@ class LogoKitConfig(BaseModel):
     """Logo kit configuration."""
 
     logo_dir: Path = Field(
-        default=Path("./examples/logo_kit"), description="Directory containing logos"
+        default=Path("./logos/default"), description="Directory containing logos"
     )
     max_logo_size_mb: float = Field(default=5.0, description="Maximum logo file size in MB")
     allowed_extensions: list[str] = Field(
