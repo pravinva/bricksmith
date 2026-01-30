@@ -1,0 +1,210 @@
+Use uploaded logos exactly. No numbered labels.
+
+LOGO KIT (uploaded as image attachments):
+Use these EXACT logos - do NOT recreate or substitute.
+Do NOT add numbered labels or circles to the diagram.
+
+- Databricks Logo: red/orange stacked bars icon with 'databricks' text
+- Delta Lake Logo: teal triangle icon
+- Unity Catalog Logo: pink squares, yellow triangles, navy hexagon icon
+- MLflow Logo: black MLflow logo with text
+
+LOGO RULES:
+- Use EXACT uploaded images - do NOT redraw or recreate
+- Only use logos mentioned in the prompt
+- Do NOT add numbered circles or labels to logos
+- Scale logos uniformly
+- NO filenames in output
+- Power BI: Generate official logo (you know what it looks like)
+- Unity Catalog: Use the uploaded logo
+
+Clean, minimal design suitable for executive presentations.
+White background.
+Professional corporate style.
+
+=== DATABRICKS BRAND STYLE GUIDE ===
+
+TYPOGRAPHY:
+- Primary font: Clean, modern sans-serif (Inter, Lato, or Open Sans style)
+- Font weights: BOLD for titles/headings, REGULAR for descriptive text
+- Font colors: Dark grey/black (#1B3139) for primary titles, lighter grey for descriptions
+- Clear hierarchy: 16px, 20px, 24px, 32px, 40px
+
+COLOR PALETTE:
+- Primary Orange: #FF3621 (accents, highlights, CTAs)
+- Teal/Green: #42BA91 (success, positive outcomes)
+- Navy: #1B3139 (headers, text)
+- Warm Gray: #A0ACBE (backgrounds, borders)
+- White: #FFFFFF (backgrounds)
+
+VISUAL STYLE:
+- Clean, professional, modern aesthetic
+- White background
+- Use TEAL/GREEN to show positive outcomes
+- Flat 2D vector graphics
+- Clear visual hierarchy
+
+DO NOT USE:
+- Numbered circles or step indicators
+- 3D effects or gradients
+- Drop shadows
+- Serif fonts
+
+**Subject:**
+Architecture diagram titled "Coles Group: Unity Catalog as Single Source of Truth" showing how Unity Catalog and Metric Views unify semantic logic into one governed layer.
+
+**Style:**
+Clean, professional. White background. Use GREEN/TEAL colors to emphasize solution and consolidation. Visual emphasis on ORDER and UNITY.
+
+**Key Message:**
+The path forward: Move semantic logic from fragmented systems (PBI models, SQL scripts, Palantir) into Unity Catalog and Metric Views as the SINGLE SOURCE OF TRUTH. Keep Power BI as consumption layer only. Databricks provides what Palantir lacks: unified governance, searchable metadata, and a semantic layer that serves all tools.
+
+=== LAYOUT (Clean Top-to-Bottom Flow) ===
+
+TOP SECTION - Source Systems:
+Light gray boxes in a row:
+- "SAP"
+- "Legacy Systems"
+- "Third-Party Data"
+- "Operational Sources"
+Clean arrows pointing DOWN toward Databricks
+Label: "Raw data from enterprise systems"
+
+LAKEHOUSE LAYER:
+Large box with Databricks logo
+Title: "Databricks Lakehouse Platform"
+Subtitle: "Unified Data Processing & Intelligence"
+Three sub-sections horizontally:
+- "Data Engineering" (Lakeflow, Auto Loader, ETL)
+- "Analytics" (DBSQL, BI, Dashboards)
+- "AI/ML" (MLflow logo, Model Training, Feature Store)
+Background: Light blue or white with orange accent border
+Arrow down labeled: "All data flows through lakehouse"
+
+GOVERNANCE LAYER (THE HERO):
+Full-width prominent box with Unity Catalog logo
+Title: "Unity Catalog" (with logo)
+Subtitle: "Single Source of Truth • Unified Governance"
+Key features in a row:
+- "🔍 Data Discovery" (What Palantir did well, now in UC)
+- "🔒 Security & Access Control" (Fine-grained permissions)
+- "📊 Lineage & Audit" (Track everything)
+- "🌐 Data Sharing" (Delta Sharing)
+Background: Teal/green accent to show this is the solution
+Large text: "All metadata, all governance, ONE PLACE"
+
+SEMANTIC LAYER (THE KEY INNOVATION):
+Box directly below Unity Catalog with connection
+Title: "Metric Views"
+Subtitle: "Unified Semantic Layer • Business Logic Consolidated"
+Description: "Semantic logic from PBI models migrated here • Reusable metrics • One definition of truth"
+Call-out: "FEIP-1215: Power BI Semantic Layer Migration Tool"
+Four boxes showing what's consolidated:
+- "✓ SQL Logic" (from Snowflake scripts)
+- "✓ PBI Semantics" (from Power BI models)
+- "✓ Business Metrics" (from scattered sources)
+- "✓ Governed Definitions" (single source)
+Background: Light orange to emphasize this is the Databricks value-add
+
+DISCOVERY LAYER:
+Box labeled "Genie Spaces"
+Subtitle: "AI-Powered Discovery with Governance"
+Description: "Natural language queries • Governed spaces prevent fragmentation • Domain-centered views"
+Note in smaller text: "Avoid hundreds of ungoverned spaces - use domain controls"
+Arrow connecting to Metric Views: "Queries use governed metrics"
+
+CONSUMPTION LAYER:
+Single box with Power BI logo
+Title: "Power BI"
+Subtitle: "Consumption Layer Only"
+Description: "Visualization and reporting • No semantic logic • Connects to Metric Views"
+Arrow labeled: "Consumes from unified semantic layer"
+Small green checkmark: "✓ Right tool, right role"
+
+BOTTOM - The Outcome:
+Large GREEN-bordered box spanning full width
+Title: "✓ SINGLE ENTERPRISE DATA MODEL"
+Four bullet points in green:
+- "One definition for each metric"
+- "Semantic logic unified in Metric Views"
+- "Governance built-in, not bolted-on"
+- "No fragmentation, no competing sources"
+
+Small text below in italic:
+"What Unity Catalog provides that Palantir lacks: unified semantic layer + governance for all tools"
+
+=== VISUAL FLOW ===
+
+PRIMARY FLOW (showing clean consolidation):
+- Clean arrows DOWN from Source Systems → Databricks Lakehouse
+- Single arrow from Lakehouse → Unity Catalog (all data flows through governance)
+- Arrow from Unity Catalog → Metric Views (semantic layer built on governed data)
+- Arrow from Metric Views → Genie Spaces (AI discovery uses governed metrics)
+- Arrow from Metric Views → Power BI (consumption layer uses semantic layer)
+- Large UPWARD feedback arrow from bottom "Single Source of Truth" back to Unity Catalog
+
+UNITY INDICATORS:
+- Show Unity Catalog and Metric Views in CENTER of diagram (they're the hero)
+- Use solid TEAL/GREEN arrows to show clean, governed flow
+- Add green checkmarks (✓) near each consolidated element
+- Add text labels: "Consolidated here", "Single source", "One truth"
+
+=== COLOR CODING ===
+- Source Systems: Light gray (neutral)
+- Databricks Lakehouse: Orange accent border (Databricks brand)
+- Unity Catalog: Teal/green background (the solution, the hero)
+- Metric Views: Light orange/peach (the key innovation)
+- Genie Spaces: Light blue (AI-powered)
+- Power BI: Blue (PBI brand color)
+- Single Source box: GREEN border and accent (success, achievement)
+- All arrows: Teal/green (clean, positive flow)
+
+=== KEY INSIGHT ===
+This diagram should make the solution VISCERALLY OBVIOUS:
+- Everything flows through ONE PATH (Unity Catalog)
+- Semantic logic CONSOLIDATES in Metric Views
+- Power BI becomes CONSUMPTION ONLY (right tool, right role)
+- Result: ORDER, CLARITY, SINGLE SOURCE
+
+The visual should scream: "This is clean! This makes sense! This solves the problem!"
+
+Add call-out boxes:
+1. Near Unity Catalog: "What Palantir's Ontology does: Data discovery with interactive canvas"
+2. Near Metric Views: "What Unity Catalog adds: Unified semantic layer + governance for ALL tools"
+3. Near bottom: "Migration path: PBI semantic models → Metric Views (FEIP-1215 tool helps)"
+
+COMPARISON ANNOTATIONS (subtle, in corners):
+Top right corner in small gray text:
+"Before: 4 competing sources of truth
+After: 1 unified semantic layer"
+
+=== VISUAL CONTRAST WITH CURRENT STATE ===
+If you've seen the "Current Fragmented State" diagram, THIS diagram should be the OPPOSITE:
+- Where that one shows CHAOS (4 diverging arrows), this shows ORDER (1 clean flow)
+- Where that one uses RED (warning), this uses GREEN/TEAL (success)
+- Where that one emphasizes FRAGMENTATION, this emphasizes CONSOLIDATION
+- Where that one asks "Which is right?", this answers "This is right"
+
+**AVOID:**
+- Any fragmentation or diverging paths
+- Red warning colors
+- Multiple sources of truth
+- Complexity
+
+**EMPHASIZE:**
+- The consolidation (everything through Unity Catalog)
+- The semantic layer (Metric Views as the key)
+- The governance (built-in, not bolt-on)
+- The success (green colors, checkmarks)
+- The migration path (PBI models → Metric Views)
+
+Add prominent text near Unity Catalog:
+"Unity Catalog = Data Discovery + Governance + Semantic Layer
+Everything Palantir does, plus a unified semantic layer for all tools"
+
+Ensure spelling accuracy on all labels, particularly:
+- "Unity Catalog" (not Unity Catalogue)
+- "Semantic" (not Symantic)
+- "Consolidated" (not Consolidaited)
+- "Genie Spaces" (not Genie Space)
+- "FEIP-1215" (exact code)

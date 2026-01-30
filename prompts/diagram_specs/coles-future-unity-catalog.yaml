@@ -1,0 +1,86 @@
+name: "coles-future-unity-catalog"
+description: "Coles Group's future state with Unity Catalog as single source of truth"
+
+components:
+  - id: "source-systems"
+    label: "Source Systems"
+    type: "external"
+    logo_name: null
+
+  - id: "databricks"
+    label: "Databricks Lakehouse"
+    type: "service"
+    logo_name: "databricks-full"
+
+  - id: "unity-catalog"
+    label: "Unity Catalog\n(Single Source of Truth)"
+    type: "service"
+    logo_name: "unity-catalog"
+
+  - id: "metric-views"
+    label: "Metric Views\n(Semantic Layer)"
+    type: "service"
+    logo_name: null
+
+  - id: "genie-spaces"
+    label: "Genie Spaces\n(Governed Discovery)"
+    type: "service"
+    logo_name: null
+
+  - id: "power-bi"
+    label: "Power BI\n(Consumption Layer)"
+    type: "service"
+    logo_name: null
+
+  - id: "single-truth"
+    label: "Single Enterprise\nData Model"
+    type: "external"
+    logo_name: null
+
+connections:
+  - from_id: "source-systems"
+    to_id: "databricks"
+    label: "Ingest"
+    style: "solid"
+
+  - from_id: "databricks"
+    to_id: "unity-catalog"
+    label: "Register & Govern"
+    style: "solid"
+
+  - from_id: "unity-catalog"
+    to_id: "metric-views"
+    label: "Semantic Logic"
+    style: "solid"
+
+  - from_id: "metric-views"
+    to_id: "genie-spaces"
+    label: "AI-Powered Discovery"
+    style: "solid"
+
+  - from_id: "metric-views"
+    to_id: "power-bi"
+    label: "Consume"
+    style: "solid"
+
+  - from_id: "unity-catalog"
+    to_id: "single-truth"
+    label: "Unified Governance"
+    style: "solid"
+
+  - from_id: "metric-views"
+    to_id: "single-truth"
+    label: "Semantic Layer"
+    style: "solid"
+
+  - from_id: "genie-spaces"
+    to_id: "single-truth"
+    label: "Governed Spaces"
+    style: "solid"
+
+constraints:
+  layout: "top-to-bottom"
+  background: "white"
+  label_style: "sentence-case"
+  show_grid: false
+  spacing: "comfortable"

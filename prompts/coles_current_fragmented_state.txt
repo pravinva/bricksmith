@@ -1,0 +1,170 @@
+Use uploaded logos exactly. No numbered labels.
+
+LOGO KIT (uploaded as image attachments):
+Use these EXACT logos - do NOT recreate or substitute.
+Do NOT add numbered labels or circles to the diagram.
+
+- Databricks Logo: red/orange stacked bars icon with 'databricks' text
+- Delta Lake Logo: teal triangle icon
+- Unity Catalog Logo: pink squares, yellow triangles, navy hexagon icon
+
+LOGO RULES:
+- Use EXACT uploaded images - do NOT redraw or recreate
+- Only use logos mentioned in the prompt
+- Do NOT add numbered circles or labels to logos
+- Scale logos uniformly
+- NO filenames in output
+- Snowflake, Power BI, Palantir, Fabric: Generate their official logos (you know what they look like)
+
+Clean, minimal design suitable for executive presentations.
+White background.
+Professional corporate style.
+
+=== DATABRICKS BRAND STYLE GUIDE ===
+
+TYPOGRAPHY:
+- Primary font: Clean, modern sans-serif (Inter, Lato, or Open Sans style)
+- Font weights: BOLD for titles/headings, REGULAR for descriptive text
+- Font colors: Dark grey/black (#1B3139) for primary titles, lighter grey for descriptions
+- Clear hierarchy: 16px, 20px, 24px, 32px, 40px
+
+COLOR PALETTE:
+- Primary Orange: #FF3621 (accents, highlights)
+- Navy: #1B3139 (headers, text)
+- Warm Gray: #A0ACBE (backgrounds, borders)
+- Red/Warning: #DC3545 (for showing problems/fragmentation)
+- White: #FFFFFF (backgrounds)
+
+VISUAL STYLE:
+- Clean, professional, modern aesthetic
+- White background
+- Flat 2D vector graphics
+- Clear visual hierarchy
+
+DO NOT USE:
+- Numbered circles or step indicators
+- 3D effects or gradients
+- Drop shadows
+- Serif fonts
+
+**Subject:**
+Architecture diagram titled "Coles Group: Current Semantic Fragmentation" showing how semantic logic is scattered across multiple competing systems, creating data chaos.
+
+**Style:**
+Clean, professional. White background. Use RED/WARNING colors to emphasize fragmentation problems. Visual emphasis on the chaos of multiple sources of truth.
+
+**Key Message:**
+Coles has democratized data modeling too far, resulting in valuable semantic logic fragmented across Snowflake SQL scripts, Power BI semantic models, Palantir Ontology, and Microsoft Fabric. No single source of truth. No enterprise data model. Multiple competing versions of the same business logic.
+
+=== LAYOUT (Hub-and-Spoke with Fragmentation) ===
+
+TOP SECTION - Source Systems:
+Light gray boxes in a row:
+- "SAP"
+- "Legacy Systems"
+- "Third-Party Data"
+- "Operational Sources"
+Small arrows pointing DOWN toward Snowflake
+Label: "Raw data from enterprise systems"
+
+CENTER - The Hub (Snowflake):
+Large box with Snowflake logo (generate the official Snowflake logo)
+Title: "Snowflake Data Warehouse"
+Subtitle: "Hub-and-Spoke Model • Source-Aligned Data Products"
+Description: "Enterprise Data Team creates raw data products, democratizes modeling to business"
+
+FRAGMENTATION LAYER - The Problem (4 separate systems):
+Show 4 DISCONNECTED boxes in a row, each with RED/WARNING borders to emphasize the problem
+Each arrow from Snowflake has DIFFERENT colors to show they're competing paths
+
+Box 1 - Snowflake SQL:
+- Title: "Snowflake SQL Scripts"
+- Subtitle: "Transformation Logic"
+- Description: "Business analysts write custom SQL • Hundreds of scattered scripts • Logic lives in code"
+- RED warning icon
+- Arrow labeled "Business Team A"
+
+Box 2 - Power BI:
+- Power BI logo (generate official logo)
+- Title: "Power BI Semantic Models"
+- Subtitle: "BI Logic Layer"
+- Description: "Semantic models define business metrics • Logic locked in PBI • Not reusable"
+- RED warning icon
+- Arrow labeled "Business Team B"
+
+Box 3 - Palantir:
+- Title: "Palantir Ontology"
+- Subtitle: "Data Discovery"
+- Description: "Interactive canvas, table relationships • Good UX but logic isolated • Another source of truth"
+- Note: "Best feature: visual canvas for exploration"
+- RED warning icon
+- Arrow labeled "Business Team C"
+
+Box 4 - Microsoft Fabric:
+- Title: "Microsoft Fabric IQ"
+- Subtitle: "Experimental Workloads"
+- Description: "Positioned as magic solution • Playing catch-up on governance • Another silo"
+- RED warning icon
+- Arrow labeled "Business Team D"
+
+BOTTOM - The Consequence:
+Large RED-bordered box spanning full width
+Title: "⚠️ MULTIPLE SOURCES OF TRUTH"
+Four bullet points in red:
+- "Same metric calculated 4 different ways"
+- "No enterprise data model"
+- "Semantic logic fragmented across tools"
+- "Which version is correct?"
+
+Small text below in italic:
+"The cautionary tale: democratized modeling without governance = fragmentation at scale"
+
+=== VISUAL FLOW ===
+
+PRIMARY FLOW (showing the problem):
+- Clean arrows DOWN from Source Systems → Snowflake (this part is good)
+- Then from Snowflake, show 4 DIVERGING arrows in DIFFERENT colors going to each of the 4 fragmented systems
+  - Use red, orange, yellow, purple to show they're competing paths
+- Label the divergence: "Semantic logic fragments here"
+
+CHAOS INDICATORS:
+- Show dotted lines connecting the 4 fragmented systems labeled "Inconsistent definitions"
+- Show question marks between them: "Which is right?"
+- Add RED warning triangles near the fragmentation
+
+=== COLOR CODING ===
+- Source Systems: Light gray (neutral, just data)
+- Snowflake Hub: Blue (Snowflake brand color) - this part works
+- Fragmented Systems: RED borders to show the problem
+- Diverging arrows: Multiple colors (red, orange, yellow, purple) to emphasize chaos
+- Bottom consequence box: RED background with white text
+
+=== KEY INSIGHT ===
+This diagram should make the problem VISCERALLY OBVIOUS:
+- Top section looks clean (data flows into Snowflake)
+- Middle section shows CHAOS (4 arrows diverging to 4 separate systems)
+- Bottom section shows THE COST (multiple sources of truth)
+
+The visual should scream: "This is messy! This needs to be fixed!"
+
+Add a subtle text overlay in the fragmentation area:
+"What Palantir does well: Interactive canvas for discovery
+What's missing: Unified governance and semantic layer"
+
+**AVOID:**
+- Making this look organized or good
+- Using orderly layouts
+- Green checkmarks
+- Positive colors
+- Any indication this is working well
+
+**EMPHASIZE:**
+- The fragmentation (4 separate paths)
+- The chaos (different colors, red borders)
+- The cost (multiple sources of truth)
+- The warning (this is a cautionary tale)
+
+Ensure spelling accuracy on all labels, particularly:
+- "Palantir" (not Palanir or Palanteer)
+- "Semantic" (not Symantic)
+- "Fragmentation" (not Fragmintation)

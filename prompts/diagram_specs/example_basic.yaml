@@ -10,17 +10,17 @@ components:
   - id: "databricks"
     label: "Databricks Workspace"
     type: "service"
-    logo_name: "databricks"
+    logo_name: "databricks-full"
 
   - id: "delta-lake"
     label: "Delta Lake"
     type: "storage"
-    logo_name: "delta-lake"
+    logo_name: "delta"
 
   - id: "unity-catalog"
     label: "Unity Catalog"
     type: "service"
-    logo_name: "uc"
+    logo_name: "unity-catalog"
 
   - id: "consumers"
     label: "Data Consumers"
