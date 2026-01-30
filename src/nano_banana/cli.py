@@ -21,6 +21,7 @@ from .logos import LogoKitHandler
 from .mlflow_tracker import MLflowTracker
 from .models import DiagramSpec
 from .prompts import PromptBuilder
+from .prompt_refiner import PromptRefiner
 from .runner import DiagramRunner
 
 
@@ -49,6 +50,11 @@ class Context:
             self.prompt_builder,
             self.gemini_client,
             self.mlflow_tracker,
+        )
+        self.prompt_refiner = PromptRefiner(
+            self.gemini_client,
+            self.mlflow_tracker,
+            self.prompt_builder,
         )
 
 
