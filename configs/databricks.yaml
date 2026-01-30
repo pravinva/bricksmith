@@ -14,6 +14,6 @@ mlflow:
   artifact_location: null  # Databricks manages artifact storage
 
 logo_kit:
-  logo_dir: "./examples/logo_kit"
+  logo_dir: "./logos/default"
   max_logo_size_mb: 5.0
   allowed_extensions: [".jpg", ".jpeg", ".png"]
