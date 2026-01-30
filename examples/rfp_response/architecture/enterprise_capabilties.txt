@@ -1,0 +1,98 @@
+
+The Databricks Data Intelligence Platform is built on a unified lakehouse architecture, combining the structure and performance of a data warehouse together with the scale of a data lake to enable AGL to deliver on its data and AI initiatives at speed. This unified, open, and scalable architecture provides Enterprise-Grade advantages for critical infrastructure and highly regulated organisations as detailed below.
+Foundational Principles and Open by Design
+Databricks’ Data Intelligence Platform is open by design, giving highly regulated, critical‑infrastructure organisations like AGL Energy strong control over data while avoiding long‑term lock‑in to any single vendor or technology stack. The platform separates compute from storage, keeping all data in open formats (such as Delta Lake, Iceberg, and Apache Parquet) on cloud object stores like Azure ADLS, Amazon S3, or Google GCS, so data remains portable, independently scalable, and accessible from non‑Databricks engines and tools. This architecture ensures that analytics, AI workloads, and governance services can evolve or be replaced directly supporting resilience, sovereignty, and long‑term data ownership objectives.
+Interoperability with broader technology ecosystems and external data collaborators is enabled through open table formats and the Delta Sharing protocol, which allows secure, zero‑copy sharing of live data across platforms, clouds, and geographic regions in Delta, Iceberg, and Parquet formats. Partners, regulators, and suppliers can consume governed data using their preferred tools and clouds, authenticating with their own identity providers (e.g. Entra ID or Okta) while Unity Catalog provides centralized governance and auditing across shared datasets. This combination of open storage, decoupled compute, and standards‑based sharing gives critical‑infrastructure customers confidence that they retain true ownership, portability, and control of their data assets, even as ecosystems, vendors, and regulatory requirements evolve.
+
+Objective
+How Databricks Supports AGL Energy
+Leverage object based storage for cost and scalability.
+Separates storage from compute for best cost performance and ensures AGL can independently scale these as required.
+Commodity object storage is significantly cheaper than traditional data warehouses or managed databases.
+Databricks optimises access to object storage with features like file compaction, z-ordering, and vacuum to reduce cost.
+Avoid lock-in by using open source formats.
+Enables multiple engines to read and write to the same tables without migrating data.
+Data remains portable across clouds, catalogs, and engines.
+Cross-platform data sharing is enabled to reduce costly and risky copy activities and maintain one source of truth.
+Achieve interoperability with your ecosystem.
+Leverage open APIs to ensure your complete technology ecosystem can read/write securely without migrating data.
+Create secure data sharing Clean Rooms with your data partners and collaborators, unifying your ecosystem, even those on other clouds or with other systems.
+Ensure least-privilege, zero-trust policies are enforced for stringent end-to-end security requirements.
+
+
+Security, Governance, and Data Intelligence
+Databricks’ Data Intelligence Platform provides an end‑to‑end, enterprise‑grade security and governance foundation that is well suited to highly regulated, critical‑infrastructure environments. Unity Catalog is the centralized control plane for all data, AI assets, and related artifacts, enforcing fine‑grained, role‑ and attribute‑based access control down to row and column level, central auditing, lineage, and data‑privacy features such as masking and tokenization. These controls apply consistently across workspaces and clouds, with policies defined once and enforced everywhere, helping organisations demonstrate compliance with strict regulatory and cyber‑security obligations while enabling broad data and AI use.
+The platform integrates natively with Microsoft Entra ID (formerly Azure AD) and similar enterprise identity providers to make identity the single source of truth for authorisation. Entra ID users, groups, and service principals are automatically synchronized into Databricks via automatic identity management and SCIM, so Unity Catalog permissions map directly to corporate roles and are updated as memberships change, reducing manual administration and the risk of orphaned access. Single sign‑on, MFA, service‑principal–based access for tools like Power BI, and OAuth‑based access to APIs create a strong, defensible security posture, while network controls, encryption, and extensive audit logging at the platform level provide the layered controls expected in critical‑infrastructure contexts.
+
+Objective
+How Databricks Supports AGL Energy
+Fine grained security controls for  critical infrastructure and regulated businesses.
+Unity Catalog implements role-based access control by granting privileges on catalogs, schemas, tables, views, columns, models, and other securable objects to users, groups, and service principals, enforcing least‑privilege.
+Attribute‑based access control (ABAC) uses governed tags and centralized policies to dynamically filter, mask, or deny access based on data sensitivity and user or resource attributes for scalable, fine‑grained controls.
+Multiple layers of enforcement—workspace bindings, RBAC privileges, ABAC tag‑driven policies, and table‑level filters/masks—work together to provide granular control over where, when, who and what data can be accessed.
+As an open, interoperable catalog, Unity Catalog exposes open APIs and integrates with enterprise catalogs and data‑security platforms (for example, BigID and others), allowing organisations to synchronize metadata, classifications, and policies across heterogeneous tools.
+Data intelligence to streamline acquisition, dissemination, and understanding of data to business users.
+Built‑in data intelligence automatically generates and maintains human‑readable table and column descriptions, to explain what data a table contains and how it is used.
+Unity Catalog combines AI‑powered search, documentation, and lineage so users can quickly discover relevant datasets, understand upstream sources and downstream consumers, and trust their data.
+Data discovery and collaboration features in the lakehouse let stewards curate guides and knowledge bases over data, which business users and AI/BI tools can then interrogate via natural language for faster, governed access to insights.
+Optimise data layout, schemas, and performance with intelligent recommendations for performance and security enhancements.
+Predictive Optimization in Unity Catalog–managed Delta tables automatically analyzes query patterns and runs background maintenance (e.g. file compaction, statistics collection, and layout tuning) to keep tables “query‑ready.”
+Features such as Auto Optimize, auto compaction, optimized writes, Z‑ordering, and liquid clustering intelligently organize data - reducing small files, improving data skipping, and aligning clustering with real filter and join patterns - a significant boost to performance.
+Databricks AI assistants surface configuration and schema recommendations (for example, partition strategy, cache usage, and Photon enablement) that tune clusters and SQL warehouses for both cost and performance.
+Unity Catalog’s centralized security layer can be combined with partner integrations (such as data‑security platforms) to discover sensitive data, apply appropriate tags and policies, and continuously enforce fine‑grained access controls as data structures evolve.
+
+
+Data Analytics for All Workloads and All Teams
+Databricks’ Data Intelligence Platform delivers large‑scale ingestion, transformation, and analytics capabilities across batch, streaming, and operational workloads, tailored to the needs of highly regulated, critical‑infrastructure organisations. Databricks LakeFlow is a unified, low‑code data engineering capability that combines governed ingestion, declarative batch and streaming pipelines, and built‑in orchestration and monitoring to deliver reliable, real‑time data for analytics and AI at scale. Databricks SQL provides a high‑performance, elastic SQL warehouse for business reporting and dashboards, integrating seamlessly with existing BI tools while querying governed lakehouse data without duplication. Spark Structured Streaming and the broader lakehouse architecture enable continuous ingestion and processing of real‑time data, while Lakebase extends this into low‑latency operational use cases by pairing a managed PostgreSQL engine with native Delta Lake integration so analytical insights and ML predictions can be activated directly in front‑line business applications.
+For business users, the platform layers powerful low‑code and AI‑assisted capabilities on top of this scalable foundation. AI/BI dashboards and Databricks SQL AI functions let teams embed predictive models and generative AI directly into reports, while Genie provides a governed, natural‑language interface so non‑technical users can ask questions in plain English and have the system generate accurate queries and visualisations over curated datasets. AI assistants, multi‑agent Genie spaces, and coding agents help engineers and analysts develop pipelines, notebooks, and applications faster and more safely, all under Unity Catalog governance and audit controls for mission-critical workloads.
+
+Objective
+How Databricks Supports AGL Energy
+Batch and streaming analytics capabilities for all data velocities.
+Lakeflow and Spark Structured Streaming provide a unified engine for batch and streaming pipelines, so the same declarative pipelines and code can process historical, microbatch, and real‑time data in a governed way.
+Databricks Zerobus is a managed, Kafka‑free ingestion service that lets applications and devices stream events directly into Delta tables via a simple API, removing the need for a separate message bus while providing low‑latency, scalable, and governed real‑time data ingestion.
+Databricks SQL delivers low‑latency, scalable analytics and BI, enabling consistent metrics and reporting across all data velocities without copying data into a separate warehouse.
+LakeBase pairs low‑latency operational storage with Delta Lake so streaming and batch pipelines can both feed real‑time applications and analytical workloads from a single, consistent data foundation.
+Enterprise-grade BI reporting and natural language interaction with data.
+AI/BI with Genie gives business users a governed, conversational interface to ask natural language questions and automatically generate SQL, tables, and visualisations.
+Native connectors and Partner Connect integrations provide secure, live connections from Databricks SQL warehouses into major BI tools like Power BI and Tableau.
+Companion Genie spaces for AI/BI dashboards let users refine and explore dashboards using natural language, turning static reports into self‑service experiences.
+Built-in AI to speed deployment of critical use cases with security at the core.
+Databricks Assistant and coding tools act as AI pair‑programmers inside notebooks and SQL editors, generating and explaining code, fixing errors, and accelerating development.
+The Databricks Agent Framework and Agent Bricks provide a structured way to build, evaluate, and deploy AI agents, automating experimentation and monitoring so complex, multi‑step workflows can be safely orchestrated at scale.
+Agent Bricks Gateway and Unity Catalog enforce centralized governance over models, tools, and data used by agents and assistants, including access control, logging, and evaluation to reduce risks from insecure code, jailbreaks, or inappropriate data access.
+Trust and safety controls—such as encrypted traffic, data residency guarantees, content filtering, and detailed observability for assistant and agent activity—help critical environments adopt “vibe coding” and AI‑assisted DevOps without compromising security or compliance.
+
+
+Harnessing the Transformational Capability of AI
+Databricks’ Data Intelligence Platform provides an end‑to‑end environment for building, deploying, and governing machine learning, AI, and GenAI solutions that meet the needs of highly regulated, critical‑infrastructure organisations. Collaborative Databricks notebooks give data scientists and engineers a secure workspace for Python, R, Scala, and SQL, tightly integrated with managed compute, data governance, and version control, so experimentation and production workflows run on the same, controlled platform. MLflow is built in for experiment tracking, model packaging, and a central model registry, allowing teams to manage the full lifecycle of both traditional ML and GenAI models with consistent lineage, approvals, and rollback. Models are served through governed endpoints with policy controls, enabling real‑time inference at scale while aligning with compliance, audit, and operational resilience requirements.
+On top of this foundation, Agent Bricks and the broader Agent Bricks capabilities enable domain‑specific AI agents, RAG applications, and multi‑agent systems that can safely interact with critical data and processes while remaining observable and controllable. The platform supports model optionality by allowing customers to train and serve their own models, fine‑tune open‑source foundation models, or integrate external proprietary models under a unified governance and monitoring layer, preserving flexibility as technology and regulatory expectations evolve. Native monitoring, observability, and traceability - spanning MLflow for GenAI, model and data drift detection, vector search telemetry, and detailed request traces - provide the transparency and control needed to operate AI systems in safety‑critical contexts, ensuring that every prediction and agent action can be inspected, explained, and, if necessary, remediated.
+
+Objective
+How Databricks Supports AGL Energy
+Build, test, deploy and monitor ML and AI models at scale.
+Databricks notebooks give data scientists and engineers a collaborative, governed workspace to explore data, build and test ML/AI models, and package reproducible workflows that run on scalable compute.
+MLflow is built into the platform to track experiments, register and version models, manage approvals and stages, and serve models with monitoring for performance, drift, and usage, providing full lifecycle management.
+Agent Bricks and the agent framework let teams define, test, and deploy AI agents and GenAI workflows with integrated observability (logging, tracing, evaluations) and centralized policy controls so that model behavior, data access, and changes remain auditable and compliant.
+Accelerate time-to-value by leveraging best in class models from foundation providers and open source.
+Databricks provides unified access to top commercial and open‑source foundation models through Agent Bricks Model Serving and Foundation Model APIs, so teams can train, fine‑tune, or call external models from one governed platform close to their data.
+A central gateway with the Databricks AI Security Framework and Agent Bricks Gateway enforces strong security and governance—controlling which models can be used, how data flows to them, and ensuring every call is authenticated, authorized, encrypted, and fully logged.
+Integrated monitoring, tracing, and lifecycle management track model performance, cost, and drift across both in‑platform and external models, giving critical infrastructure organisations a single pane of glass to operate AI safely at scale.
+Use modern capabilities of GenAI to automate workflows and support business users with low and no code agent development.
+The Agent Bricks Agent Framework and Agent Bricks provide low‑ and no‑code experiences (e.g. AI Playground) so domain experts can design task-focused agents in natural language, wire them to enterprise data and tools, and let the platform handle infrastructure, evaluation, and optimization.
+Databricks Apps, AI/BI dashboards, and Genie spaces let business users interact with agents and analytics through conversational interfaces and simple UI components, turning common workflows into self‑service experiences without needing to write code.
+All agents run within Databricks’ governed environment, inheriting Unity Catalog security, model and data lineage, logging, and rate‑limiting, so critical infrastructure organisations can scale automation while keeping agent actions auditable, controlled, and compliant.
+
+
+Integration into the Azure and Microsoft Ecosystem
+Because of the industry leading partnership between Microsoft and Databricks, Azure Databricks is a true first‑party service in Azure. It natively plugs into core data, AI and BI components such as Azure Data Factory, Azure AI Foundry, and Power BI with shared security, networking and identity controls suited to regulated and critical‑infrastructure environments. For example, Azure Data Factory can natively trigger Databricks Workflows via a Databricks Job activity, while Databricks reads and writes to Azure Data Lake Storage and then exposes Delta Lake tables directly to Power BI, eliminating data copies and enabling governed, end‑to‑end pipelines from ingestion to interactive dashboards.
+On the AI side, a native connector in Azure AI Foundry lets agents call into Azure Databricks (for example, Genie/AI‑driven queries) over real‑time, Unity‑Catalog‑governed data, so generative AI apps are grounded in enterprise truth while staying inside Azure’s compliance and security boundary. Microsoft Purview integrates at the platform level with Unity Catalog for cataloging and lineage, producing architectures where landing zones, RBAC, private networking and monitoring are applied consistently across ADF, Databricks, AI Foundry, and Power BI — a pattern recommended in Microsoft’s “modern analytics” and “enterprise‑hardened” reference architectures for mission‑critical workloads.
+
+Objective
+How Databricks Supports AGL Energy
+Leverage existing Azure environments and services for complete interoperability.
+Microsoft and Databricks have a strategic partnership to create a true first-party, jointly engineered and supported service.
+Native integrations with Azure services speeds time-to-value, removes service contention risks, and ensures supportability.
+Leverage existing BI tooling and team skills while transforming the underlying platform and adopting the latest innovations.
+
+

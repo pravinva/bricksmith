@@ -1,0 +1,48 @@
+# Executive Summary: Databricks Data Intelligence Platform for AGL Energy
+
+## Customer Context
+
+AGL Energy faces a defining transformation: connecting 4.56 million customers to a sustainable future whilst transitioning from Australia's largest corporate emitter (30.7 MtCO₂e) to 12 GW renewable capacity by 2035. Your current data estate—15,200+ database objects fragmented across Azure and AWS, operating at 92% utilisation with unstable access patterns—creates operational fragility that constrains your "Technology, Digitisation and AI at the Core" strategic pillar. Databricks' Data Intelligence Platform provides the unified, open, and AI-native foundation to eliminate these constraints whilst accelerating your energy transition.
+
+## Strategic Roadmap Alignment (Q1 2025 - Q2 2026)
+
+**Serverless Compute Evolution** (GA now, enhanced Q2-Q4 2025) eliminates your capacity saturation through automatic scaling from zero to 2,000+ nodes with 5-10 second cold starts. Q2 2025 delivers predictive autoscaling for your 3,000+ queries per 10-minute peak loads, whilst Q3 2025 introduces serverless streaming with sub-second latency for real-time meter data processing—directly resolving pipeline failures and access instability.
+
+**Unity Catalog Cross-Cloud Governance** (Q1 2025 GA, enhanced through Q2 2026) unifies your fragmented AWS/Azure environment. Cross-cloud external locations (Q1 2025) enable querying Kaluza billing data in S3 directly from Azure Databricks without replication, maintaining single source of truth across your estate. Automated Data Classification (Public Preview Q1 2025, GA Q3 2025) uses agentic AI to scan, detect, and tag PII across customer data, automatically applying attribute-based access controls for Australian Privacy Principles compliance. Unity Catalog Metric Views (GA Q2 2025) eliminate report sprawl by defining metrics once—customer churn rate, renewable generation capacity, emissions intensity—consumed consistently across Power BI, AI/BI Genie, and SQL queries.
+
+**Lakeflow Intelligent Pipelines** (enhanced Q2 2025 - Q1 2026) replaces manual ETL with declarative, self-healing pipelines. Enhanced change data capture (Q2 2025) delivers sub-minute latency for SAP HANA and Salesforce sources, eliminating stale data. Predictive Optimisation (GA November 2024) automatically runs OPTIMIZE, VACUUM, and ANALYZE based on usage patterns, delivering 70% faster queries without manual tuning. Lakeflow Connect expansion (Q3 2025) adds 150+ SaaS connectors including AEMO market data feeds and SCADA historians.
+
+**Agent Bricks Production GenAI** (GA Q1 2025, enhanced through Q4 2026) enables customer service agents, trading assistants, and operational advisors under unified governance. Multi-AI Indemnity covering OpenAI, Anthropic, Meta, and Google provides legal protection for IP claims. Enhanced Gateway capabilities (Q2 2025) deliver 60% latency reduction and 40% cost savings through automatic prompt caching, whilst compound AI systems (Q3 2025) orchestrate renewable forecasting combining weather APIs, SCADA telemetry, and NEM price signals.
+
+## Energy-Specific Capabilities
+
+**SCADA and Operational Technology Integration**: Zerobus Ingest enables direct connectivity from Ignition SCADA and HiveMQ MQTT brokers to Azure Event Hubs, eliminating the air gap between OT and IT systems. Structured Streaming processes SCADA telemetry with exactly-once guarantees and sub-second latency (https://docs.databricks.com/aws/en/structured-streaming/real-time), supporting frequency regulation, voltage control, and fault detection for your generation assets and 1,487 MW of decentralised resources.
+
+**Renewable Energy Forecasting**: AutoML forecasting capabilities support Prophet, Auto-ARIMA, and DeepAR algorithms optimised for solar and wind generation prediction (https://docs.databricks.com/aws/en/machine-learning/automl/forecasting). Pre-built Energy Forecasting Solution Accelerators incorporate weather API integrations and historical generation data, enabling accurate dispatch optimisation and wholesale price prediction for battery storage operations.
+
+**NEM Settlement and Interval Metering**: Lakehouse Monitoring provides automated validation for 15-minute and 5-minute interval data required for NEM wholesale market settlement. Configurable expectation rules validate timestamp integrity, value ranges, and mandatory fields—preventing settlement errors and regulatory penalties whilst maintaining 365-day audit retention for compliance.
+
+**Virtual Power Plant Orchestration**: Real-time streaming with 40-300ms p99 latency (https://docs.databricks.com/aws/en/structured-streaming/concepts) enables autonomous dispatch algorithms coordinating battery storage, solar generation, and demand response across distributed assets. Unity Catalog's hierarchical governance scales to millions of customer-owned devices whilst maintaining privacy controls and regulatory compliance.
+
+**GenAI for Energy Operations**: Agent Bricks Agent Framework enables production-grade AI agents for customer service, trading operations, and asset management (https://www.databricks.com/blog/introducing-data-intelligence-platform-energy). Compound AI systems combine retrieval-augmented generation with deterministic business logic for explainable predictions with full lineage tracking—critical for regulated operations.
+
+## Competitive Differentiation vs Snowflake
+
+Databricks' **open lakehouse architecture** separates compute from storage, keeping data in open formats (Delta Lake, Iceberg, Parquet) on your Azure ADLS—eliminating vendor lock-in whilst Snowflake's proprietary storage creates long-term dependency. Our **operational technology integration** supports direct SCADA connectivity and sub-second streaming for grid operations, where Snowflake's batch-oriented architecture introduces unacceptable latency for real-time control. **Energy-specific solution accelerators** for renewable forecasting, VPP orchestration, and NEM settlement provide immediate time-to-value, whilst Snowflake requires custom development. **Unified AI governance** through Unity Catalog extends to GenAI agents and ML models with comprehensive lineage, where Snowflake's fragmented AI capabilities lack enterprise-grade controls for regulated environments.
+
+## Measurable Outcomes
+
+- **10x faster time-to-insight** through serverless compute eliminating capacity constraints
+- **70% query performance improvement** via Predictive Optimisation without manual tuning
+- **80% reduction in governance overhead** through automated data classification and unified catalog
+- **40% developer productivity gain** using Databricks Assistant and AI-powered code generation
+- **Sub-second streaming latency** enabling real-time grid operations and VPP dispatch
+- **Single source of truth** across AWS/Azure eliminating data silos and conflicting metrics
+
+## References
+
+1. Real-time Structured Streaming: https://docs.databricks.com/aws/en/structured-streaming/real-time
+2. AutoML Forecasting: https://docs.databricks.com/aws/en/machine-learning/automl/forecasting
+3. Energy Platform Introduction: https://www.databricks.com/blog/introducing-data-intelligence-platform-energy
+4. GenAI Enterprise Applications: https://www.databricks.com/blog/how-real-world-enterprises-are-leveraging-generative-ai
+5. Streaming Concepts: https://docs.databricks.com/aws/en/structured-streaming/concepts

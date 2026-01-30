@@ -1,0 +1,18 @@
+1. Enterprise Governance at Scale
+Addressing Challenges #2 (Discovery) and #4 (Semantic Understanding)
+Unity Catalog is the central nervous system of the platform, providing the "define once, secure everywhere" model you require.
+Unified Discovery: Unity Catalog spans the entire estate, replacing the "tribal knowledge" problem with a searchable, intelligent Data Catalogue and Metadata Management layer shown in the Supervision Plane.
+Semantic Consistency: By enabling a Semantic Layer within the Intelligence Engine, business definitions are standardized. When a user asks "How can I understand the data?", the platform provides context, not just raw tables.
+Security without Friction: The integration with AGL myIdentity (Entra ID) ensures that while data is discoverable, access is strictly governed via RBAC/SSO, ensuring security never becomes a bottleneck.
+2. Mitigation of Migration Risk & Operational Stability
+Addressing Challenges #1 (Fragility) and #3 (Trust)
+To eliminate the "access is unstable" experience, the architecture replaces fragile legacy pipelines with a robust, automated factory.
+Elastic Scalability: The Databricks SQL layer utilizes Serverless SQL Warehouses and Separation of Storage/Compute. This eliminates the "92% utilisation" constraint by allowing compute to scale instantly to meet demand without affecting storage or other workloads.
+Structured Trust: The diagram explicitly maps the Medallion Architecture (Raw  Refined Curated). This automated curation ensures that by the time data reaches the "Consumption Zone," it is trusted and validated—answering the "Is this accurate?" question.
+Automated Orchestration: Lakeflow Jobs and Lakeflow Connect handle the heavy lifting of ingestion and orchestration, replacing brittle manual processes with managed, resilient pipelines.
+3. Future-Proofing for the Energy Transition
+Addressing Challenge #5 (AI Accessibility)
+This architecture is built to democratise innovation, bridging the gap between specialist teams and business users.
+Bridging OT and IT: The bottom layer unifies Customer Cloud (AWS) and Operational Cloud (Azure). This allows AGL to harness industrial data streams (Ignition/SCADA) alongside customer data (Kaluza) for holistic predictive operations.
+Democratising AI: For the user asking "How do I develop a model?", the platform offers tiered access: Data Scientists use notebooks, while Business Analysts leverage AI Agents & Copilots and Dashboards & AI/BI.
+The Intelligence Engine: The core Intelligence Engine, powered by Agent Bricks and Foundation Model Serving, allows AGL to deploy generative AI agents that can actively assist in grid optimization and customer service, rather than just passively reporting on them.

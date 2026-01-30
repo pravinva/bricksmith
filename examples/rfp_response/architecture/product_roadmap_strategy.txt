@@ -1,0 +1,219 @@
+# Product Road Map / Technology Strategy
+
+## Opening Context
+
+Having reviewed AGL's technology questionnaire, three priorities emerge clearly: enterprise governance at scale spanning your multi-cloud AWS/Azure environment, low-risk migration pathways for 15,200+ database objects, and strategic alignment with Australia's energy transition. Our response demonstrates how Databricks directly addresses each imperative.
+
+---
+
+## 1. Product Roadmap
+
+Databricks' product roadmap directly addresses AGL's operational fragility and capacity saturation challenges through three strategic investment pillars: intelligent automation, unified governance, and AI-native capabilities. Our development priorities align with AGL's transformation to connect 4.56 million customers whilst transitioning to 12 GW renewable capacity by 2035.
+
+**Serverless Compute Evolution (Q2 2025 - Q4 2025)**
+
+Serverless compute eliminates AGL's 92% utilisation constraint and manual capacity management. Currently in General Availability all types of compute including notebooks, model training, and streaming workloads. This delivers 5-10 second cold start times and automatic scaling from zero to 2,000+ nodes without production downtime—directly resolving the "access is unstable, or pipelines fail" issues reported by AGL stakeholders.
+
+Q2 2025 brings enhanced Intelligent Workload Management with predictive autoscaling that uses historical query patterns to pre-provision capacity ahead of AGL's 3,000+ queries per 10-minute peak loads. Q3 2025 introduces serverless streaming with sub-second latency for real-time meter data processing, whilst Q4 2025 delivers serverless ML training with automatic GPU provisioning for renewable forecasting models.
+
+**Unity Catalog: Cross-Cloud Governance Maturity (Q1 2025 - Q2 2026)**
+
+Unity Catalog's roadmap directly tackles AGL's data fragmentation across Azure and AWS, eliminating the silos between Kaluza (AWS), Salesforce (AWS), and Azure corporate systems. Our Q1 2025 release delivers cross-cloud external locations in General Availability, enabling AGL to query Kaluza billing data in S3 directly from Azure Databricks without replication—maintaining a single source of truth across 15,200+ database objects.
+
+Automated Data Classification (Public Preview Q1 2025, GA Q3 2025) uses agentic AI to scan, detect, and tag PII across AGL's customer data estate, automatically applying attribute-based access controls. This addresses regulatory requirements for customer energy data under Australian Privacy Principles whilst reducing manual classification effort by 80%.
+
+Q2 2025 introduces Unity Catalog Metric Views in General Availability, providing semantic layer capabilities that eliminate report sprawl. Business teams define metrics once—customer churn rate, renewable generation capacity, emissions intensity—and consume them consistently across Power BI, AI/BI Genie, and SQL queries. This directly resolves the "multiple non-enterprise systems" challenge creating conflicting metrics across Customer Markets.
+
+Q4 2025 delivers enhanced column-level lineage with impact analysis dashboards, enabling data stewards to visualise downstream dependencies before schema changes. Q1 2026 brings automated data quality scoring surfaced in Catalog Explorer, answering "Is the data I'm looking at the most current/accurate?" through freshness, completeness, and accuracy metrics computed by Lakehouse Monitoring.
+
+**Lakeflow: Intelligent Data Engineering (Q2 2025 - Q3 2026)**
+
+Lakeflow Spark Declarative Pipelines (SDP) replaces manual, offline ETL processes with declarative, self-healing pipelines. Our Q2 2025 roadmap introduces enhanced change data capture with sub-minute latency for SAP HANA and Salesforce sources, eliminating the multi-hop architecture causing stale data. Predictive Optimisation (GA since November 2024) automatically runs OPTIMIZE, VACUUM, and ANALYZE based on usage patterns, delivering 70% faster queries without manual tuning.
+
+Q3 2025 brings Lakeflow Connect expansion to 150+ SaaS connectors including energy-specific sources like AEMO market data feeds and SCADA historians. Zero-code configuration with automatic schema evolution eliminates the custom integration work currently required for point solutions like Lacima.
+
+Q4 2025 delivers intelligent pipeline recommendations using AI to suggest optimal partition strategies, Z-ordering columns, and liquid clustering configurations based on query patterns. Q1 2026 introduces automated data quality remediation where Lakeflow SDP detects expectation violations and automatically triggers correction workflows—quarantining invalid interval meter data whilst alerting data stewards.
+
+**Agent Bricks: Production GenAI for Energy Operations (Q1 2025 - Q4 2026)**
+
+Agent Bricks Agent Framework (GA Q1 2025) enables AGL to build production-grade AI agents for customer service, trading operations, and asset management. Our Multi-AI Indemnity covering OpenAI, Anthropic, Meta, and Google models provides legal protection for IP claims—eliminating procurement barriers for customer-facing AI applications.
+
+Q2 2025 introduces Agent Bricks Gateway enhancements with automatic prompt caching, reducing latency by 60% and costs by 40% for repetitive queries in customer service chatbots. Q3 2025 delivers compound AI system templates for energy sector use cases: renewable forecasting agents combining weather APIs, SCADA telemetry, and NEM price signals; customer retention agents analysing billing history, usage patterns, and sentiment data.
+
+Q4 2025 brings MLflow 3.0 with GenAI-specific tracing, LLM judge evaluations, and automated A/B testing for prompt variations. Q2 2026 introduces Agent Bricks Fine-Tuning for domain-specific models trained on AGL's operational data—enabling battery dispatch optimisation and VPP orchestration across 1,487 MW of decentralised assets whilst maintaining data sovereignty within AGL's Azure tenant.
+
+These roadmap investments deliver measurable outcomes: 10x faster time-to-insight through serverless compute, 80% reduction in governance overhead via Unity Catalog automation, 70% query performance improvement from Predictive Optimisation, and production-ready GenAI capabilities supporting AGL's "Technology, Digitisation and AI at the Core" strategic pillar.
+
+---
+
+## 2. Artificial Intelligence (AI) Strategy
+
+Databricks' AI strategy centres on democratising production-grade AI across AGL's organisation whilst maintaining enterprise governance—directly enabling the "Technology, Digitisation and AI at the Core" strategic pillar through platform-native capabilities that eliminate the fragmentation of multi-vendor AI stacks.
+
+**Current AI Utilisation: Platform-Native Intelligence**
+
+Databricks embeds AI throughout the platform today, delivering immediate value without additional licensing. Databricks Assistant provides context-aware code generation, debugging, and data discovery within notebooks and SQL editors, accelerating developer productivity by 40%. The /findTables command uses natural language to discover relevant datasets across Unity Catalog's 15,200+ objects, whilst automatic code completion suggests transformations based on schema context and usage patterns.
+
+AI/BI Genie (General Availability) enables business users to query data using natural language, automatically generating SQL from conversational questions like "What's our customer churn rate in NSW for Q4 2024?" The system learns from AGL's Unity Catalog metadata, certified metrics, and query history to provide intelligent follow-up suggestions—democratising analytics access without requiring SQL expertise.
+
+Predictive Optimisation uses machine learning to automatically maintain Delta Lake tables, analysing query patterns to schedule OPTIMIZE, VACUUM, and ANALYZE operations during low-usage periods. Enabled by default since November 2024, production deployments show 70% faster queries and 50% storage reduction without manual intervention—directly addressing AGL's performance constraints.
+
+Lakehouse Monitoring provides automated ML-driven anomaly detection for data quality. The system builds statistical models of freshness, completeness, and distribution patterns across Unity Catalog tables, surfacing health metrics in executive dashboards. For AGL's interval meter data and NEM settlement processes, this catches quality issues before they impact downstream billing and regulatory reporting.
+
+**Features in Development: Enterprise GenAI Capabilities**
+
+Our Q1-Q4 2025 roadmap introduces production-grade generative AI capabilities purpose-built for regulated industries. Agent Bricks Agent Framework (GA Q1 2025) provides a governed development environment for building, testing, and deploying AI agents with built-in guardrails, evaluation frameworks, and observability. This enables AGL to deploy customer service agents, trading assistants, and operational advisors whilst maintaining compliance with Australian Privacy Principles.
+
+Agent Bricks Gateway (enhanced Q2 2025) acts as a unified inference layer for all LLM traffic, providing automatic prompt caching that reduces latency by 60% and costs by 40% for repetitive queries. The gateway enforces rate limiting, PII detection, and content filtering at the API layer—preventing sensitive customer data from reaching external model providers whilst maintaining audit trails for regulatory compliance.
+
+Compound AI Systems (Q3 2025) enable multi-step reasoning workflows combining retrieval-augmented generation, function calling, and deterministic business logic. For AGL's renewable forecasting, this orchestrates weather API calls, SCADA telemetry analysis, and NEM price signal processing within a single agent—delivering explainable predictions with full lineage tracking from raw data to forecast output.
+
+MLflow 3.0 (Q4 2025) introduces GenAI-specific capabilities including LLM judge evaluations using frontier models to assess response quality, automated A/B testing for prompt variations, and comprehensive tracing that captures token usage, latency, and cost metrics across development and production environments. This provides the rigorous evaluation framework required for customer-facing AI applications.
+
+**Value Delivery: Measurable Business Outcomes**
+
+Our AI strategy delivers value across AGL's three strategic drivers. For Business Intelligence, AI/BI Genie reduces time-to-insight from hours to seconds, enabling business users to self-serve analytics without data team bottlenecks. Automated data quality monitoring prevents the "Is the data I'm looking at the most current/accurate?" concerns that erode trust, whilst intelligent metadata management answers "How can I understand the data I'm looking at?" through AI-generated documentation.
+
+For Operational Excellence, Predictive Optimisation eliminates manual performance tuning, Databricks Assistant accelerates pipeline development by 40%, and automated anomaly detection catches data quality issues before they impact operations. Real-time streaming with ML-driven quality checks ensures interval meter data meets NEM settlement requirements, reducing billing disputes and regulatory risk.
+
+For Technology, Digitisation and AI at the Core, Agent Bricks enables production GenAI applications across customer service (chatbots handling billing inquiries), trading operations (agents analysing market signals for battery dispatch), and asset management (predictive maintenance for generation assets). Our Multi-AI Indemnity covering OpenAI, Anthropic, Meta, and Google models provides legal protection for IP claims including judgements, settlements, and legal fees—eliminating procurement barriers and accelerating time-to-production.
+
+**Governance and Responsible AI**
+
+Unity Catalog extends governance to AI assets, tracking lineage from training data through feature engineering to deployed models. MLflow Model Registry provides versioning, approval workflows, and automated testing gates, whilst Lakehouse Monitoring detects model drift and data quality degradation in production. This ensures AI systems remain accurate, explainable, and compliant with regulatory requirements.
+
+Agent Bricks Gateway enforces responsible AI policies at the inference layer, detecting and blocking PII in prompts, filtering toxic content, and rate-limiting to prevent abuse. Comprehensive audit logs capture every LLM interaction with user identity, timestamp, prompt content, and model response—supporting regulatory audits and incident investigation.
+
+Our AI strategy positions AGL to lead the energy sector in AI adoption whilst maintaining the rigorous governance required for regulated operations—delivering measurable productivity gains, operational improvements, and customer experience enhancements across the enterprise.
+
+---
+
+## 3. Adaptability to Industry Changes
+
+Databricks demonstrates continuous adaptability to energy and utilities industry requirements through purpose-built capabilities, strategic partnerships, and rapid feature development responding to sector-specific challenges including grid modernisation, renewable integration, and regulatory compliance.
+
+**Energy Sector Adaptations: Operational Technology Integration**
+
+Databricks adapted our platform architecture to support the unique requirements of energy operational technology environments. Our Zerobus Ingest pattern enables direct integration with SCADA systems including Ignition and HiveMQ, forwarding RabbitMQ messages to Azure Event Hubs or AWS Kinesis for real-time processing. This eliminates the air-gapped barriers between OT and IT systems that traditionally prevented unified analytics across generation assets, transmission networks, and customer operations.
+
+For AGL's battery storage and VPP orchestration requirements, we developed the Digital Twin Solution Accelerator combining Zerobus Ingest with Structured Streaming and Delta Lake for sub-second telemetry processing. This enables real-time state estimation, predictive maintenance, and algorithmic dispatch across distributed energy resources—directly supporting AGL's 1,487 MW of decentralised assets and strategic expansion to 12 GW renewable capacity.
+
+Lakehouse Federation adapted to support energy-specific data sources including SQL Server historian databases, Oracle PI System integrations, and legacy SCADA repositories. Our push-down query optimisation minimises data movement whilst Unity Catalog provides unified governance across OT and IT systems—enabling federated queries that combine real-time SCADA telemetry with customer billing data and NEM market signals without replication.
+
+**Regulatory Compliance Adaptations: Australian Energy Market**
+
+Databricks rapidly adapted to Australian regulatory requirements following the introduction of mandatory climate reporting under AASB S2. Our automated data lineage capabilities provide the traceable data provenance required for 79 climate metrics across Scope 1, 2, and 3 emissions—critical for AGL as Australia's largest corporate emitter at 30.7 MtCO₂e.
+
+Unity Catalog's fine-grained access controls and audit logging support compliance with Australian Privacy Principles for customer energy data, whilst Delta Lake's ACID transactions and time travel capabilities ensure data integrity for NEM settlement processes. Our 365-day audit retention meets regulatory requirements for financial reporting and market participation.
+
+We adapted Lakehouse Monitoring to support interval meter data validation, enabling automated quality checks for the 15-minute and 5-minute interval data required for NEM wholesale market settlement. Configurable expectation rules validate timestamp integrity, value ranges, and mandatory fields—preventing settlement errors and regulatory penalties.
+
+**Renewable Energy Forecasting Adaptations**
+
+Databricks developed AutoML forecasting capabilities specifically for renewable energy prediction, supporting Prophet, Auto-ARIMA, and DeepAR algorithms optimised for time-series data with seasonal patterns and weather dependencies. Our Energy Forecasting Solution Accelerator provides pre-built notebooks for solar and wind generation forecasting, incorporating weather API integrations and historical generation data.
+
+For AGL's wholesale price prediction requirements, we adapted MLflow to support ensemble models combining fundamental market analysis (supply-demand balance, fuel costs, transmission constraints) with machine learning techniques. Model versioning and A/B testing capabilities enable continuous improvement of forecasting accuracy—critical for trading operations and battery dispatch optimisation.
+
+**Real-Time Streaming Adaptations for Grid Operations**
+
+Structured Streaming with Real-Time Mode delivers 40-300ms p99 latency for event processing—adapted specifically for grid operations requiring sub-second response times. This supports frequency regulation, voltage control, and fault detection use cases where traditional batch processing introduces unacceptable delays.
+
+We developed stateful stream processing capabilities for de-duplication, anomaly detection, and smoothing of SCADA telemetry—addressing the noisy, high-frequency data characteristics of industrial IoT sensors. Watermarking and late-arriving data handling ensure accurate aggregations despite network latency and clock skew in distributed generation assets.
+
+**Multi-Cloud Adaptations for Energy Sector M&A**
+
+Databricks adapted Unity Catalog to support cross-cloud governance in response to energy sector consolidation trends. For AGL's Kaluza acquisition (AWS-based) and Salesforce deployment (AWS), our cross-cloud external locations enable unified analytics without data migration—preserving existing investments whilst eliminating silos.
+
+This adaptability proved critical as energy retailers increasingly operate hybrid architectures: customer platforms on AWS (Salesforce, Kaluza), corporate systems on Azure (ERP, finance), and edge computing for distributed assets. Our consistent governance model across clouds reduces integration complexity and accelerates M&A value realisation.
+
+These adaptations demonstrate Databricks' commitment to energy sector requirements, delivering purpose-built capabilities that address operational technology integration, regulatory compliance, renewable forecasting, real-time grid operations, and multi-cloud complexity—positioning AGL to lead the industry's digital transformation.
+
+---
+
+## 4. Future Industry Alignment
+
+Databricks' technology strategy actively incorporates energy and utilities market changes through continuous engagement with industry leaders, regulatory bodies, and technology partners—ensuring our platform evolution aligns with sector transformation including decentralisation, electrification, and climate transition.
+
+**Decentralised Energy Resources and Virtual Power Plants**
+
+The energy sector's shift from centralised generation to distributed energy resources fundamentally changes data platform requirements. Databricks is investing in edge computing capabilities and real-time orchestration to support VPP aggregation across millions of behind-the-meter assets. Our Q3 2025 roadmap includes enhanced streaming capabilities with sub-100ms latency for frequency regulation services, whilst Agent Bricks Agent Framework enables autonomous dispatch algorithms coordinating battery storage, solar generation, and demand response.
+
+For AGL's strategic expansion to 1,487 MW of decentralised assets, we're developing pre-built connectors for residential battery systems (Tesla Powerwall, Enphase, SolarEdge) and EV charging infrastructure. Unity Catalog's hierarchical governance model scales to millions of customer-owned assets whilst maintaining privacy controls and regulatory compliance—enabling VPP orchestration without compromising customer data sovereignty.
+
+Our partnership with Microsoft Azure includes joint development of edge-to-cloud architectures using Azure IoT Edge and Databricks streaming, enabling local processing for latency-sensitive control whilst aggregating telemetry for centralised analytics. This hybrid approach supports both real-time grid services and long-term asset optimisation.
+
+**Electrification and Transportation Integration**
+
+Transport electrification creates unprecedented data volumes and analytics complexity. Databricks is incorporating EV charging patterns, grid impact analysis, and vehicle-to-grid capabilities into our energy sector roadmap. Q4 2025 introduces pre-built data models for EV charging networks, whilst Agent Bricks enables demand forecasting that combines transport patterns, weather data, and electricity pricing.
+
+For AGL's potential entry into EV charging services, our platform supports real-time pricing optimisation, load balancing across charging stations, and integration with wholesale market signals. Unity Catalog provides unified governance across electricity retail, charging infrastructure, and customer mobility data—enabling cross-sell opportunities whilst maintaining regulatory separation.
+
+**Climate Transition and Emissions Tracking**
+
+Mandatory climate reporting under AASB S2 represents the first wave of comprehensive emissions disclosure requirements. Databricks is investing in automated ESG data pipelines, Scope 3 emissions calculation frameworks, and audit-ready lineage tracking. Our Q2 2025 roadmap includes pre-built templates for TCFD and ISSB reporting, whilst Unity Catalog Metric Views provide consistent emissions intensity metrics across operational and financial reporting.
+
+For AGL's transition to net zero by 2050, we're developing scenario analysis capabilities using Agent Bricks to model decarbonisation pathways, renewable investment strategies, and portfolio optimisation under various policy and technology scenarios. Delta Lake's time travel enables retrospective analysis of emissions trajectories, supporting regulatory audits and investor disclosures.
+
+**Hydrogen Economy and Energy Storage**
+
+The emerging hydrogen economy requires new data capabilities for production optimisation, storage management, and supply chain tracking. Databricks is incorporating hydrogen-specific use cases into our energy sector strategy, including electrolyser efficiency optimisation, renewable energy curtailment analysis, and hydrogen blending for gas networks.
+
+Our Q1 2026 roadmap includes solution accelerators for green hydrogen production, combining renewable generation forecasting, electricity price optimisation, and electrolyser dispatch algorithms. For AGL's potential hydrogen investments, this provides production cost modelling, storage optimisation, and market participation capabilities on a unified platform.
+
+**Regulatory Evolution and Market Design**
+
+Energy market design is evolving toward five-minute settlement, dynamic operating envelopes, and two-sided markets. Databricks is adapting our platform to support these changes through enhanced real-time processing, sub-minute data latency, and flexible market participation models. Our streaming architecture supports the transition from 30-minute to 5-minute settlement intervals, whilst Lakeflow Spark Declarative Pipelines enable rapid adaptation to new market rules without platform re-architecture.
+
+For AGL's participation in AEMO's evolving market frameworks, we're developing pre-built compliance templates for new regulatory requirements, automated validation rules for market submissions, and audit trails supporting regulatory investigations. Unity Catalog's versioned policies enable rapid deployment of rule changes across development, staging, and production environments.
+
+**Artificial Intelligence and Autonomous Operations**
+
+The energy sector is moving toward autonomous grid operations, predictive asset management, and AI-driven customer experiences. Databricks is investing heavily in Agent Bricks capabilities specifically for energy applications, including reinforcement learning for battery dispatch, computer vision for transmission line inspection, and large language models for customer service.
+
+Our Multi-AI Indemnity provides legal protection for production AI deployments, eliminating procurement barriers for customer-facing applications. Q3 2025 introduces energy-specific AI agents for trading operations, asset optimisation, and regulatory compliance—enabling AGL to lead the industry in AI adoption whilst maintaining rigorous governance.
+
+These strategic investments ensure Databricks remains aligned with energy sector transformation, providing AGL with a future-proof platform that adapts to regulatory changes, technology evolution, and market disruption—supporting your strategic transformation to connect 4.56 million customers to a sustainable future.
+
+---
+
+## 5. Industrial Data Strategy
+
+Databricks provides comprehensive industrial data capabilities purpose-built for energy and utilities operations, addressing the unique requirements of SCADA systems, IoT sensor streams, and time-series data that underpin AGL's generation assets, transmission networks, and distributed energy resources.
+
+**SCADA Integration and Operational Technology Connectivity**
+
+Databricks supports direct integration with AGL's SCADA environment through multiple connectivity patterns. The Zerobus Ingest architecture enables real-time data flow from Ignition SCADA and HiveMQ MQTT brokers, forwarding RabbitMQ messages to Azure Event Hubs or AWS Kinesis for immediate processing. This eliminates the traditional air gap between operational technology and IT systems, enabling unified analytics across generation control systems, substation automation, and customer operations.
+
+For legacy SCADA historians including OSIsoft PI System, Wonderware, and GE Proficy, Lakehouse Federation provides read-only federated queries via JDBC connections. Push-down query optimisation executes filters and aggregations at the source system, minimising data movement whilst Unity Catalog enforces consistent access controls. This enables ad-hoc analysis of historical SCADA data without replication, supporting root cause analysis and asset performance investigations.
+
+Structured Streaming processes SCADA telemetry in real-time with exactly-once processing guarantees. Stateful stream processing handles de-duplication of redundant sensor readings, anomaly detection for out-of-range values, and smoothing algorithms for noisy measurements. Watermarking manages late-arriving data from distributed assets with network latency, ensuring accurate aggregations despite clock skew and communication delays.
+
+**IoT Sensor Stream Processing at Scale**
+
+Databricks ingests IoT sensor streams from AGL's distributed energy resources through native cloud integrations. Ignition Gateway and AWS IoT Core connect directly to Event Hubs and Kinesis, whilst Lakeflow Connect provides zero-code ingestion from MQTT brokers, Kafka clusters, and industrial protocols including Modbus and OPC-UA.
+
+For AGL's battery storage facilities and solar farms, Structured Streaming processes millions of sensor readings per second with sub-second latency. Auto Loader incrementally ingests new files from edge gateways writing to ADLS Gen2 or S3, automatically inferring schema changes and handling corrupt records. This supports both real-time monitoring and historical analysis on a single copy of data.
+
+Delta Lake provides ACID transactions for concurrent writes from thousands of distributed sensors, ensuring data consistency despite network partitions and device failures. Z-ordering and liquid clustering optimise query performance for common access patterns including time-range filters, asset-specific queries, and sensor-type aggregations—delivering sub-second response times for operational dashboards.
+
+**Time-Series Data Ingestion and Storage Optimisation**
+
+Databricks optimises time-series data storage through Delta Lake's advanced features. Partition pruning eliminates unnecessary data scanning by organising tables by timestamp hierarchies (year/month/day/hour), whilst Z-ordering co-locates related measurements for 10x faster queries on asset ID and sensor type dimensions.
+
+Predictive Optimisation automatically compacts small files generated by high-frequency sensor writes, reducing metadata overhead and improving query performance. The system analyses access patterns to schedule OPTIMIZE operations during low-usage periods, maintaining 70% faster queries without manual intervention.
+
+For AGL's interval meter data and SCADA telemetry, Delta Lake's time travel provides point-in-time queries supporting regulatory audits and incident investigation. Retention policies balance storage costs against compliance requirements, with configurable retention from 7 to 90 days for deleted files whilst maintaining infinite retention for committed data versions.
+
+**Real-Time Processing and Analytics**
+
+Structured Streaming with Real-Time Mode delivers 40-300ms p99 latency for time-critical applications including frequency regulation, voltage control, and fault detection. This enables AGL to deploy real-time analytics for grid operations where traditional batch processing introduces unacceptable delays.
+
+Lakeflow Spark Declarative Pipelines provide declarative stream processing with automatic state management, checkpointing, and failure recovery. Tumbling and sliding windows aggregate sensor readings over configurable time intervals, whilst stateful joins correlate events across multiple data streams—enabling complex event processing for asset health monitoring and predictive maintenance.
+
+For AGL's battery dispatch optimisation, streaming ML inference applies trained models to real-time market signals and asset telemetry, generating dispatch instructions within seconds of price changes. MLflow Model Serving provides sub-100ms inference latency with automatic scaling from zero to thousands of requests per second.
+
+**Industrial Analytics and Visualisation**
+
+Databricks SQL provides interactive analytics over industrial time-series data with sub-second query response times. Photon engine accelerates aggregations, window functions, and time-series operations common in operational analytics, whilst intelligent caching eliminates redundant computation for frequently accessed dashboards.
+
+Power BI Direct Query integration enables real-time
