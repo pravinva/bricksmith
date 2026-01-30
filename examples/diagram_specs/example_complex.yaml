@@ -1,0 +1,76 @@
+name: "multi-cloud-lakehouse"
+description: "Multi-cloud lakehouse architecture with AWS, Azure, and Databricks"
+
+components:
+  - id: "aws-s3"
+    label: "AWS S3"
+    type: "storage"
+    logo_name: "aws"
+
+  - id: "azure-storage"
+    label: "Azure Storage"
+    type: "storage"
+    logo_name: "azure"
+
+  - id: "databricks"
+    label: "Databricks Platform"
+    type: "service"
+    logo_name: "databricks"
+
+  - id: "delta-lake"
+    label: "Delta Lake Format"
+    type: "storage"
+    logo_name: "delta-lake"
+
+  - id: "unity-catalog"
+    label: "Unity Catalog"
+    type: "service"
+    logo_name: "uc"
+
+  - id: "kaluza"
+    label: "Kaluza Analytics"
+    type: "service"
+    logo_name: "kaluza"
+
+  - id: "agl"
+    label: "AGL Energy"
+    type: "consumer"
+    logo_name: "agl"
+
+connections:
+  - from_id: "aws-s3"
+    to_id: "databricks"
+    label: "Ingest"
+    style: "solid"
+
+  - from_id: "azure-storage"
+    to_id: "databricks"
+    label: "Ingest"
+    style: "solid"
+
+  - from_id: "databricks"
+    to_id: "delta-lake"
+    label: "Store"
+    style: "solid"
+
+  - from_id: "delta-lake"
+    to_id: "unity-catalog"
+    label: "Catalog"
+    style: "dashed"
+
+  - from_id: "unity-catalog"
+    to_id: "kaluza"
+    label: "Serve"
+    style: "solid"
+
+  - from_id: "kaluza"
+    to_id: "agl"
+    label: "Analytics"
+    style: "solid"
+
+constraints:
+  layout: "top-to-bottom"
+  background: "white"
+  label_style: "sentence-case"
+  show_grid: false
+  spacing: "spacious"

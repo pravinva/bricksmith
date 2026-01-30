@@ -1,0 +1,87 @@
+name: "multi-cloud-energy-platform"
+description: "Complete multi-cloud energy analytics platform using all available logos"
+
+components:
+  # Cloud Storage Sources
+  - id: "aws-s3"
+    label: "AWS S3 Data Lake"
+    type: "storage"
+    logo_name: "aws"
+
+  - id: "azure-blob"
+    label: "Azure Blob Storage"
+    type: "storage"
+    logo_name: "azure"
+
+  # Data Platform
+  - id: "databricks"
+    label: "Databricks Lakehouse Platform"
+    type: "service"
+    logo_name: "databricks"
+
+  # Storage Layer
+  - id: "delta-lake"
+    label: "Delta Lake Storage"
+    type: "storage"
+    logo_name: "delta-lake"
+
+  # Governance
+  - id: "unity-catalog"
+    label: "Unity Catalog Governance"
+    type: "service"
+    logo_name: "uc"
+
+  # Analytics Platform
+  - id: "kaluza"
+    label: "Kaluza Analytics Platform"
+    type: "service"
+    logo_name: "kaluza"
+
+  # Consumer
+  - id: "agl-energy"
+    label: "AGL Energy Insights"
+    type: "consumer"
+    logo_name: "agl"
+
+connections:
+  # Data ingestion from cloud sources
+  - from_id: "aws-s3"
+    to_id: "databricks"
+    label: "Ingest Raw Data"
+    style: "solid"
+
+  - from_id: "azure-blob"
+    to_id: "databricks"
+    label: "Ingest Raw Data"
+    style: "solid"
+
+  # Data processing and storage
+  - from_id: "databricks"
+    to_id: "delta-lake"
+    label: "Transform & Store"
+    style: "solid"
+
+  # Governance layer
+  - from_id: "delta-lake"
+    to_id: "unity-catalog"
+    label: "Catalog & Govern"
+    style: "dashed"
+
+  # Analytics serving
+  - from_id: "unity-catalog"
+    to_id: "kaluza"
+    label: "Serve Analytics"
+    style: "solid"
+
+  # Consumer access
+  - from_id: "kaluza"
+    to_id: "agl-energy"
+    label: "Energy Insights"
+    style: "solid"
+
+constraints:
+  layout: "top-to-bottom"
+  background: "white"
+  label_style: "sentence-case"
+  show_grid: false
+  spacing: "spacious"

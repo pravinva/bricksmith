@@ -1,0 +1,46 @@
+**Subject:**
+A high-fidelity reference architecture diagram titled "Data Intelligence Platform" with the Databricks logo in the top left.
+
+**Style:**
+Professional engineering schematic. Flat 2D vector graphics. Clean white background. High contrast.
+**Color Palette:** Databricks Navy (#1B3139), Databricks Red/Orange (#FF3621) for accents and the central engine. Light grey (#F5F5F5) for backgrounds.
+
+**Composition & Layout (Stacked Horizontal Layers, top to bottom):**
+
+DO NOT include layer numbers or structural labels like "Layer 1", "Header Row", "Footer Layer" in the diagram.
+Only render the business labels and component names specified below.
+
+TOP ROW - Business Value:
+4 boxes: "Data Products", "Real-Time Analytics", "AI & ML", "Governance"
+Subtitles: "Self-service access", "Instant insights", "Intelligent automation", "Trust & compliance"
+
+APPS ROW:
+Three boxes side by side:
+- "Custom Apps" (subtitle: Secure data and AI apps)
+- "AI/BI" (subtitle: Dashboards & Genie)
+- "Agent Bricks" (subtitle: Agents, RAG, fine-tuning)
+
+INTELLIGENCE ENGINE (large orange-bordered container):
+Title: "Databricks Intelligence Platform"
+Three components inside:
+- "Lakeflow" (subtitle: Ingest, ETL, orchestration)
+- "DBSQL" (subtitle: Data warehousing)
+- "Lakebase" (subtitle: Operational data)
+
+GOVERNANCE BAR (full-width orange bar):
+"Unity Catalog" with Unity Catalog logo
+Subtitle: "Security, governance, lineage, sharing"
+
+DATA LAKEHOUSE (dark navy bar):
+Title: "Open Data Lakehouse"
+Three pill-shaped items: "Delta Lake" (with logo), "Iceberg", "Parquet"
+Right side label: "Structured, semi-structured, unstructured data"
+
+CLOUD FOUNDATIONS (light grey, bottom):
+Three containers side by side:
+- Left: [AWS logo] "AWS" - S3, Glue, Kinesis
+- Middle: [Azure logo] "Azure" - ADLS, Synapse, Event Hubs
+- Right: "GCP" - GCS, BigQuery, Pub/Sub
+
+**Visual Details:**
+Use small arrows pointing upward from the Cloud Layer to the Lakehouse, and from the Lakehouse to the Intelligence Engine. Ensure the Databricks logo is prominent in the top-left corner. Use AWS and Azure logos in their respective cloud sections.

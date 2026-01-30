@@ -1,0 +1,42 @@
+**Subject:**
+A high-fidelity, corporate reference architecture diagram titled "Unified Data Intelligence Platform" with the AGL logo in the top left.
+
+**Style:**
+Professional engineering schematic. Flat 2D vector graphics. Clean white background. High contrast.
+**Color Palette:** AGL Corporate Blue (#001240), Cyan (#00A9E0) for the frame. Databricks Orange (#FF3621) for the central engine.
+
+**Composition & Layout (Stacked Horizontal Layers):**
+
+1.  **Header Row (Business Strategy):**
+    * A top row divided into 4 blue boxes labeled: "Customer Markets", "Energy Assets", "Energy Markets", "Strategy & Sustainability".
+    * Text under each box: "NPS +20 Target", "Safety & Reliability", "Risk Hedging", "ESG Reporting".
+
+2.  **Layer 1: The App Layer (Blue/Orange Gradient):**
+    * A horizontal row labeled "Custom Apps (Secure data and AI apps)" and "AI/BI (Agentic business intelligence)".
+    * Include a box on the right labeled "Agent Bricks (Agentic AI & Machine Learning)".
+
+3.  **Layer 2: The Intelligence Engine (Orange Border Container):**
+    * A large central container labeled "Databricks Intelligence Platform".
+    * Inside, three distinct white boxes with orange icons:
+        * **Left:** "Lakeflow" (Subtext: Ingest, ETL, streaming).
+        * **Middle:** "DBSQL" (Subtext: Data warehousing).
+        * **Right:** "Lakebase" (Subtext: Serverless Postgres).
+
+4.  **Layer 3: Unified Governance (Full Width Orange Bar):**
+    * A solid orange bar running across the middle labeled "Unity Catalog (Unified security, Governance, and Cataloging)" with the hexagon icon.
+
+5.  **Layer 4: Unified Data Lakehouse (Dark Blue Bar):**
+    * A dark navy bar labeled "Unified Data Lakehouse".
+    * Inside, three white pill-shaped containers with logos:
+        * "Delta Lake".
+        * "Iceberg".
+        * "Postgres".
+    * Add a text label on the right side of this bar: "Asset Telemetry: Liddell/Tomago Battery Data, Bayswater SCADA, Spot Prices".
+
+6.  **Footer Layer: Multi-Cloud Foundations (Light Grey Background):**
+    * Two side-by-side containers:
+        * **Left (AWS):** Labeled "Customer Cloud (AWS)". Icons: Salesforce, Amazon Connect, Kinesis.
+        * **Right (Azure - use newest icon):** Labeled "Operational Cloud (Azure)". Icons: SAP S/4HANA, ADLS Gen2, Ignition Gateway.
+
+**Visual Details:**
+Use small arrows pointing upward from the Cloud Layer to the Lakehouse, and from the Lakehouse to the Intelligence Engine. Ensure the "AGL" logo is prominent.

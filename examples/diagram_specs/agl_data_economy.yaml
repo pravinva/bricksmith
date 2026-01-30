@@ -1,0 +1,179 @@
+name: "agl-data-economy-concentric"
+description: "The AGL Data Economy: Unifying Customers, Assets & Markets - Concentric Ecosystem Diagram"
+
+components:
+  # CORE (Bullseye)
+  - id: "databricks-core"
+    label: "Single Source of Truth"
+    type: "core"
+    logo_name: "databricks"
+
+  # INTELLIGENCE LAYER (Ring 1)
+  - id: "uc-govern"
+    label: "GOVERN - Lineage & Metric Views"
+    type: "intelligence"
+    logo_name: "uc"
+
+  - id: "lakeflow-ingest"
+    label: "INGEST - Lakeflow Connect"
+    type: "intelligence"
+    logo_name: null
+
+  - id: "mosaic-predict"
+    label: "PREDICT - Genie, AIBI & Agent Bricks"
+    type: "intelligence"
+    logo_name: null
+
+  # OPERATIONAL CLOUD LAYER - LEFT (AWS/Customer Markets)
+  - id: "kaluza-platform"
+    label: "Retail Platform"
+    type: "operational"
+    logo_name: "kaluza"
+
+  - id: "aws-services"
+    label: "Customer Markets (AWS)"
+    type: "cloud"
+    logo_name: "aws"
+
+  # OPERATIONAL CLOUD LAYER - RIGHT (Azure/Integrated Energy)
+  - id: "azure-assets"
+    label: "Energy Assets (Azure)"
+    type: "cloud"
+    logo_name: "azure"
+
+  - id: "azure-markets"
+    label: "Energy Markets (Azure)"
+    type: "operational"
+    logo_name: null
+
+  # STRATEGIC ORBIT
+  - id: "nps-value"
+    label: "NPS Leadership (+20)"
+    type: "value-node"
+    logo_name: null
+
+  - id: "green-revenue"
+    label: "Green Revenue (+85%)"
+    type: "value-node"
+    logo_name: null
+
+  - id: "asset-flexibility"
+    label: "Asset Flexibility (5.3 GW)"
+    type: "value-node"
+    logo_name: null
+
+  - id: "orchestration"
+    label: "Orchestration (1.49 GW VPP)"
+    type: "value-node"
+    logo_name: null
+
+connections:
+  # Core to Intelligence Layer
+  - from_id: "databricks-core"
+    to_id: "uc-govern"
+    label: "Governance"
+    style: "solid"
+
+  - from_id: "databricks-core"
+    to_id: "lakeflow-ingest"
+    label: "Ingestion"
+    style: "solid"
+
+  - from_id: "databricks-core"
+    to_id: "mosaic-predict"
+    label: "AI/ML"
+    style: "solid"
+
+  # Intelligence to Operational Cloud (AWS)
+  - from_id: "lakeflow-ingest"
+    to_id: "aws-services"
+    label: "Customer Data"
+    style: "solid"
+
+  - from_id: "uc-govern"
+    to_id: "kaluza-platform"
+    label: "Governed Access"
+    style: "solid"
+
+  # Intelligence to Operational Cloud (Azure)
+  - from_id: "lakeflow-ingest"
+    to_id: "azure-assets"
+    label: "Asset Data"
+    style: "solid"
+
+  - from_id: "mosaic-predict"
+    to_id: "azure-markets"
+    label: "Predictions"
+    style: "solid"
+
+  # Operational to Strategic Orbit
+  - from_id: "kaluza-platform"
+    to_id: "nps-value"
+    label: "Customer Experience"
+    style: "dashed"
+
+  - from_id: "aws-services"
+    to_id: "green-revenue"
+    label: "Revenue Growth"
+    style: "dashed"
+
+  - from_id: "azure-assets"
+    to_id: "asset-flexibility"
+    label: "Capacity"
+    style: "dashed"
+
+  - from_id: "azure-markets"
+    to_id: "orchestration"
+    label: "VPP"
+    style: "dashed"
+
+constraints:
+  layout: "concentric"
+  background: "white"
+  label_style: "sentence-case"
+  show_grid: false
+  spacing: "comfortable"
+  style: "apple-mckinsey"
+
+custom_prompt_sections:
+  title: "The AGL Data Economy: Unifying Customers, Assets & Markets"
+
+  layer_descriptions:
+    core: |
+      Dark circle (#1E212D) with Databricks logo in white.
+      Text: "Single Source of Truth"
+      Sub-text: "Delta Lake (S3 & ADLS)"
+
+    ring1: |
+      Split into 3 segments (Light Grey #F5F5F5):
+      1. GOVERN [Unity Catalog]: "Lineage & Metric Views"
+      2. INGEST: "Lakeflow Connect (SQL Server & ZeroBus)"
+      3. PREDICT: "Genie, AIBI & Agent Bricks"
+
+    ring2: |
+      Split Vertically: LEFT (AWS / Orange Tint) | RIGHT (Azure / Blue Tint)
+
+      LEFT (Customer Markets):
+      - AWS badge
+      - Kaluza logo: "Retail Platform"
+      - Icons: "Salesforce (CRM)", "Amazon Connect (Contact)", "Electrify Now (App)"
+      - Data Volume: "4.56M Customer Services"
+
+      RIGHT (Integrated Energy):
+      - Azure badge
+      - "Energy Assets": "Ignition Gateway (Liddell/Tomago Batteries)"
+      - "Energy Markets": "Risk Systems & Trading"
+      - Data Volume: "32.9 TWh Generation"
+
+    orbit: |
+      4 Circular "Value Nodes" connected to the rings:
+      1. Top Left: "NPS Leadership" (Target: +20)
+      2. Top Right: "Green Revenue" (Target: +85%)
+      3. Bottom Right: "Asset Flexibility" (5.3 GW Capacity)
+      4. Bottom Left: "Orchestration" (1.49 GW VPP)
+
+  visual_style: |
+    - Minimal text. Use icons to represent systems.
+    - Use AGL Cyan (#00B5E2) for the "Strategic Orbit" connections.
+    - Ensure the Left (AWS) and Right (Azure) separation is visually distinct but unified by the core.
+    - Apple/McKinsey aesthetic: clean white space, thin lines, soft pastels.
