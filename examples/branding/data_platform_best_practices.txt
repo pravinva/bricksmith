@@ -1,0 +1,46 @@
+**Data Platform Reference Architecture - Visual Best Practices:**
+
+**Layer Structure (Industry Standard):**
+- Use clearly defined horizontal swim lanes for each architectural tier
+- Standard layers from bottom to top: Sources → Ingestion → Storage → Processing → Serving → Consumption
+- Each layer should have a distinct background color or border to show separation
+- Maintain consistent layer heights for visual balance
+
+**Visual Clarity Guidelines:**
+- Use thick, bold borders (3-4px) around major containers
+- Apply subtle background fills to distinguish layers (e.g., light grey, light blue tints)
+- Add drop shadows or elevation to make the central platform "pop"
+- Use iconography consistently - every major service should have its logo/icon
+- Include directional arrows showing data flow (bottom-up or left-right)
+
+**Typography for Readability:**
+- Layer titles: 18-24pt bold, ALL CAPS or Title Case
+- Component names: 14-16pt bold
+- Descriptions: 12-14pt regular
+- Use high contrast: dark text on light backgrounds, white text on dark backgrounds
+- Add subtle text shadows on colored backgrounds for legibility
+
+**Component Boxes:**
+- Rounded corners (8-12px radius) for a modern look
+- Consistent padding inside boxes (16-24px)
+- Group related components in nested containers
+- Use pill shapes or badges for technology labels
+
+**Data Flow Visualization:**
+- Thick arrows (3-4px) with arrowheads showing direction
+- Use dashed lines for optional/async flows
+- Color-code arrows by data type (batch=blue, streaming=orange, API=green)
+- Add small labels on arrows describing the data ("events", "batch ETL", "API calls")
+
+**Emphasis Techniques:**
+- Make the core platform (Databricks) visually dominant - larger, centered, brighter colors
+- Use a "glow" or highlighted border around the most important component
+- Fade or desaturate peripheral/external systems
+- Add a subtle grid pattern to the background for engineering blueprint feel
+
+**Professional Polish:**
+- Align all elements to an invisible grid
+- Equal spacing between similar components
+- Symmetrical layout where possible
+- Include a legend if using multiple icon types or line styles
+- Add version number or date in corner for documentation purposes

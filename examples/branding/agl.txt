@@ -1,0 +1,60 @@
+**AGL Energy - Enterprise Architecture Diagram Standards**
+
+**CRITICAL: This diagram must look like a polished, boardroom-ready executive presentation.**
+
+**Brand Colors (USE EXACTLY):**
+- AGL Navy: #001240 - primary headers, outer frames, dark containers
+- AGL Cyan: #00A9E0 - secondary accents, connection lines, highlights
+- Databricks Orange: #FF3621 - Databricks platform elements only
+- AWS Orange: #FF9900 - AWS cloud elements
+- Azure Blue: #0078D4 - Azure cloud elements
+- Pure White: #FFFFFF - backgrounds, text on dark
+- Charcoal: #333333 - body text on white
+
+**Typography (STRICT):**
+- All text must be CRISP and SHARP - no blur, no anti-aliasing artifacts
+- Layer titles: 16-20pt, BOLD, white text on colored backgrounds
+- Component labels: 12-14pt, semibold, high contrast
+- Sub-labels: 10-12pt, regular weight
+- Use a clean sans-serif font (like Helvetica, Arial, or similar)
+
+**Visual Style (MANDATORY):**
+- FLAT DESIGN ONLY - absolutely no 3D effects, no gradients, no shadows
+- Clean vector-style graphics with solid fills
+- Crisp, sharp edges on all shapes
+- Rounded corners on containers (8px radius)
+- Consistent 2-3px border weights
+- White or very light grey (#F5F5F5) background
+
+**Layout Structure:**
+- Clear horizontal swim lanes for each architectural tier
+- Each layer must have a distinct colored header bar
+- Generous padding inside containers (20-30px)
+- Consistent spacing between elements (use a grid)
+- Left-to-right or top-to-bottom data flow
+- Visual hierarchy: most important elements largest/most prominent
+
+**Container Styling:**
+- Outer frame: 3px solid AGL Navy border
+- Layer headers: solid AGL Navy or Cyan background with white text
+- Inner boxes: white fill with thin (1-2px) grey or navy border
+- Group related items in nested containers
+
+**Logo Placement:**
+- Place the AGL logo prominently in the top-left corner
+- Size logos consistently (same height across similar components)
+- Ensure adequate whitespace around each logo
+- Logos should be crisp and clearly visible
+
+**Connection Lines:**
+- Use straight lines with 90-degree angles (not curved)
+- Arrowheads to show data direction
+- Line weight: 2px for primary flows, 1px for secondary
+- Color: AGL Cyan for main flows, grey for supporting
+
+**Quality Checklist:**
+- [ ] All text is readable at presentation size
+- [ ] Colors match brand palette exactly
+- [ ] No visual clutter or overlapping elements
+- [ ] Clear visual hierarchy
+- [ ] Professional, polished appearance suitable for C-suite presentation
