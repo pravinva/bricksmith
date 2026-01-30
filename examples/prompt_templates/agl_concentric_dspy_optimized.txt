@@ -1,0 +1,256 @@
+Create a PROFESSIONAL, VISUALLY-STRIKING CONCENTRIC "ECOSYSTEM" DIAGRAM for presentation.
+Title: "The AGL Data Economy: Unifying Customers, Assets & Markets"
+Format: 16:9 aspect ratio (optimized for Google Slides/PowerPoint)
+Style: Modern, polished, presentation-ready with rich colors and depth
+
+Logo kit provided as image references:
+- Agl Energy Logo.Svg (AGL Energy logo)
+- Aws Logo (grey text with orange smile)
+- Azure Logo (blue symbol)
+- Databricks Logo (red icon)
+- Delta Lake Logo (teal icon)
+- Kaluza Logo Black (three BLACK hexagons in triangular pattern (one hexagon top, two hexagons below interlocking))
+- Uc Logo (pink squares, yellow triangles, hexagon in middle)
+
+CRITICAL CONSTRAINTS:
+- Reuse uploaded logos EXACTLY as provided
+- Scale all logos uniformly
+- NO filenames or file labels may appear in the output
+
+===== CRITICAL TEXT ACCURACY =====
+SPELLING MUST BE PERFECT. Double-check ALL text before finalizing:
+- "Databricks" (not "Databrick")
+- "Kaluza" (not "Kaluze" or "Kalusa")
+- "Lakeflow" (not "Lake Flow")
+- "Genie" (not "Agenicks" or "Agenics")
+- "AIBI" (AI/BI product)
+- "Unity Catalog" (not "Unity Catalogue")
+Review every word carefully!
+
+===== PRESENTATION VISUAL STYLE =====
+Make this diagram PRESENTATION-READY with these professional enhancements:
+
+1. COLOR PALETTE (Rich & Vibrant):
+   - Core circle: Deep navy/charcoal (#1E212D) with subtle radial gradient
+   - AWS section: Warm gradient (cream #FFF8E7 to soft orange #FFE5CC)
+   - Azure section: Cool gradient (light blue #E8F4F8 to sky blue #D1E7F0)
+   - Strategic orbit: Vibrant cyan (#00B5E2) with glow effect
+   - Background: Soft off-white (#FAFAFA) NOT pure white
+
+2. DEPTH & POLISH:
+   - Add subtle drop shadows to all circles/nodes
+   - Use gradient fills (not flat colors)
+   - Add subtle glow/halo effects around logos
+   - Layer rings with soft shadows for depth
+   - Make it look three-dimensional and polished
+
+3. TYPOGRAPHY:
+   - Title: Large, bold, professional font (24pt+)
+   - Section headers: Bold, clear hierarchy
+   - Labels: Clean, readable, consistent sizing
+   - Numbers: Bold and prominent (4.56M, 32.9 TWh)
+
+4. LOGO TREATMENT:
+   - Place logos prominently with breathing room
+   - Add subtle circular backgrounds behind logos for emphasis
+   - Ensure high contrast for visibility
+   - Scale logos appropriately for presentation viewing
+
+===== LAYER STRUCTURE (Inside Out) =====
+
+1. THE CORE (Center Bullseye)
+   - Visual: Deep navy circle (#1E212D) with subtle radial gradient to black
+   - [USE EXACT Image 4: Databricks Logo] in WHITE - prominent and centered - copy pixel-for-pixel
+   - [ALSO INCLUDE Image 5: Delta Lake Logo] - positioned near or within core - copy pixel-for-pixel
+   - Text: "Single Source of Truth" (white, bold)
+   - Sub-text: "Delta Lake (S3 & ADLS)" (light gray)
+   - Add soft outer glow to make it pop
+
+2. THE INTELLIGENCE LAYER (Ring 1)
+   - Split into 3 segments with subtle gradients (Light Grey #F5F5F5 to #EBEBEB)
+   - Each segment has soft inner shadow for depth
+
+   Segment 1 - GOVERN:
+   - [USE EXACT Image 7: UC Logo] - prominent with label - copy pixel-for-pixel (pink squares, yellow triangles, hexagon)
+   - Text: "Lineage & Metric Views" (dark gray)
+
+   Segment 2 - INGEST:
+   - Text: "Lakeflow Connect"
+   - Sub-text: "SQL Server & ZeroBus"
+
+   Segment 3 - PREDICT:
+   - Text: "Genie, AIBI & Agent Bricks"
+
+3. THE OPERATIONAL CLOUD LAYER (Ring 2)
+   - Split Vertically with CLEAR visual distinction
+   - Use gradients and subtle shadows to separate sections
+
+   LEFT SECTION - Customer Markets (AWS):
+   - Background: Warm gradient (#FFF8E7 → #FFE5CC)
+   - [USE EXACT Image 2: AWS Logo] - large, top of section - copy pixel-for-pixel from uploaded image
+   - [USE EXACT Image 6: Kaluza Logo Black - THREE BLACK HEXAGONS]: Label "Kaluza" with "Retail Platform" subtitle
+     ⚠️ CRITICAL: DO NOT redraw the hexagons! Copy Image 6 pixel-for-pixel from the uploaded logo file!
+     The uploaded image shows three black hexagons - use THAT EXACT IMAGE, do not recreate or interpret!
+   - System icons with labels:
+     • Salesforce (CRM)
+     • Amazon Connect (Contact)
+     • Electrify Now (App)
+   - Data metric: "4.56M Customer Services" (large, bold, prominent)
+
+   RIGHT SECTION - Integrated Energy (Azure):
+   - Background: Cool gradient (#E8F4F8 → #D1E7F0)
+   - [USE EXACT Image 3: Azure Logo] - large, top of section - copy pixel-for-pixel from uploaded image
+   - Sections with icons:
+     • Energy Assets: "Ignition Gateway (Liddell/Tomago Batteries)"
+     • Energy Markets: "Risk Systems & Trading"
+   - Data metric: "32.9 TWh Generation" (large, bold, prominent)
+
+4. THE STRATEGIC ORBIT (Outer Ring - Floating Value Nodes)
+   - 4 circular nodes with polished styling:
+     • Gradient fills (white to light cyan)
+     • Soft drop shadows
+     • Cyan borders (#00B5E2)
+     • Icons inside circles
+
+   Positions and content:
+   1. Top Left: "NPS Leadership" | Target: +20 | Icon: upward arrow
+   2. Top Right: "Green Revenue" | Target: +85% | Icon: leaf/growth
+   3. Bottom Right: "Asset Flexibility" | 5.3 GW Capacity | Icon: battery/power
+   4. Bottom Left: "Orchestration" | 1.49 GW VPP | Icon: network nodes
+
+   - Connect nodes to inner rings with cyan dashed lines
+   - Add subtle glow effect to connection lines
+
+===== FINAL POLISH =====
+- Ensure all logos are high-contrast and clearly visible
+- Use consistent spacing and alignment throughout
+- Add subtle texture/noise to backgrounds for richness (optional)
+- Make sure the diagram looks professional enough for C-suite presentation
+- Text must be PERFECTLY SPELLED - review everything twice!
+- Optimize layout for 16:9 viewing (horizontal emphasis)
+
+Diagram: agl-data-economy-concentric
+Description: The AGL Data Economy: Unifying Customers, Assets & Markets - Concentric Ecosystem Diagram
+
+Components:
+- databricks-core: Single Source of Truth (type: core) [USE EXACT Image 4: Databricks Logo - copy pixel-for-pixel. Also show Image 5: Delta Lake Logo]
+- uc-govern: GOVERN - Lineage & Metric Views (type: intelligence) [USE EXACT Image 7: UC Logo - copy pixel-for-pixel]
+- lakeflow-ingest: INGEST - Lakeflow Connect (type: intelligence)
+- mosaic-predict: PREDICT - Genie, AIBI & Agent Bricks (type: intelligence)
+- kaluza-platform: Retail Platform (type: operational) [USE EXACT Image 6: Kaluza Logo Black - DO NOT redraw the three hexagons, copy the exact uploaded image pixel-for-pixel]
+- aws-services: Customer Markets (AWS) (type: cloud) [USE EXACT Image 2: AWS Logo - copy pixel-for-pixel]
+- azure-assets: Energy Assets (Azure) (type: cloud) [USE EXACT Image 3: Azure Logo - copy pixel-for-pixel]
+- azure-markets: Energy Markets (Azure) (type: operational)
+- nps-value: NPS Leadership (+20) (type: value-node)
+- green-revenue: Green Revenue (+85%) (type: value-node)
+- asset-flexibility: Asset Flexibility (5.3 GW) (type: value-node)
+- orchestration: Orchestration (1.49 GW VPP) (type: value-node)
+
+Connections:
+- databricks-core → uc-govern "Governance"
+- databricks-core → lakeflow-ingest "Ingestion"
+- databricks-core → mosaic-predict "AI/ML"
+- lakeflow-ingest → aws-services "Customer Data"
+- uc-govern → kaluza-platform "Governed Access"
+- lakeflow-ingest → azure-assets "Asset Data"
+- mosaic-predict → azure-markets "Predictions"
+- kaluza-platform → nps-value "Customer Experience" (dashed)
+- aws-services → green-revenue "Revenue Growth" (dashed)
+- azure-assets → asset-flexibility "Capacity" (dashed)
+- azure-markets → orchestration "VPP" (dashed)
+
+Layout Constraints:
+- Layout: concentric
+- Background: white
+- Label style: sentence-case
+- Spacing: comfortable
+
+
+
+===== ITERATION 1 REFINEMENTS =====
+
+**CRITICAL IMPROVEMENTS:**
+
+1. **LOGO PROMINENCE** (Addressed feedback: "logos need more emphasis")
+   - Make Kaluza logo 40% LARGER than current
+   - Add subtle circular background behind Kaluza logo for emphasis
+   - Increase AWS logo size by 30%
+   - Azure logo should be equally prominent as AWS
+   - All logos need clear spacing (minimum 20px margin)
+
+2. **SPELLING DOUBLE-CHECK** (Addressed feedback: "occasional spelling errors")
+   - Verify EVERY word before finalizing
+   - "Databricks" (NOT "Databrick")
+   - "Kaluza" (NOT any variations)
+   - "Lakeflow" (NOT "Lake Flow")
+   - "Genie" (NOT "Agenicks" or "Agenics")
+   - "AIBI" (AI/BI product)
+   - "Unity Catalog" (NOT "Catalogue")
+
+3. **COLOR VIBRANCY** (Addressed feedback: "colors look washed out")
+   - Increase saturation by 15%
+   - Make AWS section warmer (more orange/cream tones)
+   - Make Azure section cooler (deeper blues)
+   - Ensure high contrast for presentation viewing
+
+
+
+===== ITERATION 2 REFINEMENTS =====
+
+**FEEDBACK FROM ITERATION 1:**
+Better logos, but needs improved layout and hierarchy
+
+**ADDITIONAL IMPROVEMENTS:**
+
+1. **VISUAL HIERARCHY**
+   - Make title 25% LARGER and bolder
+   - Core Databricks circle should be most prominent (darkest, largest text)
+   - Intelligence Layer text should be 80% of core size
+   - Operational Cloud Layer should be 70% of core size
+   - Strategic Orbit nodes should be 60% of core size
+
+2. **LAYOUT IMPROVEMENTS**
+   - Increase spacing between concentric rings by 10%
+   - Strategic orbit nodes need MORE separation (30% further apart)
+   - Ensure left-right balance is perfect
+   - Data metrics (4.56M, 32.9 TWh) should be BOLD and 120% current size
+
+3. **DEPTH & POLISH**
+   - Add stronger drop shadows to create 3D effect
+   - Apply subtle gradients to ALL sections (not flat colors)
+   - Add glow effect around logos (makes them pop)
+   - Ensure background is soft off-white (#FAFAFA), NOT pure white
+
+
+
+===== ITERATION 3 REFINEMENTS (FINAL) =====
+
+**FEEDBACK FROM ITERATION 2:**
+Great! Now add final executive polish
+
+**EXECUTIVE PRESENTATION POLISH:**
+
+1. **PROFESSIONAL FINISH**
+   - Add subtle texture/noise to backgrounds (prevents flat look)
+   - Ensure all text is CRISP and highly legible
+   - Perfect alignment of all elements (use invisible grid)
+   - Consistent spacing throughout (mathematical precision)
+
+2. **LOGO TREATMENT PERFECTION**
+   - Each logo should have subtle halo/glow effect
+   - Kaluza: Ensure three hexagons are CRYSTAL CLEAR and BLACK
+   - Databricks: White on dark core, high contrast
+   - AWS & Azure: Official brand colors, prominent placement
+   - Unity Catalog: Pink squares, yellow triangles, hexagon - all visible
+
+3. **DATA EMPHASIS**
+   - "4.56M Customer Services" - BOLD, large, prominent
+   - "32.9 TWh Generation" - BOLD, large, prominent
+   - Strategic targets (+20, +85%, 5.3 GW, 1.49 GW) - clear and bold
+
+4. **C-SUITE READY**
+   - This diagram should look like it came from McKinsey/BCG
+   - Professional enough for board presentation
+   - Clean, polished, authoritative
+   - No spelling errors (triple-check everything)
+   - Perfect for Google Slides at 16:9

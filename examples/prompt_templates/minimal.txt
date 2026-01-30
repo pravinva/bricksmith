@@ -1,0 +1,7 @@
+Generate a minimal, clean architecture diagram.
+
+{logo_section}
+
+{diagram_section}
+
+Style: Simple, clean, minimal. White background. Clear labels.

@@ -1,0 +1,60 @@
+You are a Databricks Solutions Architect.
+
+Create a HORIZONTAL DATA JOURNEY diagram (left to right) with 5 phases and 3 swim lanes.
+Style: Modern data-flow, like emerging architectures diagrams.
+Purpose: Show AGL's data flowing from AWS/Azure → Lakehouse → Decisions/Agents.
+
+===== STRUCTURE =====
+
+3 SWIM LANES:
+- Top: AWS (orange) – kaluza, Salesforce, Amazon Connect
+- Middle: Databricks Platform (slate/red)
+- Bottom: Azure (blue) – SAP, SCADA, Markets
+
+5 PHASES (left to right):
+1. Ingest
+2. Transform
+3. Govern
+4. Analyse (AI/BI)
+5. Activate (Agents)
+
+===== PHASE 1 – INGEST =====
+
+AWS lane: Events, records, call logs
+Azure lane: Transactions, SCADA, market feeds
+Middle: Lakeflow, Auto Loader icon
+
+===== PHASE 2 – TRANSFORM =====
+
+Middle (full width):
+- [Delta Lake logo]
+- "Bronze → Silver → Gold"
+- "Spark, Photon, Streaming"
+
+===== PHASE 3 – GOVERN =====
+
+Middle (full width):
+- [Unity Catalog logo]
+- "Single Governance Plane"
+- "Metric Views (Semantic Layer)"
+
+===== PHASE 4 – ANALYSE =====
+
+Middle:
+- "DBSQL, AI/BI Dashboards, AIBI Genie"
+
+AWS lane: Executive dashboards
+Azure lane: Trader dashboards
+
+===== PHASE 5 – ACTIVATE =====
+
+Middle:
+- "Agent Bricks, MLflow, Model Serving"
+
+AWS lane: Churn agents, tariff agents, assist
+Azure lane: Maintenance agents, trading agents, forecast agents
+
+===== VISUAL STYLE =====
+
+16:9 landscape. Converging arrows from clouds into centre, then fanning out.
+Minimal text. No filenames. Clean flows.

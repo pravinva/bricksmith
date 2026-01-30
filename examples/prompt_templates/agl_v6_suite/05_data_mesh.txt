@@ -1,0 +1,72 @@
+You are a Databricks Solutions Architect.
+
+Create a FEDERATED DATA MESH diagram showing AGL's 5 business domains owning data products
+on a central Databricks Lakehouse.
+
+Style: Network diagram with central hub and 5 surrounding nodes.
+Purpose: Show decentralised domain ownership + centralised governance on dual-cloud Lakehouse.
+
+===== CENTRAL PLATFORM =====
+
+Hexagon or circle in centre:
+- [Databricks logo]
+- "Databricks Lakehouse (AWS + Azure)"
+- Sub-layers (3 rings):
+  - [Delta Lake logo] "Delta Lake (S3 + ADLS)"
+  - "Compute: Spark, DBSQL, Feature Store, Agent Bricks"
+  - [Unity Catalog logo] "Governance & Metric Views"
+
+Bottom: [AWS logo] [Azure logo] "Deployed on AWS and Azure"
+
+===== DOMAIN NODES (5) =====
+
+Arranged in circle around centre. Each node has 3 layers:
+- Top: Sources (icons, minimal text)
+- Middle: Data Product name (Delta tables + UC icon)
+- Bottom: Consumers (tools, brief labels)
+
+DOMAIN 1 – Retail Energy:
+- Sources: kaluza, CRM, web
+- Product: "Customer 360"
+- [Kaluza logo] (optional, prominently placed)
+- Consumers: kaluza offers, churn agents
+- AWS chip
+
+DOMAIN 2 – Call Centre:
+- Sources: Amazon Connect
+- Product: "Contact Performance"
+- Consumers: Agent assist, NPS dashboards
+- AWS chip
+
+DOMAIN 3 – Markets & Trading:
+- Sources: Market feeds, hedging
+- Product: "Market Analytics"
+- Consumers: Trader dashboards, agents
+- Neutral chip
+
+DOMAIN 4 – Generation & Assets:
+- Sources: SCADA, historian
+- Product: "Asset Health"
+- Consumers: Maintenance agents, dispatch
+- Azure chip (IoT icon)
+
+DOMAIN 5 – Finance & Compliance:
+- Sources: SAP, GL
+- Product: "Financial Data"
+- Consumers: CFO dashboards, regulatory agents
+- Azure chip
+
+===== CONNECTIONS =====
+
+Lines from each domain's product layer back to Delta Lake in centre.
+Small UC icons on lines show governance flowing outward.
+Selected cross-domain arrows (Retail ↔ Markets, Gen ↔ Finance) show data sharing.
+
+===== MESSAGE =====
+
+Bottom: "Decentralised ownership, centralised governance"
+
+===== VISUAL STYLE =====
+
+16:9 landscape. Network layout. Soft pastels on domain nodes. Central platform darker.
+Minimal text. No filenames. Clean, balanced.

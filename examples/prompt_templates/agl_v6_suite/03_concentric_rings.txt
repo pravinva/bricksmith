@@ -1,0 +1,47 @@
+You are a Databricks Solutions Architect.
+
+Create a CONCENTRIC RING diagram (target/bullseye) showing AGL's platform ecosystem.
+Style: Balanced, clean rings like modern platform architecture diagrams.
+Purpose: Show Databricks core, shared services, cloud systems (AWS left / Azure right),
+and 5 business domains around the outside.
+
+DO NOT label rings as "Ring 1 / Ring 2" etc. Use only business and technical labels.
+
+===== RING STRUCTURE =====
+
+INNER CORE:
+- [Databricks logo]
+- "AGL Unified Energy Data Platform"
+- Sub-rings: [Delta Lake logo] Storage | Processing | [Unity Catalog logo] Governance
+
+RING 2 (Shared Services):
+- Divide into 3 sectors (120° each):
+  - "Data Eng" (Lakeflow, LDP, Auto Loader)
+  - "Analytics" (DBSQL, AI/BI, AIBI Genie)
+  - "AI/ML" (Agent Bricks, MLflow)
+
+RING 3 (Cloud Systems):
+- Split LEFT (AWS, orange) | RIGHT (Azure, blue)
+
+LEFT (AWS):
+- [AWS logo] Badge
+- "kaluza, Salesforce, Amazon Connect"
+- "4.1M Customer Services"
+
+RIGHT (Azure):
+- [Azure logo] Badge
+- "SAP, SCADA, Markets"
+- "Generation & Finance"
+
+RING 4 (Domains):
+- 5 segments (72° each):
+  1. "Retail Energy" [Kaluza logo] – AWS chip
+  2. "Call Centre" – AWS chip
+  3. "Markets & Trading" – Neutral chip
+  4. "Generation & Assets" – Azure chip
+  5. "Finance & Compliance" – Azure chip
+
+===== VISUAL STYLE =====
+
+16:9 landscape. Soft drop shadows on inner rings. AWS orange / Azure blue accents on Ring 3.
+Minimal text labels. No filenames. Clean, balanced layout.

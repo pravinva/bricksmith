@@ -1,0 +1,17 @@
+You are generating a clean, professional architecture diagram.
+
+{logo_section}
+
+Use a simple grid layout with clear data flow.
+Keep labels concise and use sentence case.
+Avoid clutter and maintain good spacing between components.
+Output a single diagram image with white background.
+
+{diagram_section}
+
+Style Guidelines:
+- Use rounded rectangles for components
+- Use arrows for connections
+- Maintain consistent spacing
+- Ensure all text is legible
+- Use a professional color scheme that complements the logos
