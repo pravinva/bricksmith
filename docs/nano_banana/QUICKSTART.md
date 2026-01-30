@@ -60,11 +60,11 @@ See **[DATABRICKS_SETUP.md](DATABRICKS_SETUP.md)** for detailed instructions.
 
 ### 1. Add Your Logo Files
 
-Place your logo files in `examples/logo_kit/`:
+Place your logo files in `logos/default/`:
 
 ```bash
-# Required logos (see examples/logo_kit/README.md for details):
-examples/logo_kit/
+# Required logos (see logos/default/README.md for details):
+logos/default/
 ├── databricks-logo.jpg
 ├── delta-lake-logo.jpg
 ├── uc-logo.jpg
@@ -78,7 +78,7 @@ examples/logo_kit/
 
 ```bash
 source .venv/bin/activate
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 ```
 
 ### 3. Generate Your First Diagram
@@ -92,7 +92,7 @@ source .env
 
 # Generate diagram (will track in Databricks MLflow)
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template baseline \
     --run-name "my-first-diagram"
 
@@ -143,7 +143,7 @@ nano-banana show-run <run-id>
 
 # Generate with tags
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template baseline \
     --run-name "test-run" \
     --tag "experiment=baseline" \
@@ -188,14 +188,14 @@ nano-banana generate \
 - **detailed** - Highly detailed with emphasis on clarity
 - **minimal** - Simple, minimal style
 
-Templates are in `examples/prompt_templates/` - edit or create new ones!
+Templates are in `prompts/prompt_templates/` - edit or create new ones!
 
 ## Example Diagram Specs
 
 - **example_basic.yaml** - Simple lakehouse architecture
 - **example_complex.yaml** - Multi-cloud lakehouse
 
-Specs are in `examples/diagram_specs/` - create your own!
+Specs are in `prompts/diagram_specs/` - create your own!
 
 ## Troubleshooting
 
@@ -221,7 +221,7 @@ gcloud services enable aiplatform.googleapis.com --project fe-dev-sandbox
 
 ```bash
 # Validate logos
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 
 # Check requirements:
 # - Format: .jpg, .jpeg, .png
@@ -255,7 +255,7 @@ For issues:
 
 **Ready to generate architecture diagrams!** 🎨
 
-Start by adding your logos to `examples/logo_kit/`, then run:
+Start by adding your logos to `logos/default/`, then run:
 
 ```bash
 ./setup.sh  # Or follow steps above manually

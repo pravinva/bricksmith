@@ -291,7 +291,7 @@ assert validation["has_no_filename_constraint"]
 - **PROMPT_ENGINEERING.md** - Complete prompt engineering guide
 - **LOGO_SETUP.md** - Logo configuration guide
 - **test-prompt-building.py** - Test script (run to verify)
-- **examples/prompt_templates/** - Example templates
+- **prompts/prompt_templates/** - Example templates
 
 ## 💡 Best Practices
 

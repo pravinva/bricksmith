@@ -14,7 +14,7 @@ Complete guide to using Nano Banana Pro for diagram generation and evaluation.
 
 ### Basic Structure
 
-Create a YAML file in `examples/diagram_specs/`:
+Create a YAML file in `prompts/diagram_specs/`:
 
 ```yaml
 name: "my-architecture"
@@ -82,7 +82,7 @@ constraints:
 
 ```bash
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template baseline
 ```
 
@@ -90,7 +90,7 @@ nano-banana generate \
 
 ```bash
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template baseline \
     --run-name "lakehouse-v1" \
     --tag "experiment=baseline" \
@@ -103,12 +103,12 @@ nano-banana generate \
 ```bash
 # Minimal template
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template minimal
 
 # Detailed template
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_complex.yaml \
+    --diagram-spec prompts/diagram_specs/example_complex.yaml \
     --template detailed
 ```
 
@@ -126,7 +126,7 @@ xdg-open outputs/output_abc12345.png  # Linux
 
 ### Template Structure
 
-Create `.txt` files in `examples/prompt_templates/`:
+Create `.txt` files in `prompts/prompt_templates/`:
 
 ```
 You are generating a clean architecture diagram.
@@ -314,7 +314,7 @@ nano-banana generate ...
 # Generate multiple variants
 for template in baseline detailed minimal; do
   nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template $template \
     --run-name "batch-${template}" \
     --tag "batch=1"
@@ -325,7 +325,7 @@ done
 
 ```bash
 # Validate logo kit before generation
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 ```
 
 Shows:
@@ -371,7 +371,7 @@ Use MLflow UI to compare:
 ### 5. Version Control Diagram Specs
 
 ```bash
-git add examples/diagram_specs/my-diagram-v1.yaml
+git add prompts/diagram_specs/my-diagram-v1.yaml
 git commit -m "Add diagram spec v1"
 ```
 
@@ -418,7 +418,7 @@ Create template variants:
 
 **Verify**:
 - Authentication: `nano-banana check-auth`
-- Logo kit: `nano-banana validate-logos --logo-dir examples/logo_kit`
+- Logo kit: `nano-banana validate-logos --logo-dir logos/default`
 - Diagram spec: Valid YAML syntax
 - Template: Contains required placeholders
 

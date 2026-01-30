@@ -20,10 +20,10 @@ This is **critical** to prevent filenames from appearing in generated diagrams.
 
 ### Step 1: Add Logo Files
 
-Add these 7 files to `examples/logo_kit/`:
+Add these 7 files to `logos/default/`:
 
 ```
-examples/logo_kit/
+logos/default/
 ├── databricks-logo.jpg        ← Red icon
 ├── delta-lake-logo.jpg        ← Teal icon
 ├── uc-logo.jpg                ← Unity Catalog (pink/yellow/hexagon)
@@ -47,7 +47,7 @@ source .venv/bin/activate
 ./check-logos.sh
 
 # Or detailed validation
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 ```
 
 ### Step 3: Use in Diagram Specs
@@ -86,7 +86,7 @@ source .venv/bin/activate
 source .env  # If using Databricks MLflow
 
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/all_logos_example.yaml \
+    --diagram-spec prompts/diagram_specs/all_logos_example.yaml \
     --template baseline \
     --run-name "logo-test"
 
@@ -132,10 +132,10 @@ See **[LOGO_SETUP.md](LOGO_SETUP.md)** for detailed instructions.
 
 ## 📚 Complete Documentation
 
-- **[LOGO_REFERENCE.md](examples/logo_kit/LOGO_REFERENCE.md)** - Quick reference card with copy-paste examples
+- **[LOGO_REFERENCE.md](logos/default/LOGO_REFERENCE.md)** - Quick reference card with copy-paste examples
 - **[LOGO_SETUP.md](LOGO_SETUP.md)** - Complete logo configuration guide
-- **[examples/logo_kit/README.md](examples/logo_kit/README.md)** - Logo directory documentation
-- **[all_logos_example.yaml](examples/diagram_specs/all_logos_example.yaml)** - Example using all 7 logos
+- **[logos/default/README.md](logos/default/README.md)** - Logo directory documentation
+- **[all_logos_example.yaml](prompts/diagram_specs/all_logos_example.yaml)** - Example using all 7 logos
 
 ## ⚡ Quick Commands
 
@@ -144,15 +144,15 @@ See **[LOGO_SETUP.md](LOGO_SETUP.md)** for detailed instructions.
 ./check-logos.sh
 
 # Validate logos
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 
 # Generate test diagram
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/all_logos_example.yaml \
+    --diagram-spec prompts/diagram_specs/all_logos_example.yaml \
     --template baseline
 
 # View all available prompt templates
-ls examples/prompt_templates/
+ls prompts/prompt_templates/
 ```
 
 ## 🚨 Common Mistakes
@@ -187,9 +187,9 @@ Logos might not load correctly
 
 ## 🎯 Next Steps
 
-1. ✅ Add your 7 logo files to `examples/logo_kit/`
+1. ✅ Add your 7 logo files to `logos/default/`
 2. ✅ Run `./check-logos.sh` to validate
-3. ✅ Review `examples/logo_kit/LOGO_REFERENCE.md` for copy-paste examples
+3. ✅ Review `logos/default/LOGO_REFERENCE.md` for copy-paste examples
 4. ✅ Generate test diagram with `all_logos_example.yaml`
 5. ✅ Create your own diagram specs using logo names
 6. ✅ Evaluate logo fidelity in generated diagrams

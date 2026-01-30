@@ -124,7 +124,7 @@ mlflow:
   experiment_name: "vertexai-nanobanana-arch-diagrams"
 
 logo_kit:
-  logo_dir: "./examples/logo_kit"
+  logo_dir: "./logos/default"
   max_logo_size_mb: 5.0
   allowed_extensions: [".jpg", ".jpeg", ".png"]
 ```
@@ -174,10 +174,10 @@ Acquire the required logo files:
 
 ```bash
 # Copy logos to the logo kit directory
-cp /path/to/your/logos/*.jpg examples/logo_kit/
+cp /path/to/your/logos/*.jpg logos/default/
 
 # Verify logos
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 ```
 
 ### 3. Logo Requirements
@@ -243,13 +243,13 @@ This checks:
 nano-banana check-auth
 
 # Validate logos
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 
 # List templates
-ls examples/prompt_templates/
+ls prompts/prompt_templates/
 
 # List diagram specs
-ls examples/diagram_specs/
+ls prompts/diagram_specs/
 ```
 
 ## Troubleshooting

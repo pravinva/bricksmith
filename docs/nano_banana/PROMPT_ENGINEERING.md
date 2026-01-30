@@ -177,7 +177,7 @@ These descriptions are automatically included in ALL prompts:
 
 ### Option 1: Use Placeholders (Recommended)
 
-Create `examples/prompt_templates/my_template.txt`:
+Create `prompts/prompt_templates/my_template.txt`:
 
 ```
 You are generating a modern, professional architecture diagram.
@@ -199,7 +199,7 @@ Additional Requirements:
 
 ### Option 2: Skip Placeholders (Still Works!)
 
-Create `examples/prompt_templates/simple.txt`:
+Create `prompts/prompt_templates/simple.txt`:
 
 ```
 Create a simple, clean diagram.
@@ -359,7 +359,7 @@ Audience: Technical data engineers
 Create a template without `{logo_section}`:
 
 ```
-# examples/prompt_templates/test_no_placeholder.txt
+# prompts/prompt_templates/test_no_placeholder.txt
 Create a diagram.
 
 {diagram_section}
@@ -373,7 +373,7 @@ Create your own template and verify:
 
 ```bash
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example_basic.yaml \
+    --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template your_template
 
 # Check prompt artifact includes all constraints
@@ -464,7 +464,7 @@ assert all(validation.values()), f"Validation failed: {validation}"
 - **LOGO_SETUP.md** - Logo configuration guide
 - **LOGO_QUICK_START.md** - Quick logo setup
 - **docs/usage.md** - Usage guide with examples
-- **examples/prompt_templates/** - Template examples
+- **prompts/prompt_templates/** - Template examples
 
 ---
 

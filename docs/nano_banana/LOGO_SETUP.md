@@ -8,7 +8,7 @@ This guide explains how to configure your logo kit for diagram generation.
 
 ### How It Works
 
-1. **Physical Files**: Actual logo image files in `examples/logo_kit/`
+1. **Physical Files**: Actual logo image files in `logos/default/`
 2. **Logo Names**: Internal identifiers (derived from filename without extension)
 3. **Descriptions**: Human-readable descriptions sent to the AI model
 
@@ -20,10 +20,10 @@ databricks-logo.jpg  →  logo name: "databricks-logo"  →  description: "red i
 
 ## 📁 Your Logo Files
 
-Place these files in `examples/logo_kit/`:
+Place these files in `logos/default/`:
 
 ```
-examples/logo_kit/
+logos/default/
 ├── databricks-logo.jpg        # Databricks logo (red icon)
 ├── delta-lake-logo.jpg        # Delta Lake logo (teal icon)
 ├── uc-logo.jpg                # Unity Catalog (pink squares, yellow triangles, hexagon)
@@ -170,7 +170,7 @@ After adding your logo files, validate them:
 source .venv/bin/activate
 
 # Validate logo kit
-nano-banana validate-logos --logo-dir examples/logo_kit
+nano-banana validate-logos --logo-dir logos/default
 ```
 
 This shows:
@@ -205,7 +205,7 @@ Logo Kit (7 logos)
 **Error**: `KeyError: Logo 'databricks' not found in cache`
 
 **Solutions**:
-1. Check logo file exists in `examples/logo_kit/`
+1. Check logo file exists in `logos/default/`
 2. Verify filename matches expected pattern
 3. Run `validate-logos` to see what was loaded
 4. Check logo name in diagram spec matches loaded names
@@ -241,8 +241,8 @@ Logo Kit (7 logos)
 
 ## 🎯 Quick Setup Checklist
 
-1. ✅ Add all 7 logo files to `examples/logo_kit/`
-2. ✅ Run `nano-banana validate-logos --logo-dir examples/logo_kit`
+1. ✅ Add all 7 logo files to `logos/default/`
+2. ✅ Run `nano-banana validate-logos --logo-dir logos/default`
 3. ✅ Verify descriptions match your actual logos
 4. ✅ (Optional) Customize descriptions if needed
 5. ✅ Use logo names in diagram specs (not filenames!)
@@ -251,8 +251,8 @@ Logo Kit (7 logos)
 
 ## 📚 Related Documentation
 
-- **examples/logo_kit/README.md** - Logo requirements
-- **examples/diagram_specs/example_basic.yaml** - Example using logos
+- **logos/default/README.md** - Logo requirements
+- **prompts/diagram_specs/example_basic.yaml** - Example using logos
 - **docs/usage.md** - Complete usage guide
 - **QUICKSTART.md** - Quick reference
 

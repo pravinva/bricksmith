@@ -125,7 +125,7 @@ exp = PromptExperiment(
 
 # Run single experiment
 result = lab.run_experiment(
-    diagram_spec_path=Path("examples/diagram_specs/agl_data_economy.yaml"),
+    diagram_spec_path=Path("prompts/diagram_specs/agl_data_economy.yaml"),
     experiment=exp,
     aspect_ratio="16:9",
     image_size="2K"
@@ -236,7 +236,7 @@ mlflow ui --port 5000
 
 # 6. Use winner for production
 uv run nano-banana generate \
-  --diagram-spec examples/diagram_specs/agl_data_economy.yaml \
+  --diagram-spec prompts/diagram_specs/agl_data_economy.yaml \
   --template agl_concentric_presentation \
   --run-name "agl-final"
 ```
@@ -275,8 +275,8 @@ Adjust template:
 
 ## 📚 Resources
 
-- **Template Directory**: `examples/prompt_templates/`
-- **Diagram Specs**: `examples/diagram_specs/`
+- **Template Directory**: `prompts/prompt_templates/`
+- **Diagram Specs**: `prompts/diagram_specs/`
 - **MCP Docs**: See databricks-docs MCP server
 - **MLflow UI**: `http://localhost:5000`
 

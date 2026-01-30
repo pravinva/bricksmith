@@ -9,21 +9,21 @@ During DSPy optimization iteration 3, a spelling error was detected:
 ## Files Corrected
 
 ### 1. Diagram Specification
-**File**: `examples/diagram_specs/agl_data_economy.yaml`
+**File**: `prompts/diagram_specs/agl_data_economy.yaml`
 - **Line 23**: Component label updated to `"PREDICT - Genie, AIBI & Agent Bricks"`
 - **Line 151**: Layer description updated to match
 
 ### 2. Base Template
-**File**: `examples/prompt_templates/agl_concentric.txt`
+**File**: `prompts/prompt_templates/agl_concentric.txt`
 - **Line 19**: Updated PREDICT segment to `"Genie, AIBI & Agent Bricks"`
 
 ### 3. Presentation Template
-**File**: `examples/prompt_templates/agl_concentric_presentation.txt`
+**File**: `prompts/prompt_templates/agl_concentric_presentation.txt`
 - **Spelling check section**: Added `"Genie"` and `"AIBI"` to verification list
 - **Line 69**: Updated PREDICT segment text
 
 ### 4. DSPy-Optimized Template (Production)
-**File**: `examples/prompt_templates/agl_concentric_dspy_optimized.txt`
+**File**: `prompts/prompt_templates/agl_concentric_dspy_optimized.txt`
 - **Lines 25, 184**: Updated spelling verification in 2 locations
 - **Line 81**: Fixed PREDICT segment text in layer structure
 - **Line 137**: Fixed components list
