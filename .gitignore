@@ -46,13 +46,16 @@ htmlcov/
 mlruns/
 mlartifacts/
 
-# Outputs
+# Outputs (but keep logos)
 outputs/
 *.png
 *.jpg
 *.jpeg
-!examples/logo_kit/*.jpg
-!examples/logo_kit/*.png
+!logos/**/*.jpg
+!logos/**/*.png
+!logos/**/*.jpeg
+!examples/**/*.jpg
+!examples/**/*.png
 
 # OS
 .DS_Store

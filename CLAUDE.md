@@ -39,23 +39,53 @@ uv run mypy src/
 
 ## Authentication Setup
 
+### Quick Setup
+
 ```bash
 # Create .env from template
 cp .env.example .env
 
+# Edit with your credentials
+nano .env
+
+# Load environment
+source .env
+
+# Verify
+nano-banana check-auth
+```
+
+### Getting Your API Keys
+
+#### Google AI API Key (Required)
+
+1. Go to https://aistudio.google.com/app/apikey
+2. Sign in with Google account
+3. Click "Get API Key" or "Create API Key"
+4. Select/create a project
+5. Copy the key (starts with `AIza...`)
+
+#### Databricks Credentials (Required)
+
+1. Go to your Databricks workspace
+2. Profile → Settings → Developer → Access tokens
+3. Generate new token
+4. Copy token (starts with `dapi...`)
+5. Note workspace URL and username
+
+### Environment Variables
+
+```bash
 # Required: Google AI Studio API key (for Gemini)
-export GEMINI_API_KEY="your-api-key"
+export GEMINI_API_KEY="AIza...your-key-here..."
 
 # Required: Databricks MLflow tracking
 export DATABRICKS_HOST="https://your-workspace.cloud.databricks.com"
-export DATABRICKS_TOKEN="dapi..."
+export DATABRICKS_TOKEN="dapi...your-token-here..."
 export DATABRICKS_USER="your.email@company.com"
 
 # Optional: GCP (if using Vertex AI directly)
 export GCP_PROJECT_ID="fe-dev-sandbox"
-
-# Load environment
-source .env
 ```
 
 ## CLI Commands
@@ -66,7 +96,7 @@ nano-banana verify-setup
 
 # Generate diagram from spec
 nano-banana generate \
-    --diagram-spec examples/diagram_specs/example.yaml \
+    --diagram-spec prompts/diagram_specs/example.yaml \
     --template baseline \
     --run-name "my-diagram" \
     --tag key=value
@@ -84,8 +114,17 @@ nano-banana suggest-improvements --template baseline
 nano-banana template-stats
 nano-banana dimension-stats
 
+# Visual prompt refinement
+nano-banana refine-prompt --run-id <run-id> --feedback "logos too small"
+nano-banana refine-prompt --reference-image path/to/diagram.png --original-prompt path/to/prompt.txt
+
+# Scenario to diagram generation (NEW)
+nano-banana scenario-to-spec --scenario "Build a lakehouse on AWS" --output spec.yaml
+nano-banana generate-from-scenario --scenario "Real-time pipeline with Kafka and Spark" --template baseline
+nano-banana compare-diagrams --good-run <id1> --bad-run <id2>
+
 # Logo management
-nano-banana validate-logos --logo-dir examples/logo_kit/
+nano-banana validate-logos --logo-dir logos/default/
 
 # Auth check
 nano-banana check-auth
@@ -102,6 +141,7 @@ The system follows a pipeline architecture orchestrated by `runner.py`:
 5. **MLflow Tracking** (`mlflow_tracker.py`): Logs parameters, metrics, artifacts to Databricks
 6. **Evaluation** (`evaluator.py`): Manual rubric-based scoring (0-5 scale)
 7. **Analysis** (`analyzer.py`): Cross-run prompt performance analysis
+8. **Prompt Refinement** (`prompt_refiner.py`): Visual analysis and prompt improvement suggestions
 
 ### Key Architecture Principles
 
@@ -117,10 +157,11 @@ src/nano_banana/
 ├── cli.py              # Click-based CLI (entry point)
 ├── runner.py           # Pipeline orchestrator
 ├── config.py           # Pydantic config with YAML/env loading
-├── models.py           # Pydantic data models (DiagramSpec, LogoInfo, etc.)
+├── models.py           # Pydantic data models (DiagramSpec, LogoInfo, PromptRefinement, etc.)
 ├── logos.py            # Logo validation and SHA tracking
 ├── prompts.py          # Template loading and prompt building
-├── gemini_client.py    # Google AI SDK client
+├── prompt_refiner.py   # Visual analysis and prompt refinement
+├── gemini_client.py    # Google AI SDK client (with vision analysis)
 ├── mlflow_tracker.py   # MLflow integration (Databricks)
 ├── evaluator.py        # Manual evaluation interface
 └── analyzer.py         # Cross-run analysis
@@ -130,10 +171,19 @@ configs/
 ├── databricks.yaml     # Databricks-specific settings
 └── local.yaml          # Local development overrides
 
-examples/
+prompts/
 ├── diagram_specs/      # YAML diagram specifications
-├── prompt_templates/   # .txt prompt templates
-└── logo_kit/          # Logo image files (.jpg, .png)
+└── prompt_templates/   # .txt prompt templates
+
+logos/                  # Logo kits (organized by use case)
+├── default/           # Default Databricks logos
+├── aws/              # AWS + Databricks
+├── azure/            # Azure + Databricks
+└── gcp/              # GCP + Databricks
+
+docs/nano_banana/
+├── LOGO_SETUP.md          # Logo configuration guide
+└── PROMPT_REFINEMENT.md   # Visual prompt refinement guide
 ```
 
 ## Configuration System
@@ -150,7 +200,7 @@ Configuration follows this precedence (highest to lowest):
 
 ## Diagram Specification Format
 
-YAML files in `examples/diagram_specs/`:
+YAML files in `prompts/diagram_specs/`:
 
 ```yaml
 name: "architecture-name"
@@ -177,7 +227,7 @@ constraints:
 
 ## Prompt Templates
 
-Text files in `examples/prompt_templates/` with variable substitution:
+Text files in `prompts/prompt_templates/` with variable substitution:
 
 ```
 Generate a clean architecture diagram.
@@ -221,7 +271,7 @@ See `src/nano_banana/prompts.py` for enforcement logic.
 ```bash
 # 1. Generate
 source .env
-nano-banana generate --diagram-spec examples/diagram_specs/basic.yaml --template baseline
+nano-banana generate --diagram-spec prompts/diagram_specs/basic.yaml --template baseline
 
 # 2. Note the run_id from output
 # 3. Evaluate
@@ -233,7 +283,7 @@ nano-banana evaluate <run-id>
 
 ### Prompt Template Experimentation
 ```bash
-# 1. Create new template in examples/prompt_templates/my_template.txt
+# 1. Create new template in prompts/prompt_templates/my_template.txt
 # 2. Generate with new template
 nano-banana generate --diagram-spec spec.yaml --template my_template
 
@@ -244,12 +294,33 @@ nano-banana analyze-prompts --min-score 4.0
 
 ### Logo Kit Updates
 ```bash
-# 1. Add new logo to examples/logo_kit/
+# 1. Add new logo to logos/default/
 # 2. Validate
-nano-banana validate-logos --logo-dir examples/logo_kit/
+nano-banana validate-logos --logo-dir logos/default/
 
 # 3. Update logo descriptions in src/nano_banana/logos.py if needed
 # 4. Generate new diagram using the logo
+```
+
+### Visual Prompt Refinement (NEW)
+```bash
+# 1. Generate initial diagram
+nano-banana generate --diagram-spec spec.yaml --template baseline --run-name "v1"
+
+# 2. Analyze and get specific improvements
+nano-banana refine-prompt \
+    --run-id <v1-run-id> \
+    --feedback "logos too small, need more spacing" \
+    --output-template prompts/prompt_templates/baseline_v2.txt
+
+# 3. Generate with refined prompt
+nano-banana generate --diagram-spec spec.yaml --template baseline_v2 --run-name "v2"
+
+# 4. Compare results
+nano-banana compare-diagrams --good-run <v2-run-id> --bad-run <v1-run-id>
+
+# 5. Iterate until satisfied
+nano-banana refine-prompt --run-id <v2-run-id> --feedback "perfect!" --output-template proven_winner.txt
 ```
 
 ## Development Notes
@@ -263,6 +334,8 @@ nano-banana validate-logos --logo-dir examples/logo_kit/
 ## Documentation
 
 - `README.md` - Overview and quick start
+- `docs/nano_banana/AUTHENTICATION.md` - Complete authentication setup guide
 - `docs/nano_banana/LOGO_SETUP.md` - Logo configuration details
+- `docs/nano_banana/PROMPT_REFINEMENT.md` - Visual prompt refinement guide (NEW)
 - `docs/START_HERE.md` - DSPy and MCP integration notes
-- `.env.example` - Required environment variables
+- `.env.example` - Environment variable template
