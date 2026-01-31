@@ -1,5 +1,6 @@
 """Data models for Nano Banana Pro."""
 
+from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
@@ -229,3 +230,136 @@ class PromptRefinement(BaseModel):
         summary.append(f"Confidence: {self.confidence_score:.1%}")
 
         return "\n".join(summary)
+
+
+# =============================================================================
+# Conversation Models for Interactive Diagram Refinement
+# =============================================================================
+
+
+class ConversationStatus(str, Enum):
+    """Status of a conversation session."""
+
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    ABANDONED = "abandoned"
+
+
+class ConversationTurn(BaseModel):
+    """A single turn in the conversation (generate → evaluate → feedback cycle)."""
+
+    iteration: int = Field(..., description="Turn number (1-based)")
+    prompt_used: str = Field(..., description="The prompt used for this generation")
+    run_id: str = Field(..., description="MLflow run ID for this iteration")
+    image_path: Path = Field(..., description="Path to generated image")
+    generation_time_seconds: float = Field(..., description="Time taken to generate")
+    score: Optional[int] = Field(default=None, ge=1, le=5, description="User score (1-5)")
+    feedback: Optional[str] = Field(default=None, description="User feedback text")
+    visual_analysis: Optional[str] = Field(
+        default=None, description="AI visual analysis of the generated image"
+    )
+    refinement_reasoning: Optional[str] = Field(
+        default=None, description="DSPy reasoning for prompt refinement"
+    )
+
+
+class ConversationSession(BaseModel):
+    """A complete conversation session for iterative diagram refinement."""
+
+    session_id: str = Field(..., description="Unique session identifier")
+    initial_prompt: str = Field(..., description="The starting prompt")
+    turns: list[ConversationTurn] = Field(
+        default_factory=list, description="List of conversation turns"
+    )
+    status: ConversationStatus = Field(
+        default=ConversationStatus.ACTIVE, description="Session status"
+    )
+    created_at: str = Field(default="", description="Session creation timestamp")
+    diagram_spec_path: Optional[Path] = Field(
+        default=None, description="Path to diagram spec if used"
+    )
+    template_id: Optional[str] = Field(
+        default=None, description="Template ID if used"
+    )
+
+    def add_turn(self, turn: ConversationTurn) -> None:
+        """Add a turn to the session.
+
+        Args:
+            turn: ConversationTurn to add
+        """
+        self.turns.append(turn)
+
+    def get_history_json(self) -> str:
+        """Get conversation history as JSON for DSPy context.
+
+        Returns:
+            JSON string of conversation history
+        """
+        import json
+
+        history = []
+        for turn in self.turns:
+            history.append({
+                "iteration": turn.iteration,
+                "score": turn.score,
+                "feedback": turn.feedback,
+                "visual_analysis": turn.visual_analysis,
+                "refinement_reasoning": turn.refinement_reasoning,
+            })
+        return json.dumps(history, indent=2)
+
+    def is_satisfied(self, target_score: int = 5) -> bool:
+        """Check if the latest score meets the target.
+
+        Args:
+            target_score: Target score to reach
+
+        Returns:
+            True if latest score >= target_score
+        """
+        if not self.turns:
+            return False
+        latest_turn = self.turns[-1]
+        return latest_turn.score is not None and latest_turn.score >= target_score
+
+    def get_latest_prompt(self) -> str:
+        """Get the most recent prompt used.
+
+        Returns:
+            Latest prompt or initial prompt if no turns
+        """
+        if self.turns:
+            return self.turns[-1].prompt_used
+        return self.initial_prompt
+
+    def get_best_turn(self) -> Optional[ConversationTurn]:
+        """Get the turn with the highest score.
+
+        Returns:
+            Best scoring turn or None if no scored turns
+        """
+        scored_turns = [t for t in self.turns if t.score is not None]
+        if not scored_turns:
+            return None
+        return max(scored_turns, key=lambda t: t.score)
+
+
+class ConversationConfig(BaseModel):
+    """Configuration for conversation sessions."""
+
+    max_iterations: int = Field(
+        default=10, ge=1, le=50, description="Maximum number of iterations"
+    )
+    target_score: int = Field(
+        default=5, ge=1, le=5, description="Target score to stop refinement"
+    )
+    auto_analyze: bool = Field(
+        default=True, description="Automatically analyze images with AI"
+    )
+    temperature: float = Field(
+        default=0.8, ge=0.0, le=2.0, description="Generation temperature"
+    )
+    logo_dir: Optional[Path] = Field(
+        default=None, description="Logo directory override"
+    )

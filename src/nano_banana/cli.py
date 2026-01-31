@@ -23,6 +23,8 @@ from .models import DiagramSpec
 from .prompts import PromptBuilder
 from .prompt_refiner import PromptRefiner
 from .runner import DiagramRunner
+from .conversation import ConversationChatbot
+from .models import ConversationConfig
 
 
 console = Console()
@@ -1557,6 +1559,158 @@ def generate_from_scenario(
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
         raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--prompt-file",
+    type=click.Path(exists=True, path_type=Path),
+    help="Initial prompt file (.txt)",
+)
+@click.option(
+    "--diagram-spec",
+    type=click.Path(exists=True, path_type=Path),
+    help="Diagram specification YAML file",
+)
+@click.option(
+    "--template",
+    default="baseline",
+    help="Template ID to use with diagram spec (default: baseline)",
+)
+@click.option(
+    "--logo-dir",
+    type=click.Path(exists=True, path_type=Path),
+    help="Logo directory (default: from config)",
+)
+@click.option(
+    "--max-iterations",
+    default=10,
+    type=int,
+    help="Maximum refinement iterations (default: 10)",
+)
+@click.option(
+    "--target-score",
+    default=5,
+    type=int,
+    help="Target score to stop (1-5, default: 5)",
+)
+@click.option(
+    "--temperature",
+    default=0.8,
+    type=float,
+    help="Generation temperature (default: 0.8)",
+)
+@click.option(
+    "--no-auto-analyze",
+    is_flag=True,
+    help="Disable automatic image analysis",
+)
+@click.option(
+    "--dspy-model",
+    type=str,
+    default=None,
+    help="Databricks model for DSPy refinement (default: databricks-claude-opus-4-5)",
+)
+@click.pass_obj
+def chat(
+    ctx: Context,
+    prompt_file: Optional[Path],
+    diagram_spec: Optional[Path],
+    template: str,
+    logo_dir: Optional[Path],
+    max_iterations: int,
+    target_score: int,
+    temperature: float,
+    no_auto_analyze: bool,
+    dspy_model: Optional[str],
+):
+    """Start interactive diagram refinement conversation.
+
+    This command creates a generate -> evaluate -> feedback -> refine loop
+    that iteratively improves your diagram through conversation.
+
+    You can start with either a prompt file or a diagram specification:
+
+    Examples:
+
+        # Start with a prompt file
+        nano-banana chat --prompt-file prompts/my_prompt.txt
+
+        # Start with a diagram spec
+        nano-banana chat --diagram-spec prompts/diagram_specs/example.yaml --template baseline
+
+        # Customize iteration settings
+        nano-banana chat --prompt-file prompt.txt --max-iterations 5 --target-score 4
+
+        # Use a specific Databricks model for refinement
+        nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
+    """
+    try:
+        # Validate inputs
+        if not prompt_file and not diagram_spec:
+            console.print("[red]Error: Must provide either --prompt-file or --diagram-spec[/red]")
+            raise click.Exit(1)
+
+        if prompt_file and diagram_spec:
+            console.print("[yellow]Warning: Both prompt and spec provided. Using diagram spec.[/yellow]")
+
+        # Create conversation config
+        conv_config = ConversationConfig(
+            max_iterations=max_iterations,
+            target_score=target_score,
+            auto_analyze=not no_auto_analyze,
+            temperature=temperature,
+            logo_dir=logo_dir,
+        )
+
+        # Create chatbot
+        chatbot = ConversationChatbot(
+            config=ctx.config,
+            conv_config=conv_config,
+            dspy_model=dspy_model,
+        )
+
+        # Prepare initial input
+        initial_prompt = None
+        spec = None
+
+        if diagram_spec:
+            console.print(f"[bold]Loading diagram spec: {diagram_spec.name}[/bold]")
+            from .models import DiagramSpec as DS
+            spec = DS.from_yaml(diagram_spec)
+        elif prompt_file:
+            console.print(f"[bold]Loading prompt: {prompt_file.name}[/bold]")
+            initial_prompt = prompt_file.read_text()
+
+        # Start session
+        chatbot.start_session(
+            initial_prompt=initial_prompt,
+            diagram_spec=spec,
+            template_id=template if diagram_spec else None,
+            diagram_spec_path=diagram_spec,
+        )
+
+        # Run conversation
+        session = chatbot.run_conversation()
+
+        # Final output
+        console.print(f"\n[bold green]Session complete![/bold green]")
+        console.print(f"  Status: {session.status.value}")
+        console.print(f"  Iterations: {len(session.turns)}")
+
+        best = session.get_best_turn()
+        if best:
+            console.print(f"  Best score: {best.score}")
+            console.print(f"  Best image: {best.image_path}")
+            console.print(f"\n[bold]To evaluate the best run:[/bold]")
+            console.print(f"  nano-banana evaluate {best.run_id}")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Conversation interrupted.[/yellow]")
+        raise click.Exit(0)
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise click.Exit(1)
 
 
 if __name__ == "__main__":
