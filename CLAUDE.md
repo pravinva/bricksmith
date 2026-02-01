@@ -13,7 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **This project uses `uv` exclusively.**
 
 ```bash
-# Initial setup
+# Quick start (sets up everything)
+./quickstart.sh
+
+# Or manual setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 
@@ -25,6 +28,22 @@ uv run pytest --cov                                # With coverage
 # Code quality
 uv run black src/ tests/                          # Format
 uv run mypy src/                                  # Type check
+uv run ruff check src/ tests/                     # Lint
+```
+
+### Makefile shortcuts
+
+```bash
+make dev-install    # Install with dev dependencies
+make test           # Run tests
+make test-cov       # Tests with coverage report
+make format         # Format code
+make lint           # Lint code
+make type-check     # Type check
+make check          # All quality checks
+make verify         # Verify setup
+make run-example    # Generate example diagram
+make pre-commit     # Run all pre-commit checks
 ```
 
 ## Environment Setup
@@ -110,27 +129,26 @@ The system follows a pipeline architecture:
 
 ## Key Modules
 
-```
-src/nano_banana/
-├── cli.py              # Click CLI entry point
-├── runner.py           # Pipeline orchestrator
-├── config.py           # Pydantic config (YAML/env)
-├── models.py           # Data models (DiagramSpec, LogoInfo, ConversationSession, etc.)
-├── logos.py            # Logo validation and SHA tracking
-├── prompts.py          # Template loading and prompt building
-├── gemini_client.py    # Google AI Gemini client
-├── vertex_client.py    # Vertex AI client (alternative)
-├── mlflow_tracker.py   # MLflow/Databricks integration
-├── evaluator.py        # Manual evaluation interface
-├── analyzer.py         # Cross-run analysis
-├── prompt_refiner.py   # Visual analysis for prompt improvement
-├── conversation.py     # Interactive chatbot for iterative refinement
-├── conversation_dspy.py # DSPy-based conversational refiner
-├── scenario_generator.py # Natural language → diagram spec
-├── databricks_style.py # Databricks brand colors/typography
-├── dspy_optimizer.py   # DSPy optimizer for automatic prompt improvement
-└── logo_compositor.py  # Logo composition engine
-```
+| Module | Purpose |
+|--------|---------|
+| `cli.py` | Click CLI entry point |
+| `runner.py` | Pipeline orchestrator |
+| `config.py` | Pydantic config (YAML/env) |
+| `models.py` | Data models (DiagramSpec, LogoInfo, ConversationSession) |
+| `logos.py` | Logo validation and SHA tracking |
+| `prompts.py` | Template loading and prompt building |
+| `gemini_client.py` | Google AI Gemini client |
+| `vertex_client.py` | Vertex AI client (alternative) |
+| `mlflow_tracker.py` | MLflow/Databricks integration |
+| `evaluator.py` | Manual evaluation interface |
+| `analyzer.py` | Cross-run analysis |
+| `prompt_refiner.py` | Visual analysis for prompt improvement |
+| `conversation.py` | Interactive chatbot for iterative refinement |
+| `conversation_dspy.py` | DSPy-based conversational refiner |
+| `scenario_generator.py` | Natural language → diagram spec |
+| `mcp_enricher.py` | MCP enrichment utilities |
+| `dspy_optimizer.py` | DSPy optimizer for automatic prompt improvement |
+| `logo_compositor.py` | Logo composition engine |
 
 ## Diagram Specification Format
 
