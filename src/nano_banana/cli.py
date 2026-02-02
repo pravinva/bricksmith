@@ -1672,12 +1672,18 @@ def chat(
         if prompt_file and diagram_spec:
             console.print("[yellow]Warning: Both prompt and spec provided. Using diagram spec.[/yellow]")
 
+        # Reference image implies auto-refine
+        if reference_image and not auto_refine:
+            console.print("[dim]Reference image provided - enabling auto-refine mode[/dim]")
+            auto_refine = True
+
         # Create conversation config
         conv_config = ConversationConfig(
             max_iterations=max_iterations,
             target_score=target_score,
             auto_analyze=not no_auto_analyze,
             auto_refine=auto_refine,
+            reference_image=reference_image,
             temperature=temperature,
             logo_dir=logo_dir,
         )
@@ -1688,6 +1694,10 @@ def chat(
             conv_config=conv_config,
             dspy_model=dspy_model,
         )
+
+        # Analyze reference image if provided
+        if reference_image:
+            chatbot.analyze_reference_image(reference_image)
 
         # Prepare initial input
         initial_prompt = None
