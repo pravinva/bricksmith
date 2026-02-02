@@ -1611,6 +1611,11 @@ def generate_from_scenario(
     help="Automatically refine based on design principles (no manual feedback needed)",
 )
 @click.option(
+    "--reference-image",
+    type=click.Path(exists=True, path_type=Path),
+    help="Reference image to match style and design (implies --auto-refine)",
+)
+@click.option(
     "--dspy-model",
     type=str,
     default=None,
@@ -1628,6 +1633,7 @@ def chat(
     temperature: float,
     no_auto_analyze: bool,
     auto_refine: bool,
+    reference_image: Optional[Path],
     dspy_model: Optional[str],
 ):
     """Start interactive diagram refinement conversation.
