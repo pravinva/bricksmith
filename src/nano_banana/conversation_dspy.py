@@ -114,12 +114,16 @@ class ConversationalRefiner(dspy.Module):
                 "or pass databricks_token parameter."
             )
 
+        # Configure LiteLLM environment for Databricks (used by DSPy 3.x)
+        os.environ["DATABRICKS_API_KEY"] = self.databricks_token
+        os.environ["DATABRICKS_API_BASE"] = f"{self.databricks_host.rstrip('/')}/serving-endpoints"
+
         # Use specified model or default to most powerful
         self.model_name = model or self.DATABRICKS_MODELS[0]
 
-        # Configure DSPy with Databricks model serving
-        self.lm = dspy.Databricks(
-            model=self.model_name,
+        # Configure DSPy with Databricks model serving (DSPy 3.x uses dspy.LM with LiteLLM)
+        self.lm = dspy.LM(
+            model=f"databricks/{self.model_name}",
             max_tokens=4096,
             temperature=0.3,  # Lower temperature for more focused refinement
         )
@@ -216,7 +220,7 @@ class ConversationalRefiner(dspy.Module):
                 )
                 feedback = f"Auto-identified issues: {analysis.issues_identified}"
 
-        result = self.forward(
+        result = self(
             original_prompt=original_prompt,
             current_prompt=current_prompt,
             conversation_history=session_history,

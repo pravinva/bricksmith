@@ -357,6 +357,14 @@ class ConversationConfig(BaseModel):
     auto_analyze: bool = Field(
         default=True, description="Automatically analyze images with AI"
     )
+    auto_refine: bool = Field(
+        default=False,
+        description="Automatically refine based on design principles (no manual feedback)"
+    )
+    reference_image: Optional[Path] = Field(
+        default=None,
+        description="Reference image to match style and design patterns"
+    )
     temperature: float = Field(
         default=0.8, ge=0.0, le=2.0, description="Generation temperature"
     )

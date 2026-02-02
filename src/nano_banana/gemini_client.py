@@ -5,10 +5,65 @@ because gemini-3-pro-image-preview is only available via Google AI Studio.
 """
 
 import os
-from typing import Any, Optional
+import time
+import random
+from typing import Any, Optional, Callable, TypeVar
 
 from google import genai
 from google.genai import types
+
+T = TypeVar("T")
+
+
+def retry_with_backoff(
+    func: Callable[[], T],
+    max_retries: int = 5,
+    initial_delay: float = 2.0,
+    max_delay: float = 60.0,
+    backoff_factor: float = 2.0,
+    retryable_errors: tuple = (503, 429, "UNAVAILABLE", "RESOURCE_EXHAUSTED"),
+) -> T:
+    """Retry a function with exponential backoff.
+
+    Args:
+        func: Function to retry
+        max_retries: Maximum number of retry attempts
+        initial_delay: Initial delay in seconds
+        max_delay: Maximum delay between retries
+        backoff_factor: Multiplier for delay after each retry
+        retryable_errors: Error codes/messages that trigger retry
+
+    Returns:
+        Result of the function
+
+    Raises:
+        Last exception if all retries fail
+    """
+    last_exception = None
+    delay = initial_delay
+
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            error_str = str(e)
+            is_retryable = any(
+                str(code) in error_str for code in retryable_errors
+            )
+
+            if not is_retryable or attempt == max_retries:
+                raise
+
+            last_exception = e
+            # Add jitter to prevent thundering herd
+            jitter = random.uniform(0.5, 1.5)
+            sleep_time = min(delay * jitter, max_delay)
+
+            print(f"  ⏳ API overloaded (attempt {attempt + 1}/{max_retries + 1}), retrying in {sleep_time:.1f}s...")
+            time.sleep(sleep_time)
+            delay *= backoff_factor
+
+    raise last_exception
 
 
 # Default system instruction for architecture diagram generation
@@ -199,11 +254,15 @@ class GeminiClient:
         
         generate_content_config = types.GenerateContentConfig(**config_kwargs)
 
-        # Call the model
+        # Call the model with retry logic for transient errors
         response_text = []
         image_data = None
 
-        try:
+        def _generate():
+            nonlocal image_data, response_text
+            response_text = []
+            image_data = None
+
             for chunk in self.client.models.generate_content_stream(
                 model=self.model,
                 contents=contents,
@@ -226,6 +285,11 @@ class GeminiClient:
 
             if not image_data:
                 raise ValueError("No image data received in response")
+
+            return image_data
+
+        try:
+            retry_with_backoff(_generate)
 
             # Build metadata
             metadata = {
@@ -302,15 +366,16 @@ class GeminiClient:
             response_modalities=["TEXT"],
         )
 
-        try:
+        def _analyze():
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=config,
             )
-
             return response.text
 
+        try:
+            return retry_with_backoff(_analyze)
         except Exception as e:
             raise Exception(f"Image analysis failed: {e}")
 
@@ -372,15 +437,16 @@ class GeminiClient:
             response_modalities=["TEXT"],
         )
 
-        try:
+        def _analyze():
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=config,
             )
-
             return response.text
 
+        try:
+            return retry_with_backoff(_analyze)
         except Exception as e:
             raise Exception(f"Image analysis failed: {e}")
 
@@ -411,15 +477,16 @@ class GeminiClient:
             response_modalities=["TEXT"],
         )
 
-        try:
+        def _generate():
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=config,
             )
-
             return response.text
 
+        try:
+            return retry_with_backoff(_generate)
         except Exception as e:
             raise Exception(f"Text generation failed: {e}")
 

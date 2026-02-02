@@ -141,11 +141,11 @@ def generate(
             console.print(f"To view runs: nano-banana list-runs")
         else:
             console.print(f"\n[bold red]Failed: {result.error_message}[/bold red]")
-            raise click.Exit(1)
+            raise SystemExit(1)
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -178,7 +178,7 @@ def evaluate(ctx: Context, run_id: str, eval_file: Optional[Path]):
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -241,7 +241,7 @@ def list_runs(ctx: Context, filter_string: Optional[str], max_results: int):
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -283,7 +283,7 @@ def show_run(ctx: Context, run_id: str):
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -811,7 +811,7 @@ def validate_logos(ctx: Context, logo_dir: Path):
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -836,12 +836,12 @@ def check_auth(ctx: Context):
         else:
             console.print("[bold red]✗ Authentication failed[/bold red]")
             console.print("\nPlease run: gcloud auth application-default login")
-            raise click.Exit(1)
+            raise SystemExit(1)
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
         console.print("\nPlease run: gcloud auth application-default login")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -863,11 +863,11 @@ def verify_setup(ctx: Context):
         if ctx.runner.verify_setup():
             console.print("\n[bold green]Ready to generate diagrams![/bold green]")
         else:
-            raise click.Exit(1)
+            raise SystemExit(1)
 
     except Exception as e:
         console.print(f"\n[bold red]Setup verification failed: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -925,7 +925,7 @@ def analyze_prompts(
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -977,7 +977,7 @@ def suggest_improvements(
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -1001,7 +1001,7 @@ def template_stats(ctx: Context):
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -1030,7 +1030,7 @@ def dimension_stats(ctx: Context, template: Optional[str]):
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 @main.command()
@@ -1606,6 +1606,11 @@ def generate_from_scenario(
     help="Disable automatic image analysis",
 )
 @click.option(
+    "--auto-refine",
+    is_flag=True,
+    help="Automatically refine based on design principles (no manual feedback needed)",
+)
+@click.option(
     "--dspy-model",
     type=str,
     default=None,
@@ -1622,6 +1627,7 @@ def chat(
     target_score: int,
     temperature: float,
     no_auto_analyze: bool,
+    auto_refine: bool,
     dspy_model: Optional[str],
 ):
     """Start interactive diagram refinement conversation.
@@ -1642,6 +1648,9 @@ def chat(
         # Customize iteration settings
         nano-banana chat --prompt-file prompt.txt --max-iterations 5 --target-score 4
 
+        # Auto-refine based on design principles (fully autonomous)
+        nano-banana chat --prompt-file prompt.txt --auto-refine --target-score 4
+
         # Use a specific Databricks model for refinement
         nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
     """
@@ -1649,7 +1658,7 @@ def chat(
         # Validate inputs
         if not prompt_file and not diagram_spec:
             console.print("[red]Error: Must provide either --prompt-file or --diagram-spec[/red]")
-            raise click.Exit(1)
+            raise SystemExit(1)
 
         if prompt_file and diagram_spec:
             console.print("[yellow]Warning: Both prompt and spec provided. Using diagram spec.[/yellow]")
@@ -1659,6 +1668,7 @@ def chat(
             max_iterations=max_iterations,
             target_score=target_score,
             auto_analyze=not no_auto_analyze,
+            auto_refine=auto_refine,
             temperature=temperature,
             logo_dir=logo_dir,
         )
@@ -1707,10 +1717,10 @@ def chat(
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Conversation interrupted.[/yellow]")
-        raise click.Exit(0)
+        raise SystemExit(0)
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
-        raise click.Exit(1)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

@@ -32,6 +32,133 @@ from .prompts import PromptBuilder
 
 console = Console()
 
+# Design principles evaluation prompt for automatic refinement
+REFERENCE_IMAGE_ANALYSIS_PROMPT = """Analyze this reference architecture diagram and extract its design patterns and style characteristics.
+
+Identify and describe:
+1. **Layout Pattern** - Flow direction, component arrangement, grouping strategy
+2. **Visual Style** - Color palette, background, borders, shadows
+3. **Typography** - Font styles, label positioning, text hierarchy
+4. **Logo Treatment** - Size, placement, spacing around logos
+5. **Connection Style** - Arrow types, line weights, connection routing
+6. **Overall Composition** - Balance, whitespace usage, visual hierarchy
+
+Provide a concise summary that can be used to guide generation of similar diagrams.
+Format your response as a structured description that another AI can use as style guidance."""
+
+
+REFERENCE_COMPARISON_PROMPT = """You are an expert architecture diagram reviewer. Compare the generated diagram against the reference image and evaluate how well it matches the reference style.
+
+REFERENCE IMAGE STYLE:
+{reference_style}
+
+EVALUATION CRITERIA (score each 1-5 based on how well it matches the reference):
+
+1. **Layout Match** - Does it follow the same flow direction and component arrangement?
+   - 5: Excellent match to reference layout
+   - 3: Partial match, some differences
+   - 1: Completely different layout
+
+2. **Visual Style Match** - Does it use similar colors, backgrounds, and styling?
+   - 5: Consistent with reference style
+   - 3: Some style elements match
+   - 1: Very different visual style
+
+3. **Typography Match** - Are labels and text styled similarly?
+   - 5: Text treatment matches reference
+   - 3: Partial match
+   - 1: Very different text styling
+
+4. **Logo Treatment** - Are logos sized and positioned similarly?
+   - 5: Logo treatment matches reference
+   - 3: Some differences in logo handling
+   - 1: Very different logo treatment
+
+5. **Overall Quality** - Is it professional and presentation-ready?
+   - 5: Excellent quality, matches reference standard
+   - 3: Acceptable quality
+   - 1: Poor quality
+
+RESPONSE FORMAT (use exactly this JSON structure):
+```json
+{{
+  "scores": {{
+    "layout_match": <1-5>,
+    "visual_style_match": <1-5>,
+    "typography_match": <1-5>,
+    "logo_treatment": <1-5>,
+    "overall_quality": <1-5>
+  }},
+  "overall_score": <1-5 weighted average>,
+  "differences": [
+    "specific difference from reference 1",
+    "specific difference from reference 2"
+  ],
+  "improvements": [
+    "how to better match the reference 1",
+    "how to better match the reference 2"
+  ],
+  "feedback_for_refinement": "A single paragraph describing how to modify the diagram to better match the reference style. Be specific and actionable."
+}}
+```
+
+Evaluate the generated diagram (second image) against the reference (first image) and respond with ONLY the JSON."""
+
+
+DESIGN_PRINCIPLES_EVAL_PROMPT = """You are an expert architecture diagram reviewer. Evaluate this diagram against professional design principles and provide structured feedback.
+
+EVALUATION CRITERIA (score each 1-5):
+
+1. **Logo Fidelity** - Are logos used exactly as provided without modification?
+   - 5: All logos crisp, unmodified, properly sized
+   - 3: Minor logo issues (sizing inconsistencies)
+   - 1: Logos modified, blurry, or missing
+
+2. **Layout Clarity** - Is the diagram well-organized with clear visual hierarchy?
+   - 5: Clear flow direction, logical grouping, balanced composition
+   - 3: Acceptable layout with some crowding or unclear groupings
+   - 1: Chaotic layout, no clear flow, overlapping elements
+
+3. **Text Legibility** - Is all text readable and well-formatted?
+   - 5: All text crisp, consistent sizing, proper contrast
+   - 3: Some text hard to read or inconsistent
+   - 1: Text illegible, overlapping, or poorly placed
+
+4. **Visual Design** - Does it follow professional design standards?
+   - 5: Clean, professional, presentation-ready
+   - 3: Acceptable but needs polish
+   - 1: Unprofessional appearance, cluttered
+
+5. **Data Flow** - Are connections and relationships clear?
+   - 5: Clear directional arrows, logical flow, well-labeled connections
+   - 3: Flow mostly clear but some ambiguity
+   - 1: Confusing connections, unclear relationships
+
+RESPONSE FORMAT (use exactly this JSON structure):
+```json
+{
+  "scores": {
+    "logo_fidelity": <1-5>,
+    "layout_clarity": <1-5>,
+    "text_legibility": <1-5>,
+    "visual_design": <1-5>,
+    "data_flow": <1-5>
+  },
+  "overall_score": <1-5 weighted average>,
+  "issues": [
+    "specific issue 1",
+    "specific issue 2"
+  ],
+  "improvements": [
+    "specific actionable improvement 1",
+    "specific actionable improvement 2"
+  ],
+  "feedback_for_refinement": "A single paragraph summarizing the most important changes needed to improve this diagram. Be specific and actionable."
+}
+```
+
+Evaluate the diagram and respond with ONLY the JSON - no other text."""
+
 
 class ConversationChatbot:
     """Interactive chatbot for iterative diagram refinement.
@@ -75,6 +202,35 @@ class ConversationChatbot:
         self._session: Optional[ConversationSession] = None
         self._logos: list = []
         self._logo_parts: list = []
+
+        # Reference image state
+        self._reference_style: Optional[str] = None
+
+    def analyze_reference_image(self, reference_path: Path) -> str:
+        """Analyze a reference image to extract design patterns.
+
+        Args:
+            reference_path: Path to the reference image
+
+        Returns:
+            Style description extracted from the reference
+        """
+        console.print(f"[bold]Analyzing reference image:[/bold] {reference_path}")
+
+        try:
+            style_description = self.gemini_client.analyze_image(
+                str(reference_path),
+                REFERENCE_IMAGE_ANALYSIS_PROMPT,
+                temperature=0.2,
+            )
+            self._reference_style = style_description
+            console.print("[green]Reference style extracted successfully[/green]")
+            console.print(Panel(style_description[:500] + "..." if len(style_description) > 500 else style_description,
+                               title="Reference Style", border_style="cyan"))
+            return style_description
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not analyze reference image: {e}[/yellow]")
+            return ""
 
     @property
     def refiner(self) -> ConversationalRefiner:
@@ -177,7 +333,7 @@ class ConversationChatbot:
             # Log prompt
             self.mlflow_tracker.log_prompt(prompt, "prompt.txt")
 
-            console.print(f"\n[bold cyan]Iteration {iteration}[/bold cyan]")
+            console.print(f"\n[bold cyan]═══ Iteration {iteration} ═══[/bold cyan]")
             console.print("[yellow]Generating diagram...[/yellow]")
 
             # Generate image
@@ -189,12 +345,16 @@ class ConversationChatbot:
             )
             generation_time = time.time() - start_time
 
-            # Save image
+            # Save image and prompt
             output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"chat-{self._session.session_id}"
             output_dir.mkdir(parents=True, exist_ok=True)
             image_path = output_dir / f"iteration_{iteration}.png"
+            prompt_path = output_dir / f"iteration_{iteration}_prompt.txt"
+
             with open(image_path, "wb") as f:
                 f.write(image_bytes)
+            with open(prompt_path, "w") as f:
+                f.write(prompt)
 
             # Log to MLflow
             self.mlflow_tracker.log_output_image(image_path)
@@ -204,7 +364,8 @@ class ConversationChatbot:
             })
 
             console.print(f"[green]Generated in {generation_time:.1f}s[/green]")
-            console.print(f"[dim]Image saved: {image_path}[/dim]")
+            console.print(f"[bold]Image:[/bold] {image_path}")
+            console.print(f"[bold]Prompt:[/bold] {prompt_path}")
 
             # Create turn
             turn = ConversationTurn(
@@ -215,8 +376,8 @@ class ConversationChatbot:
                 generation_time_seconds=generation_time,
             )
 
-            # Auto-analyze if enabled
-            if self.conv_config.auto_analyze:
+            # Auto-analyze if enabled (skip if auto_refine - that does its own evaluation)
+            if self.conv_config.auto_analyze and not self.conv_config.auto_refine:
                 console.print("[dim]Analyzing image...[/dim]")
                 try:
                     analysis = self.gemini_client.analyze_image(
@@ -229,7 +390,7 @@ class ConversationChatbot:
                 except Exception as e:
                     console.print(f"[yellow]Analysis failed: {e}[/yellow]")
 
-            self.mlflow_tracker.end_run("FINISHED")
+            # Don't end MLflow run yet - will be ended after scoring
             return turn
 
         except Exception as e:
@@ -275,6 +436,86 @@ class ConversationChatbot:
         turn.feedback = feedback
 
         return score, feedback
+
+    def auto_evaluate(self, turn: ConversationTurn) -> tuple[int, str]:
+        """Automatically evaluate diagram against design principles or reference image.
+
+        Args:
+            turn: The turn to evaluate
+
+        Returns:
+            Tuple of (score, feedback_text)
+        """
+        # Use reference comparison if we have a reference style
+        if self._reference_style and self.conv_config.reference_image:
+            return self._evaluate_against_reference(turn)
+
+        console.print(f"\n[bold cyan]Auto-evaluating against design principles...[/bold cyan]")
+        console.print(f"  [dim]{turn.image_path}[/dim]")
+
+        try:
+            # Get structured evaluation from Gemini
+            eval_response = self.gemini_client.analyze_image(
+                str(turn.image_path),
+                DESIGN_PRINCIPLES_EVAL_PROMPT,
+                temperature=0.2,  # Low temp for consistent evaluation
+            )
+
+            # Parse JSON response
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', eval_response)
+            if not json_match:
+                raise ValueError("No JSON found in evaluation response")
+
+            eval_data = json.loads(json_match.group())
+
+            # Extract scores
+            scores = eval_data.get("scores", {})
+            overall_score = int(round(eval_data.get("overall_score", 3)))
+            issues = eval_data.get("issues", [])
+            improvements = eval_data.get("improvements", [])
+            feedback = eval_data.get("feedback_for_refinement", "")
+
+            # Display evaluation results
+            score_table = Table(title="Design Principles Evaluation", show_header=True)
+            score_table.add_column("Criterion", style="cyan")
+            score_table.add_column("Score", style="magenta", justify="center")
+
+            for criterion, score_val in scores.items():
+                label = criterion.replace("_", " ").title()
+                color = "green" if score_val >= 4 else "yellow" if score_val >= 3 else "red"
+                score_table.add_row(label, f"[{color}]{score_val}/5[/{color}]")
+
+            score_table.add_row("", "")
+            overall_color = "green" if overall_score >= 4 else "yellow" if overall_score >= 3 else "red"
+            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/5[/bold {overall_color}]")
+
+            console.print(score_table)
+
+            if issues:
+                console.print("\n[bold red]Issues Found:[/bold red]")
+                for issue in issues[:5]:  # Limit to top 5
+                    console.print(f"  • {issue}")
+
+            if improvements:
+                console.print("\n[bold green]Suggested Improvements:[/bold green]")
+                for improvement in improvements[:5]:  # Limit to top 5
+                    console.print(f"  • {improvement}")
+
+            # Store analysis details
+            turn.visual_analysis = json.dumps(eval_data, indent=2)
+            turn.score = overall_score
+            turn.feedback = feedback
+
+            console.print(f"\n[bold]Feedback for refinement:[/bold]")
+            console.print(Panel(feedback, border_style="yellow"))
+
+            return overall_score, feedback
+
+        except Exception as e:
+            console.print(f"[yellow]Auto-evaluation failed: {e}[/yellow]")
+            console.print("[yellow]Falling back to manual feedback...[/yellow]")
+            return self.collect_feedback(turn)
 
     def refine_prompt(
         self,
@@ -325,12 +566,14 @@ class ConversationChatbot:
             raise ValueError("No active session. Call start_session() first.")
 
         current_prompt = self._session.initial_prompt
+        mode = "Auto-refine" if self.conv_config.auto_refine else "Interactive"
 
         console.print(Panel(
             f"Starting conversation refinement loop\n"
+            f"Mode: [bold]{mode}[/bold]\n"
             f"Target score: {self.conv_config.target_score}\n"
             f"Max iterations: {self.conv_config.max_iterations}\n"
-            f"Type 'done' or score {self.conv_config.target_score} to finish",
+            + ("" if self.conv_config.auto_refine else "Type 'done' or score target to finish"),
             title="Conversation Session",
             border_style="cyan",
         ))
@@ -339,8 +582,20 @@ class ConversationChatbot:
             # Generate
             turn = self.run_iteration(current_prompt)
 
-            # Collect feedback
-            score, feedback = self.collect_feedback(turn)
+            # Collect feedback (auto or manual)
+            if self.conv_config.auto_refine:
+                score, feedback = self.auto_evaluate(turn)
+            else:
+                score, feedback = self.collect_feedback(turn)
+
+            # Log score to MLflow and end the run
+            try:
+                self.mlflow_tracker.log_metrics({"score": score})
+                if turn.feedback:
+                    self.mlflow_tracker.log_prompt(turn.feedback, "feedback.txt")
+                self.mlflow_tracker.end_run("FINISHED")
+            except Exception:
+                pass  # Run may already be ended
 
             # Add turn to session
             self._session.add_turn(turn)
