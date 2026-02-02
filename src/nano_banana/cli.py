@@ -1657,6 +1657,9 @@ def chat(
         # Auto-refine based on design principles (fully autonomous)
         nano-banana chat --prompt-file prompt.txt --auto-refine --target-score 4
 
+        # Match style from a reference image
+        nano-banana chat --prompt-file prompt.txt --reference-image examples/good_diagram.png
+
         # Use a specific Databricks model for refinement
         nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
     """
