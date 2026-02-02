@@ -517,6 +517,90 @@ class ConversationChatbot:
             console.print("[yellow]Falling back to manual feedback...[/yellow]")
             return self.collect_feedback(turn)
 
+    def _evaluate_against_reference(self, turn: ConversationTurn) -> tuple[int, str]:
+        """Evaluate diagram by comparing against reference image.
+
+        Args:
+            turn: The turn to evaluate
+
+        Returns:
+            Tuple of (score, feedback_text)
+        """
+        console.print(f"\n[bold cyan]Comparing against reference image...[/bold cyan]")
+        console.print(f"  [dim]Generated: {turn.image_path}[/dim]")
+        console.print(f"  [dim]Reference: {self.conv_config.reference_image}[/dim]")
+
+        try:
+            # Build the comparison prompt with the extracted style
+            comparison_prompt = REFERENCE_COMPARISON_PROMPT.format(
+                reference_style=self._reference_style
+            )
+
+            # Compare images (reference first, generated second)
+            eval_response = self.gemini_client.analyze_images(
+                [str(self.conv_config.reference_image), str(turn.image_path)],
+                comparison_prompt,
+                temperature=0.2,
+            )
+
+            # Parse JSON response
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', eval_response)
+            if not json_match:
+                raise ValueError("No JSON found in evaluation response")
+
+            eval_data = json.loads(json_match.group())
+
+            # Extract scores
+            scores = eval_data.get("scores", {})
+            overall_score = int(round(eval_data.get("overall_score", 3)))
+            differences = eval_data.get("differences", [])
+            improvements = eval_data.get("improvements", [])
+            feedback = eval_data.get("feedback_for_refinement", "")
+
+            # Display evaluation results
+            score_table = Table(title="Reference Comparison", show_header=True)
+            score_table.add_column("Criterion", style="cyan")
+            score_table.add_column("Score", style="magenta", justify="center")
+
+            for criterion, score_val in scores.items():
+                label = criterion.replace("_", " ").title()
+                color = "green" if score_val >= 4 else "yellow" if score_val >= 3 else "red"
+                score_table.add_row(label, f"[{color}]{score_val}/5[/{color}]")
+
+            score_table.add_row("", "")
+            overall_color = "green" if overall_score >= 4 else "yellow" if overall_score >= 3 else "red"
+            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/5[/bold {overall_color}]")
+
+            console.print(score_table)
+
+            if differences:
+                console.print("\n[bold red]Differences from Reference:[/bold red]")
+                for diff in differences[:5]:
+                    console.print(f"  • {diff}")
+
+            if improvements:
+                console.print("\n[bold green]How to Match Reference:[/bold green]")
+                for improvement in improvements[:5]:
+                    console.print(f"  • {improvement}")
+
+            # Store analysis details
+            turn.visual_analysis = json.dumps(eval_data, indent=2)
+            turn.score = overall_score
+            turn.feedback = feedback
+
+            console.print(f"\n[bold]Feedback for refinement:[/bold]")
+            console.print(Panel(feedback, border_style="yellow"))
+
+            return overall_score, feedback
+
+        except Exception as e:
+            console.print(f"[yellow]Reference comparison failed: {e}[/yellow]")
+            console.print("[yellow]Falling back to design principles evaluation...[/yellow]")
+            # Fall back to standard evaluation
+            self._reference_style = None
+            return self.auto_evaluate(turn)
+
     def refine_prompt(
         self,
         current_prompt: str,
