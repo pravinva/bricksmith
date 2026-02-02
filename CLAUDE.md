@@ -191,10 +191,15 @@ Diagrams scored 0-5 on four dimensions:
 2. YAML config file (`configs/default.yaml`)
 3. Code defaults
 
+## Rules
+
+- **Documentation location**: All documentation files (`.md`) go in `docs/`. Exceptions: `README.md`, `CLAUDE.md`, `CHANGELOG.md`, `CONTRIBUTING.md` stay in root. Context-specific READMEs (e.g., `logos/*/README.md`) stay with their directories.
+
 ## Documentation
 
 - `docs/nano_banana/AUTHENTICATION.md` - Complete auth setup
 - `docs/nano_banana/LOGO_SETUP.md` - Logo configuration
+- `docs/nano_banana/CHAT_REFINEMENT.md` - Interactive chat loop for iterative diagram refinement
 - `docs/nano_banana/PROMPT_REFINEMENT.md` - Visual prompt refinement
 - `docs/nano_banana/SCENARIO_TO_DIAGRAM.md` - Scenario-based generation
 - `docs/START_HERE.md` - DSPy and MCP integration
