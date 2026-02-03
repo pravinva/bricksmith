@@ -345,6 +345,40 @@ class ConversationSession(BaseModel):
         return max(scored_turns, key=lambda t: t.score)
 
 
+class GenerationSettings(BaseModel):
+    """Sampling settings for image generation."""
+
+    temperature: float = Field(
+        default=0.8, ge=0.0, le=2.0,
+        description="Sampling temperature: 0=deterministic, 0.8=balanced, 2.0=creative"
+    )
+    top_p: float = Field(
+        default=0.95, ge=0.0, le=1.0,
+        description="Nucleus sampling: lower=focused, higher=diverse"
+    )
+    top_k: int = Field(
+        default=50, ge=0,
+        description="Top-k sampling: limits token choices (0 to disable)"
+    )
+    presence_penalty: float = Field(
+        default=0.1, ge=0.0, le=2.0,
+        description="Penalty for repeating elements"
+    )
+    frequency_penalty: float = Field(
+        default=0.1, ge=0.0, le=2.0,
+        description="Penalty for frequent patterns"
+    )
+
+    def summary(self) -> str:
+        """Return a short summary of settings."""
+        parts = [f"t={self.temperature}"]
+        if self.top_p != 0.95:
+            parts.append(f"p={self.top_p}")
+        if self.top_k != 50:
+            parts.append(f"k={self.top_k}")
+        return " ".join(parts)
+
+
 class ConversationConfig(BaseModel):
     """Configuration for conversation sessions."""
 
@@ -365,8 +399,136 @@ class ConversationConfig(BaseModel):
         default=None,
         description="Reference image to match style and design patterns"
     )
+    session_name: Optional[str] = Field(
+        default=None,
+        description="Name for the session (used in output directory)"
+    )
     temperature: float = Field(
         default=0.8, ge=0.0, le=2.0, description="Generation temperature"
+    )
+    top_p: float = Field(
+        default=0.95, ge=0.0, le=1.0, description="Nucleus sampling"
+    )
+    top_k: int = Field(
+        default=50, ge=0, description="Top-k sampling (0 to disable)"
+    )
+    presence_penalty: float = Field(
+        default=0.1, ge=0.0, le=2.0, description="Presence penalty"
+    )
+    frequency_penalty: float = Field(
+        default=0.1, ge=0.0, le=2.0, description="Frequency penalty"
+    )
+    logo_dir: Optional[Path] = Field(
+        default=None, description="Logo directory override"
+    )
+
+    def get_generation_settings(self) -> GenerationSettings:
+        """Get current generation settings."""
+        return GenerationSettings(
+            temperature=self.temperature,
+            top_p=self.top_p,
+            top_k=self.top_k,
+            presence_penalty=self.presence_penalty,
+            frequency_penalty=self.frequency_penalty,
+        )
+
+
+# =============================================================================
+# Architect Models for Collaborative Architecture Design
+# =============================================================================
+
+
+class ArchitectTurn(BaseModel):
+    """A single turn in the architect conversation."""
+
+    turn_number: int = Field(..., description="Turn number (1-based)")
+    user_input: str = Field(..., description="User's message in this turn")
+    architect_response: str = Field(..., description="AI architect's response")
+    architecture_snapshot: Optional[dict] = Field(
+        default=None,
+        description="Components and connections at this point in the conversation"
+    )
+    timestamp: str = Field(default="", description="Turn timestamp")
+
+
+class ArchitectSession(BaseModel):
+    """A complete architect conversation session."""
+
+    session_id: str = Field(..., description="Unique session identifier")
+    initial_problem: str = Field(..., description="The initial problem description")
+    turns: list[ArchitectTurn] = Field(
+        default_factory=list, description="List of conversation turns"
+    )
+    current_architecture: dict = Field(
+        default_factory=lambda: {"components": [], "connections": []},
+        description="Evolving architecture state"
+    )
+    available_logos: list[str] = Field(
+        default_factory=list, description="Logo names available for the diagram"
+    )
+    custom_context: Optional[str] = Field(
+        default=None, description="Custom domain/customer context"
+    )
+    created_at: str = Field(default="", description="Session creation timestamp")
+    status: ConversationStatus = Field(
+        default=ConversationStatus.ACTIVE, description="Session status"
+    )
+
+    def add_turn(self, turn: ArchitectTurn) -> None:
+        """Add a turn to the session.
+
+        Args:
+            turn: ArchitectTurn to add
+        """
+        self.turns.append(turn)
+
+    def get_history_json(self) -> str:
+        """Get conversation history as JSON for DSPy context.
+
+        Returns:
+            JSON string of conversation history
+        """
+        import json
+
+        history = []
+        for turn in self.turns:
+            history.append({
+                "turn_number": turn.turn_number,
+                "user_input": turn.user_input,
+                "architect_response": turn.architect_response,
+                "architecture_snapshot": turn.architecture_snapshot,
+            })
+        return json.dumps(history, indent=2)
+
+    def get_architecture_json(self) -> str:
+        """Get current architecture as JSON.
+
+        Returns:
+            JSON string of current architecture
+        """
+        import json
+        return json.dumps(self.current_architecture, indent=2)
+
+
+class ArchitectConfig(BaseModel):
+    """Configuration for architect sessions."""
+
+    max_turns: int = Field(
+        default=20, ge=1, le=100, description="Maximum conversation turns"
+    )
+    context_file: Optional[Path] = Field(
+        default=None, description="Custom context file with domain knowledge"
+    )
+    reference_prompt: Optional[Path] = Field(
+        default=None,
+        description="Existing diagram prompt to use as reference/starting point"
+    )
+    output_format: str = Field(
+        default="prompt",
+        description="Output format: 'prompt' for generate-raw or 'spec' for YAML"
+    )
+    session_name: Optional[str] = Field(
+        default=None, description="Session name for output directory"
     )
     logo_dir: Optional[Path] = Field(
         default=None, description="Logo directory override"
