@@ -1,5 +1,6 @@
 """Command-line interface for Nano Banana Pro."""
 
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -24,7 +25,7 @@ from .prompts import PromptBuilder
 from .prompt_refiner import PromptRefiner
 from .runner import DiagramRunner
 from .conversation import ConversationChatbot
-from .models import ConversationConfig
+from .models import ConversationConfig, ArchitectConfig
 
 
 console = Console()
@@ -1601,6 +1602,30 @@ def generate_from_scenario(
     help="Generation temperature (default: 0.8)",
 )
 @click.option(
+    "--top-p",
+    default=0.95,
+    type=float,
+    help="Nucleus sampling: lower=focused, higher=diverse (default: 0.95)",
+)
+@click.option(
+    "--top-k",
+    default=50,
+    type=int,
+    help="Top-k sampling: limits token choices (default: 50, 0 to disable)",
+)
+@click.option(
+    "--presence-penalty",
+    default=0.1,
+    type=float,
+    help="Penalty for repeating elements (default: 0.1)",
+)
+@click.option(
+    "--frequency-penalty",
+    default=0.1,
+    type=float,
+    help="Penalty for frequent patterns (default: 0.1)",
+)
+@click.option(
     "--no-auto-analyze",
     is_flag=True,
     help="Disable automatic image analysis",
@@ -1614,6 +1639,12 @@ def generate_from_scenario(
     "--reference-image",
     type=click.Path(exists=True, path_type=Path),
     help="Reference image to match style and design (implies --auto-refine)",
+)
+@click.option(
+    "--name",
+    type=str,
+    default=None,
+    help="Session name for output directory (defaults to prompt filename)",
 )
 @click.option(
     "--dspy-model",
@@ -1631,9 +1662,14 @@ def chat(
     max_iterations: int,
     target_score: int,
     temperature: float,
+    top_p: float,
+    top_k: int,
+    presence_penalty: float,
+    frequency_penalty: float,
     no_auto_analyze: bool,
     auto_refine: bool,
     reference_image: Optional[Path],
+    name: Optional[str],
     dspy_model: Optional[str],
 ):
     """Start interactive diagram refinement conversation.
@@ -1662,6 +1698,16 @@ def chat(
 
         # Use a specific Databricks model for refinement
         nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
+
+    During the conversation, you can use these feedback options:
+
+        • Text feedback: Refines the prompt based on your feedback
+        • 'r' or 'retry': Retry same prompt with slight temp variation
+        • 'r 0.5': Retry with specific temperature (0.5)
+        • 'r t=0.5 p=0.9': Retry with specific temp and top_p
+        • 'r creative': Retry with a preset (deterministic/conservative/balanced/creative/wild)
+        • Image path: Use as style reference for comparison
+        • 'done': Finish session
     """
     try:
         # Validate inputs
@@ -1677,6 +1723,14 @@ def chat(
             console.print("[dim]Reference image provided - enabling auto-refine mode[/dim]")
             auto_refine = True
 
+        # Default session name to prompt/spec filename
+        session_name = name
+        if not session_name:
+            if prompt_file:
+                session_name = prompt_file.stem  # filename without extension
+            elif diagram_spec:
+                session_name = diagram_spec.stem
+
         # Create conversation config
         conv_config = ConversationConfig(
             max_iterations=max_iterations,
@@ -1684,7 +1738,12 @@ def chat(
             auto_analyze=not no_auto_analyze,
             auto_refine=auto_refine,
             reference_image=reference_image,
+            session_name=session_name,
             temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
             logo_dir=logo_dir,
         )
 
@@ -1736,6 +1795,172 @@ def chat(
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Conversation interrupted.[/yellow]")
+        raise SystemExit(0)
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--problem",
+    type=str,
+    help="Initial problem description (or enter interactively)",
+)
+@click.option(
+    "--logo-dir",
+    type=click.Path(exists=True, path_type=Path),
+    help="Logo directory (default: from config)",
+)
+@click.option(
+    "--context",
+    type=click.Path(exists=True, path_type=Path),
+    help="Custom context file with domain knowledge",
+)
+@click.option(
+    "--reference-prompt",
+    type=click.Path(exists=True, path_type=Path),
+    help="Existing diagram prompt to use as reference for style and structure",
+)
+@click.option(
+    "--output-format",
+    type=click.Choice(["prompt", "spec"]),
+    default="prompt",
+    help="Output format: prompt for generate-raw or spec for YAML (default: prompt)",
+)
+@click.option(
+    "--output-file",
+    type=click.Path(path_type=Path),
+    help="Save output to specific file",
+)
+@click.option(
+    "--max-turns",
+    default=20,
+    type=int,
+    help="Maximum conversation turns (default: 20)",
+)
+@click.option(
+    "--dspy-model",
+    type=str,
+    default=None,
+    help="Databricks model for DSPy (default: databricks-claude-opus-4-5)",
+)
+@click.option(
+    "--name",
+    type=str,
+    default=None,
+    help="Session name for output directory",
+)
+@click.pass_obj
+def architect(
+    ctx: Context,
+    problem: Optional[str],
+    logo_dir: Optional[Path],
+    context: Optional[Path],
+    reference_prompt: Optional[Path],
+    output_format: str,
+    output_file: Optional[Path],
+    max_turns: int,
+    dspy_model: Optional[str],
+    name: Optional[str],
+):
+    """Start a collaborative architecture design conversation.
+
+    Have a back-and-forth conversation with an AI solutions architect
+    about a complex problem. The AI will ask clarifying questions,
+    propose architecture solutions, and help refine the design.
+
+    When ready, type 'output' to generate a diagram prompt suitable
+    for generate-raw.
+
+    Examples:
+
+        # Start interactively
+        nano-banana architect
+
+        # Start with a problem description
+        nano-banana architect --problem "Coles needs to migrate from Snowflake..."
+
+        # With custom context file
+        nano-banana architect \\
+            --problem "Real-time analytics pipeline" \\
+            --context prompts/context/customer_background.md
+
+        # Use an existing prompt as reference for style/structure
+        nano-banana architect \\
+            --problem "Similar diagram for ANZ Bank" \\
+            --reference-prompt prompts/coles_semantic_fragmentation.md
+
+        # Specify logo directory and session name
+        nano-banana architect \\
+            --problem "Data lakehouse on Azure" \\
+            --logo-dir logos/azure \\
+            --name azure-lakehouse
+
+    During the conversation, you can use these commands:
+
+        • Natural text - continue discussing architecture
+        • 'output' or 'generate' - generate the diagram prompt
+        • 'status' - show current architecture state
+        • 'done' - save and exit
+    """
+    from .architect import ArchitectChatbot
+
+    try:
+        # Get problem description
+        if not problem:
+            console.print("[bold cyan]Describe your architecture problem:[/bold cyan]")
+            console.print("[dim]What system do you need to design? What are the requirements?[/dim]\n")
+            problem = click.prompt("Problem", default="")
+
+            if not problem.strip():
+                console.print("[red]Error: Problem description is required[/red]")
+                raise SystemExit(1)
+
+        # Create config
+        arch_config = ArchitectConfig(
+            max_turns=max_turns,
+            context_file=context,
+            reference_prompt=reference_prompt,
+            output_format=output_format,
+            session_name=name,
+            logo_dir=logo_dir,
+        )
+
+        # Create chatbot
+        chatbot = ArchitectChatbot(
+            config=ctx.config,
+            arch_config=arch_config,
+            dspy_model=dspy_model,
+        )
+
+        # Start session
+        chatbot.start_session(
+            initial_problem=problem,
+            context_file=context,
+            reference_prompt=reference_prompt,
+        )
+
+        # Run conversation
+        session = chatbot.run_conversation()
+
+        # Final output
+        console.print(f"\n[bold green]Session complete![/bold green]")
+        console.print(f"  Status: {session.status.value}")
+        console.print(f"  Turns: {len(session.turns)}")
+        console.print(f"  Components: {len(session.current_architecture.get('components', []))}")
+
+        # Show next steps
+        output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"architect-{session.session_id}"
+        if (output_dir / "prompt.txt").exists():
+            console.print(f"\n[bold]Next steps:[/bold]")
+            console.print(f"  # Use the generated prompt")
+            console.print(f"  nano-banana generate-raw --prompt-file {output_dir}/prompt.txt --logo-dir logos/default")
+            console.print(f"\n  # Or continue refining with chat")
+            console.print(f"  nano-banana chat --prompt-file {output_dir}/prompt.txt")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Session interrupted.[/yellow]")
         raise SystemExit(0)
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
