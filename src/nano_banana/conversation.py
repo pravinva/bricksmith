@@ -27,8 +27,19 @@ from .models import (
     ConversationStatus,
     ConversationTurn,
     DiagramSpec,
+    GenerationSettings,
 )
 from .prompts import PromptBuilder
+
+
+# Preset generation settings for quick access
+GENERATION_PRESETS = {
+    "deterministic": GenerationSettings(temperature=0.0, top_p=1.0, top_k=1),
+    "conservative": GenerationSettings(temperature=0.4, top_p=0.9, top_k=30),
+    "balanced": GenerationSettings(temperature=0.8, top_p=0.95, top_k=50),
+    "creative": GenerationSettings(temperature=1.2, top_p=0.98, top_k=80),
+    "wild": GenerationSettings(temperature=1.8, top_p=1.0, top_k=0),
+}
 
 console = Console()
 
@@ -286,8 +297,15 @@ class ConversationChatbot:
             logo_section = self.prompt_builder._build_logo_section(self._logos)
             initial_prompt = f"{logo_section}\n\n{initial_prompt}"
 
-        # Create session
-        session_id = str(uuid.uuid4())[:8]
+        # Create session ID from name or generate random
+        if self.conv_config.session_name:
+            # Sanitize name for filesystem
+            import re
+            safe_name = re.sub(r'[^\w\-_]', '_', self.conv_config.session_name)
+            session_id = safe_name[:50]  # Limit length
+        else:
+            session_id = str(uuid.uuid4())[:8]
+
         self._session = ConversationSession(
             session_id=session_id,
             initial_prompt=initial_prompt,
@@ -299,11 +317,18 @@ class ConversationChatbot:
         console.print(f"\n[bold green]Session started: {session_id}[/bold green]")
         return self._session
 
-    def run_iteration(self, prompt: str) -> ConversationTurn:
+    def run_iteration(
+        self,
+        prompt: str,
+        settings: Optional[GenerationSettings] = None,
+        is_retry: bool = False,
+    ) -> ConversationTurn:
         """Run a single generation iteration.
 
         Args:
             prompt: The prompt to use for generation
+            settings: Optional generation settings (uses config defaults if not provided)
+            is_retry: Whether this is a retry of the same prompt with different settings
 
         Returns:
             ConversationTurn with generation results
@@ -313,11 +338,15 @@ class ConversationChatbot:
 
         iteration = len(self._session.turns) + 1
 
+        # Use provided settings or fall back to config defaults
+        gen_settings = settings or self.conv_config.get_generation_settings()
+
         # Initialize MLflow
         self.mlflow_tracker.initialize()
 
         # Start MLflow run
-        run_name = f"chat-{self._session.session_id}-iter-{iteration}"
+        retry_suffix = "-retry" if is_retry else ""
+        run_name = f"chat-{self._session.session_id}-iter-{iteration}{retry_suffix}"
         run_id = self.mlflow_tracker.start_run(run_name=run_name)
 
         try:
@@ -327,21 +356,30 @@ class ConversationChatbot:
                 "iteration": iteration,
                 "prompt_template_id": self._session.template_id or "raw",
                 "logo_count": len(self._logos),
-                "temperature": self.conv_config.temperature,
+                "temperature": gen_settings.temperature,
+                "top_p": gen_settings.top_p,
+                "top_k": gen_settings.top_k if gen_settings.top_k > 0 else None,
+                "presence_penalty": gen_settings.presence_penalty,
+                "frequency_penalty": gen_settings.frequency_penalty,
+                "is_retry": is_retry,
             })
 
             # Log prompt
             self.mlflow_tracker.log_prompt(prompt, "prompt.txt")
 
-            console.print(f"\n[bold cyan]═══ Iteration {iteration} ═══[/bold cyan]")
-            console.print("[yellow]Generating diagram...[/yellow]")
+            console.print(f"\n[bold cyan]═══ Iteration {iteration}{retry_suffix} ═══[/bold cyan]")
+            console.print(f"[yellow]Generating diagram...[/yellow] [dim]({gen_settings.summary()})[/dim]")
 
             # Generate image
             start_time = time.time()
             image_bytes, response_text, metadata = self.gemini_client.generate_image(
                 prompt=prompt,
                 logo_parts=self._logo_parts,
-                temperature=self.conv_config.temperature,
+                temperature=gen_settings.temperature,
+                top_p=gen_settings.top_p,
+                top_k=gen_settings.top_k if gen_settings.top_k > 0 else None,
+                presence_penalty=gen_settings.presence_penalty,
+                frequency_penalty=gen_settings.frequency_penalty,
             )
             generation_time = time.time() - start_time
 
@@ -397,14 +435,97 @@ class ConversationChatbot:
             self.mlflow_tracker.end_run("FAILED")
             raise
 
-    def collect_feedback(self, turn: ConversationTurn) -> tuple[int, str]:
+    def _parse_retry_command(self, command: str) -> Optional[GenerationSettings]:
+        """Parse a retry command and return generation settings.
+
+        Formats supported:
+            r / retry                    - retry with slightly different temp (+/-0.1 random)
+            r 0.5                        - retry with specific temperature
+            r t=0.5                      - retry with specific temperature
+            r t=0.5 p=0.9                - retry with temp and top_p
+            r deterministic              - use preset
+            r conservative               - use preset
+            r balanced                   - use preset
+            r creative                   - use preset
+            r wild                       - use preset
+
+        Returns:
+            GenerationSettings if valid retry command, None otherwise
+        """
+        cmd = command.strip().lower()
+
+        # Check if it's a retry command
+        if not (cmd.startswith('r ') or cmd == 'r' or cmd.startswith('retry')):
+            return None
+
+        # Extract args after 'r' or 'retry'
+        if cmd.startswith('retry'):
+            args = cmd[5:].strip()
+        else:
+            args = cmd[1:].strip()
+
+        # No args - slight random variation
+        if not args:
+            import random
+            base_temp = self.conv_config.temperature
+            # Random variation of +/- 0.15
+            new_temp = base_temp + random.uniform(-0.15, 0.15)
+            new_temp = max(0.0, min(2.0, new_temp))  # Clamp to valid range
+            return GenerationSettings(
+                temperature=round(new_temp, 2),
+                top_p=self.conv_config.top_p,
+                top_k=self.conv_config.top_k,
+                presence_penalty=self.conv_config.presence_penalty,
+                frequency_penalty=self.conv_config.frequency_penalty,
+            )
+
+        # Check for preset name
+        if args in GENERATION_PRESETS:
+            return GENERATION_PRESETS[args]
+
+        # Parse key=value pairs or single temperature value
+        settings = GenerationSettings(
+            temperature=self.conv_config.temperature,
+            top_p=self.conv_config.top_p,
+            top_k=self.conv_config.top_k,
+            presence_penalty=self.conv_config.presence_penalty,
+            frequency_penalty=self.conv_config.frequency_penalty,
+        )
+
+        parts = args.split()
+        for part in parts:
+            if '=' in part:
+                key, value = part.split('=', 1)
+                try:
+                    if key in ('t', 'temp', 'temperature'):
+                        settings.temperature = float(value)
+                    elif key in ('p', 'top_p'):
+                        settings.top_p = float(value)
+                    elif key in ('k', 'top_k'):
+                        settings.top_k = int(value)
+                    elif key in ('pp', 'presence', 'presence_penalty'):
+                        settings.presence_penalty = float(value)
+                    elif key in ('fp', 'frequency', 'frequency_penalty'):
+                        settings.frequency_penalty = float(value)
+                except ValueError:
+                    pass
+            else:
+                # Try as bare temperature value
+                try:
+                    settings.temperature = float(part)
+                except ValueError:
+                    pass
+
+        return settings
+
+    def collect_feedback(self, turn: ConversationTurn) -> tuple[int, str, Optional[GenerationSettings]]:
         """Collect user feedback for a turn.
 
         Args:
             turn: The turn to collect feedback for
 
         Returns:
-            Tuple of (score, feedback_text)
+            Tuple of (score, feedback_text, retry_settings or None)
         """
         console.print(f"\n[bold]Please review the image:[/bold]")
         console.print(f"  [cyan]{turn.image_path}[/cyan]")
@@ -426,16 +547,45 @@ class ConversationChatbot:
             choices=["1", "2", "3", "4", "5"],
         )
 
-        # Get feedback
+        # Show retry hint
+        console.print("[dim]Options:[/dim]")
+        console.print("[dim]  • Text feedback → refine prompt[/dim]")
+        console.print("[dim]  • 'r' or 'r 0.5' → retry same prompt with different temp[/dim]")
+        console.print("[dim]  • 'r creative' → retry with creative preset[/dim]")
+        console.print("[dim]  • Image path → use as style reference[/dim]")
+        console.print("[dim]  • 'done' → finish session[/dim]")
+
         feedback = Prompt.ask(
-            "[bold]Feedback[/bold] (what to improve, or 'done' if satisfied)",
+            "[bold]Feedback[/bold]",
             default="",
         )
+
+        # Check for retry command
+        retry_settings = self._parse_retry_command(feedback)
+        if retry_settings:
+            console.print(f"[cyan]Retrying with settings: {retry_settings.summary()}[/cyan]")
+            turn.score = score
+            turn.feedback = f"[RETRY] {feedback}"
+            return score, feedback, retry_settings
+
+        # Check if feedback is a reference image path
+        if feedback and not feedback.lower() == "done":
+            feedback_path = Path(feedback.strip())
+            if feedback_path.exists() and feedback_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
+                console.print(f"[cyan]Using as reference image: {feedback_path}[/cyan]")
+                # Analyze the reference and get comparison feedback
+                self.analyze_reference_image(feedback_path)
+                self.conv_config.reference_image = feedback_path
+                # Run reference comparison
+                ref_score, ref_feedback = self._evaluate_against_reference(turn)
+                turn.score = ref_score
+                turn.feedback = ref_feedback
+                return ref_score, ref_feedback, None
 
         turn.score = score
         turn.feedback = feedback
 
-        return score, feedback
+        return score, feedback, None
 
     def auto_evaluate(self, turn: ConversationTurn) -> tuple[int, str]:
         """Automatically evaluate diagram against design principles or reference image.
@@ -651,26 +801,32 @@ class ConversationChatbot:
 
         current_prompt = self._session.initial_prompt
         mode = "Auto-refine" if self.conv_config.auto_refine else "Interactive"
+        current_settings: Optional[GenerationSettings] = None
 
         console.print(Panel(
             f"Starting conversation refinement loop\n"
             f"Mode: [bold]{mode}[/bold]\n"
             f"Target score: {self.conv_config.target_score}\n"
             f"Max iterations: {self.conv_config.max_iterations}\n"
-            + ("" if self.conv_config.auto_refine else "Type 'done' or score target to finish"),
+            + ("" if self.conv_config.auto_refine else "Type 'done' or score target to finish\nType 'r' or 'r <temp>' to retry with different settings"),
             title="Conversation Session",
             border_style="cyan",
         ))
 
         while len(self._session.turns) < self.conv_config.max_iterations:
-            # Generate
-            turn = self.run_iteration(current_prompt)
+            # Generate (with optional custom settings from retry)
+            is_retry = current_settings is not None
+            turn = self.run_iteration(current_prompt, settings=current_settings, is_retry=is_retry)
+
+            # Reset settings after use (one-shot for retries)
+            current_settings = None
 
             # Collect feedback (auto or manual)
+            retry_settings: Optional[GenerationSettings] = None
             if self.conv_config.auto_refine:
                 score, feedback = self.auto_evaluate(turn)
             else:
-                score, feedback = self.collect_feedback(turn)
+                score, feedback, retry_settings = self.collect_feedback(turn)
 
             # Log score to MLflow and end the run
             try:
@@ -690,8 +846,15 @@ class ConversationChatbot:
                 console.print("\n[bold green]Target reached! Conversation complete.[/bold green]")
                 break
 
-            # Refine prompt for next iteration
-            current_prompt = self.refine_prompt(current_prompt, turn)
+            # Handle retry vs refine
+            if retry_settings:
+                # Retry: same prompt, different settings
+                current_settings = retry_settings
+                console.print(f"\n[cyan]Retrying with: {retry_settings.summary()}[/cyan]")
+                # Don't refine prompt - reuse current_prompt as-is
+            else:
+                # Refine: update prompt based on feedback
+                current_prompt = self.refine_prompt(current_prompt, turn)
 
         else:
             # Max iterations reached
