@@ -50,6 +50,25 @@ In auto-refine mode, each diagram is evaluated against five criteria:
 
 The AI provides specific issues found and actionable improvements, then automatically refines the prompt. This continues until the target score is reached or max iterations.
 
+## Reference image mode
+
+Use `--reference-image` to match a specific diagram's style:
+
+```bash
+nano-banana chat --prompt-file prompts/my_prompt.txt --reference-image examples/good_diagram.png
+```
+
+This mode:
+1. Analyzes the reference image to extract design patterns (layout, colors, typography, logo treatment)
+2. Compares each generated diagram against the reference
+3. Provides feedback on how to better match the reference style
+4. Automatically refines prompts to converge on the reference look
+
+This is useful for:
+- Matching a company's existing diagram style
+- Learning from a well-designed example
+- Ensuring consistency across multiple diagrams
+
 ## Command options
 
 | Option | Default | Description |
@@ -60,9 +79,14 @@ The AI provides specific issues found and actionable improvements, then automati
 | `--logo-dir` | from config | Logo directory to use |
 | `--max-iterations` | 10 | Maximum refinement iterations |
 | `--target-score` | 5 | Target score to stop (1-5) |
-| `--temperature` | 0.8 | Generation temperature |
+| `--temperature` | 0.8 | Generation temperature (0.0-2.0) |
+| `--top-p` | 0.95 | Nucleus sampling (lower=focused, higher=diverse) |
+| `--top-k` | 50 | Top-k sampling (0 to disable) |
+| `--presence-penalty` | 0.1 | Penalty for repeating elements |
+| `--frequency-penalty` | 0.1 | Penalty for frequent patterns |
 | `--no-auto-analyze` | false | Disable automatic image analysis |
 | `--auto-refine` | false | Automatically refine based on design principles (no manual input) |
+| `--reference-image` | - | Reference image to match style (implies --auto-refine) |
 | `--dspy-model` | databricks-claude-opus-4-5 | Databricks model for DSPy refinement |
 
 ## Starting from a prompt file
@@ -104,8 +128,40 @@ During each iteration:
    - **3** - Acceptable with issues
    - **4** - Good with minor issues
    - **5** - Excellent
-4. You provide feedback describing what to improve
-5. DSPy refines the prompt and shows its reasoning
+4. You choose what to do next:
+   - **Text feedback** - DSPy refines the prompt based on your feedback
+   - **Retry** - Regenerate with same prompt but different temperature/settings
+   - **Reference image** - Use an image path as style reference
+   - **done** - End the session
+
+### Retry with different settings
+
+When a prompt is "almost right" but the output needs variation, use retry instead of refining:
+
+```
+# Retry with slight random temperature variation
+r
+
+# Retry with specific temperature (0.0 = deterministic, 2.0 = very creative)
+r 0.5
+r 1.2
+
+# Retry with specific settings
+r t=0.6 p=0.9
+r t=0.5 k=30
+
+# Retry with a preset
+r deterministic    # t=0.0, most consistent
+r conservative     # t=0.4, focused
+r balanced         # t=0.8, default
+r creative         # t=1.2, more variation
+r wild             # t=1.8, high variation
+```
+
+This is useful when:
+- The layout is good but logos need different placement
+- Text rendering varies between generations
+- You want to try "rolling the dice" without changing the prompt
 
 ### Example feedback
 
