@@ -1,0 +1,63 @@
+# Databricks Apps configuration for Nano Banana Architect
+# Deploy with: databricks apps deploy
+
+name: nano-banana-architect
+description: Web interface for collaborative architecture diagram design
+
+# Application entrypoint
+command:
+  - python
+  - -m
+  - uvicorn
+  - nano_banana.web.main:app
+  - --host
+  - "0.0.0.0"
+  - --port
+  - "8080"
+
+# Environment configuration
+env:
+  # Database connection (Lakebase PostgreSQL)
+  - name: DATABRICKS_LAKEBASE_URL
+    valueFrom:
+      resourceRef:
+        type: postgresql
+        name: architect-db
+
+  # Databricks authentication (auto-injected)
+  - name: DATABRICKS_HOST
+    valueFrom:
+      secretRef:
+        name: databricks-host
+  - name: DATABRICKS_TOKEN
+    valueFrom:
+      secretRef:
+        name: databricks-token
+
+  # Model endpoint configuration
+  - name: DSPY_MODEL
+    value: databricks-claude-opus-4-5
+
+# Resource requirements
+resources:
+  cpu: "1"
+  memory: 2Gi
+
+# PostgreSQL database resource
+resourceReferences:
+  - name: architect-db
+    type: postgresql
+    database: architect_sessions
+
+# Health check configuration
+healthCheck:
+  path: /api/health
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+# Ingress configuration
+ingress:
+  enabled: true
+  # Public access - adjust as needed
+  authentication:
+    type: databricks  # Options: databricks, none
