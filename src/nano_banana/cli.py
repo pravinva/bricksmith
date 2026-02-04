@@ -25,7 +25,7 @@ from .prompts import PromptBuilder
 from .prompt_refiner import PromptRefiner
 from .runner import DiagramRunner
 from .conversation import ConversationChatbot
-from .models import ConversationConfig, ArchitectConfig
+from .models import ConversationConfig, ArchitectConfig, EvaluationPersona
 
 
 console = Console()
@@ -1652,6 +1652,12 @@ def generate_from_scenario(
     default=None,
     help="Databricks model for DSPy refinement (default: databricks-claude-opus-4-5)",
 )
+@click.option(
+    "--persona",
+    type=click.Choice(["architect", "executive", "developer", "auto"], case_sensitive=False),
+    default="architect",
+    help="LLM Judge evaluation persona: architect (default), executive/CTO, or developer",
+)
 @click.pass_obj
 def chat(
     ctx: Context,
@@ -1671,6 +1677,7 @@ def chat(
     reference_image: Optional[Path],
     name: Optional[str],
     dspy_model: Optional[str],
+    persona: str,
 ):
     """Start interactive diagram refinement conversation.
 
@@ -1695,6 +1702,12 @@ def chat(
 
         # Match style from a reference image
         nano-banana chat --prompt-file prompt.txt --reference-image examples/good_diagram.png
+
+        # Use executive/CTO persona for evaluation (strategic, cost-focused feedback)
+        nano-banana chat --prompt-file prompt.txt --auto-refine --persona executive
+
+        # Use developer persona for evaluation (implementation-focused feedback)
+        nano-banana chat --prompt-file prompt.txt --auto-refine --persona developer
 
         # Use a specific Databricks model for refinement
         nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
@@ -1745,6 +1758,7 @@ def chat(
             presence_penalty=presence_penalty,
             frequency_penalty=frequency_penalty,
             logo_dir=logo_dir,
+            evaluation_persona=EvaluationPersona(persona.lower()),
         )
 
         # Create chatbot
@@ -1965,6 +1979,122 @@ def architect(
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
         raise SystemExit(1)
+
+
+@main.command()
+@click.option(
+    "--host",
+    default="0.0.0.0",
+    help="Host to bind to (default: 0.0.0.0)",
+)
+@click.option(
+    "--port",
+    default=8080,
+    type=int,
+    help="Port to bind to (default: 8080)",
+)
+@click.option(
+    "--reload",
+    is_flag=True,
+    help="Enable auto-reload for development",
+)
+@click.option(
+    "--dev",
+    is_flag=True,
+    help="Run in development mode (starts both backend and frontend dev servers)",
+)
+@click.pass_obj
+def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
+    """Start the web interface for architect workflows.
+
+    Launches a FastAPI server that provides a web-based interface
+    for collaborative architecture design.
+
+    Examples:
+
+        # Start the web server
+        nano-banana web
+
+        # Start with auto-reload for development
+        nano-banana web --reload
+
+        # Run on a different port
+        nano-banana web --port 3000
+
+        # Development mode (starts both backend and frontend)
+        nano-banana web --dev
+
+    The web interface provides:
+
+        - Session management (create, list, delete)
+        - Real-time chat with the AI architect
+        - Live architecture visualization (Mermaid diagrams)
+        - Output generation when design is complete
+    """
+    import subprocess
+    import sys
+
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("[red]Error: uvicorn not installed.[/red]")
+        console.print("Install web dependencies with: uv pip install -e '.[web]'")
+        raise SystemExit(1)
+
+    if dev:
+        # Development mode: start both backend and frontend
+        console.print("[bold]Starting development servers...[/bold]")
+        console.print(f"  Backend: http://localhost:{port}")
+        console.print(f"  Frontend: http://localhost:5173")
+        console.print("\n[dim]Press Ctrl+C to stop both servers[/dim]\n")
+
+        import os
+        from pathlib import Path
+
+        frontend_dir = Path(__file__).parent.parent.parent / "frontend"
+
+        if not frontend_dir.exists():
+            console.print(f"[red]Frontend directory not found: {frontend_dir}[/red]")
+            raise SystemExit(1)
+
+        # Check if node_modules exists
+        if not (frontend_dir / "node_modules").exists():
+            console.print("[yellow]Installing frontend dependencies...[/yellow]")
+            subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
+
+        # Start frontend dev server in background
+        frontend_process = subprocess.Popen(
+            ["npm", "run", "dev"],
+            cwd=frontend_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+
+        try:
+            # Start backend with reload
+            uvicorn.run(
+                "nano_banana.web.main:app",
+                host=host,
+                port=port,
+                reload=True,
+            )
+        finally:
+            # Stop frontend when backend stops
+            frontend_process.terminate()
+            frontend_process.wait()
+
+    else:
+        # Production mode: serve built frontend from FastAPI
+        console.print(f"[bold]Starting Nano Banana Architect web server...[/bold]")
+        console.print(f"  URL: http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
+        console.print("\n[dim]Press Ctrl+C to stop[/dim]\n")
+
+        uvicorn.run(
+            "nano_banana.web.main:app",
+            host=host,
+            port=port,
+            reload=reload,
+        )
 
 
 if __name__ == "__main__":

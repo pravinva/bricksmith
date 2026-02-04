@@ -27,6 +27,7 @@ from .models import (
     ConversationStatus,
     ConversationTurn,
     DiagramSpec,
+    EvaluationPersona,
     GenerationSettings,
 )
 from .prompts import PromptBuilder
@@ -56,6 +57,162 @@ Identify and describe:
 
 Provide a concise summary that can be used to guide generation of similar diagrams.
 Format your response as a structured description that another AI can use as style guidance."""
+
+
+# =============================================================================
+# LLM Judge Evaluation Prompts - Architecture-First with Persona Overlays
+# =============================================================================
+
+# Base evaluation criteria that apply to ALL architecture diagrams
+ARCHITECTURE_JUDGE_BASE = """You are an expert Architecture Diagram Judge evaluating diagrams for enterprise presentations.
+
+Your role is to provide ACTIONABLE feedback that will help an AI system generate better diagrams.
+Be specific, concrete, and constructive. Avoid vague feedback like "improve layout" - instead say exactly what to change.
+
+CORE EVALUATION CRITERIA (score each 1-5):
+
+1. **Information Hierarchy** - Can viewers grasp the key message in 5 seconds?
+   - 5: Clear focal point, obvious data flow, priority components stand out
+   - 3: Main message visible but requires study
+   - 1: Cluttered, no clear entry point, viewers don't know where to look
+
+2. **Technical Accuracy** - Does the diagram correctly represent architecture patterns?
+   - 5: Correct terminology, logical connections, proper component relationships
+   - 3: Minor inaccuracies that don't mislead
+   - 1: Misleading flows, incorrect relationships, wrong terminology
+
+3. **Logo Fidelity** - Are provided logos used correctly?
+   - 5: All logos crisp, unmodified, appropriately sized (40-60px), no filenames shown
+   - 3: Minor sizing issues or slight quality loss
+   - 1: Logos distorted, replaced with text, or filenames visible
+
+4. **Visual Clarity** - Is the diagram clean and professional?
+   - 5: Excellent whitespace, clear groupings, balanced composition
+   - 3: Acceptable but some crowding or imbalance
+   - 1: Cluttered, overlapping elements, chaotic layout
+
+5. **Data Flow Legibility** - Are connections and relationships clear?
+   - 5: Clear directional arrows, logical routing, well-labeled connections
+   - 3: Flow mostly understandable with some ambiguity
+   - 1: Confusing arrows, crossing lines, unclear relationships
+
+6. **Text Readability** - Is all text legible and well-formatted?
+   - 5: Consistent fonts, good contrast, readable at presentation scale
+   - 3: Some text hard to read or inconsistent
+   - 1: Text illegible, overlapping, or poorly placed"""
+
+# Persona-specific evaluation addendums
+PERSONA_ARCHITECT = """
+
+ENTERPRISE SOLUTIONS ARCHITECT LENS (additional criteria):
+
+7. **Integration Patterns** - Are integration points clearly defined?
+   - APIs, events, and data flows should show explicit protocol/format hints
+   - Synchronous vs asynchronous patterns should be visually distinct
+
+8. **Scalability Indicators** - Does the diagram suggest scale considerations?
+   - Horizontal scaling, caching layers, load balancing should be visible if relevant
+   - Bottlenecks or single points of failure should be apparent
+
+9. **Security Boundaries** - Are trust zones and security controls visible?
+   - Network boundaries, auth points, encryption in transit should be clear
+   - Compliance-relevant components should be identifiable
+
+When providing feedback, think: "What would I need to see to approve this for a customer proposal?"
+"""
+
+PERSONA_EXECUTIVE = """
+
+EXECUTIVE/CTO LENS (additional criteria):
+
+7. **Strategic Alignment** - Does the diagram tell a business story?
+   - Should clearly show value creation or problem resolution
+   - Key investments and their impact should be obvious
+
+8. **Cost Topology** - Are expensive components visually identifiable?
+   - Compute vs storage vs network costs should be distinguishable
+   - Managed services vs self-managed should be clear
+
+9. **Risk Visibility** - Are potential failure points or complexities apparent?
+   - Single points of failure, vendor dependencies, or technical debt should be visible
+   - Migration or transformation paths should be suggested if relevant
+
+When providing feedback, think: "Would a CTO understand the strategic implications in 30 seconds?"
+"""
+
+PERSONA_DEVELOPER = """
+
+DEVELOPER/ENGINEER LENS (additional criteria):
+
+7. **API Contracts** - Are service boundaries and interfaces clear?
+   - REST/GraphQL/gRPC distinctions should be visible
+   - Data formats and transformation points should be identifiable
+
+8. **Technology Stack** - Are implementation details appropriately shown?
+   - Specific technologies, versions, or frameworks should be visible where relevant
+   - Build vs buy decisions should be apparent
+
+9. **Debugging Context** - Can developers trace data flow for troubleshooting?
+   - Logging, monitoring, and observability points should be visible
+   - Error paths and retry mechanisms should be suggested
+
+When providing feedback, think: "Can an engineer implement this without asking clarifying questions?"
+"""
+
+EVALUATION_RESPONSE_FORMAT = """
+
+RESPONSE FORMAT (use exactly this JSON structure):
+```json
+{{
+  "scores": {{
+    "information_hierarchy": <1-5>,
+    "technical_accuracy": <1-5>,
+    "logo_fidelity": <1-5>,
+    "visual_clarity": <1-5>,
+    "data_flow_legibility": <1-5>,
+    "text_readability": <1-5>
+  }},
+  "overall_score": <1-5 weighted average>,
+  "strengths": [
+    "specific strength 1",
+    "specific strength 2"
+  ],
+  "issues": [
+    "specific issue 1 with concrete details",
+    "specific issue 2 with concrete details"
+  ],
+  "actionable_improvements": [
+    "SPECIFIC change: e.g., 'Move the data lake icon 20% left and increase to 60px'",
+    "SPECIFIC change: e.g., 'Add a dashed line from Spark to Delta Lake showing batch writes'",
+    "SPECIFIC change: e.g., 'Replace the generic database icon with the Unity Catalog logo'"
+  ],
+  "feedback_for_refinement": "A single, detailed paragraph with SPECIFIC instructions for improving this diagram. Include exact positions, sizes, colors, or text changes. This feedback will be used by an AI to generate a better version, so be extremely concrete. Example: 'Increase the Databricks logo to 60px and center it. Move the arrow from S3 to enter from the left side. Add a label showing \"batch ETL\" on the connection to Delta Lake. The current layout crowds the right side - shift the ML serving components down by 30%.'"
+}}
+```
+
+Evaluate the diagram and respond with ONLY the JSON - no other text."""
+
+
+def build_evaluation_prompt(persona: str = "architect") -> str:
+    """Build the complete evaluation prompt for the LLM Judge.
+
+    Args:
+        persona: One of 'architect', 'executive', 'developer', or 'auto'
+
+    Returns:
+        Complete evaluation prompt string
+    """
+    prompt = ARCHITECTURE_JUDGE_BASE
+
+    if persona == "executive":
+        prompt += PERSONA_EXECUTIVE
+    elif persona == "developer":
+        prompt += PERSONA_DEVELOPER
+    else:  # architect (default) or auto
+        prompt += PERSONA_ARCHITECT
+
+    prompt += EVALUATION_RESPONSE_FORMAT
+    return prompt
 
 
 REFERENCE_COMPARISON_PROMPT = """You are an expert architecture diagram reviewer. Compare the generated diagram against the reference image and evaluate how well it matches the reference style.
@@ -116,59 +273,8 @@ RESPONSE FORMAT (use exactly this JSON structure):
 Evaluate the generated diagram (second image) against the reference (first image) and respond with ONLY the JSON."""
 
 
-DESIGN_PRINCIPLES_EVAL_PROMPT = """You are an expert architecture diagram reviewer. Evaluate this diagram against professional design principles and provide structured feedback.
-
-EVALUATION CRITERIA (score each 1-5):
-
-1. **Logo Fidelity** - Are logos used exactly as provided without modification?
-   - 5: All logos crisp, unmodified, properly sized
-   - 3: Minor logo issues (sizing inconsistencies)
-   - 1: Logos modified, blurry, or missing
-
-2. **Layout Clarity** - Is the diagram well-organized with clear visual hierarchy?
-   - 5: Clear flow direction, logical grouping, balanced composition
-   - 3: Acceptable layout with some crowding or unclear groupings
-   - 1: Chaotic layout, no clear flow, overlapping elements
-
-3. **Text Legibility** - Is all text readable and well-formatted?
-   - 5: All text crisp, consistent sizing, proper contrast
-   - 3: Some text hard to read or inconsistent
-   - 1: Text illegible, overlapping, or poorly placed
-
-4. **Visual Design** - Does it follow professional design standards?
-   - 5: Clean, professional, presentation-ready
-   - 3: Acceptable but needs polish
-   - 1: Unprofessional appearance, cluttered
-
-5. **Data Flow** - Are connections and relationships clear?
-   - 5: Clear directional arrows, logical flow, well-labeled connections
-   - 3: Flow mostly clear but some ambiguity
-   - 1: Confusing connections, unclear relationships
-
-RESPONSE FORMAT (use exactly this JSON structure):
-```json
-{
-  "scores": {
-    "logo_fidelity": <1-5>,
-    "layout_clarity": <1-5>,
-    "text_legibility": <1-5>,
-    "visual_design": <1-5>,
-    "data_flow": <1-5>
-  },
-  "overall_score": <1-5 weighted average>,
-  "issues": [
-    "specific issue 1",
-    "specific issue 2"
-  ],
-  "improvements": [
-    "specific actionable improvement 1",
-    "specific actionable improvement 2"
-  ],
-  "feedback_for_refinement": "A single paragraph summarizing the most important changes needed to improve this diagram. Be specific and actionable."
-}
-```
-
-Evaluate the diagram and respond with ONLY the JSON - no other text."""
+# Legacy prompt kept for reference - now using build_evaluation_prompt() instead
+_LEGACY_DESIGN_PRINCIPLES_EVAL_PROMPT = """[DEPRECATED - See build_evaluation_prompt()]"""
 
 
 class ConversationChatbot:
@@ -588,7 +694,10 @@ class ConversationChatbot:
         return score, feedback, None
 
     def auto_evaluate(self, turn: ConversationTurn) -> tuple[int, str]:
-        """Automatically evaluate diagram against design principles or reference image.
+        """Automatically evaluate diagram using the LLM Judge.
+
+        The LLM Judge evaluates against architecture best practices with an
+        optional persona lens (architect, executive, developer).
 
         Args:
             turn: The turn to evaluate
@@ -600,14 +709,27 @@ class ConversationChatbot:
         if self._reference_style and self.conv_config.reference_image:
             return self._evaluate_against_reference(turn)
 
-        console.print(f"\n[bold cyan]Auto-evaluating against design principles...[/bold cyan]")
-        console.print(f"  [dim]{turn.image_path}[/dim]")
+        # Determine persona for evaluation
+        persona = self.conv_config.evaluation_persona.value
+        persona_display = {
+            "architect": "Enterprise Solutions Architect",
+            "executive": "Executive/CTO",
+            "developer": "Developer/Engineer",
+            "auto": "Enterprise Solutions Architect",  # Default for auto
+        }.get(persona, "Enterprise Solutions Architect")
+
+        console.print(f"\n[bold cyan]LLM Judge Evaluation[/bold cyan]")
+        console.print(f"  [dim]Persona: {persona_display}[/dim]")
+        console.print(f"  [dim]Image: {turn.image_path}[/dim]")
 
         try:
+            # Build evaluation prompt with persona
+            eval_prompt = build_evaluation_prompt(persona)
+
             # Get structured evaluation from Gemini
             eval_response = self.gemini_client.analyze_image(
                 str(turn.image_path),
-                DESIGN_PRINCIPLES_EVAL_PROMPT,
+                eval_prompt,
                 temperature=0.2,  # Low temp for consistent evaluation
             )
 
@@ -622,12 +744,13 @@ class ConversationChatbot:
             # Extract scores
             scores = eval_data.get("scores", {})
             overall_score = int(round(eval_data.get("overall_score", 3)))
+            strengths = eval_data.get("strengths", [])
             issues = eval_data.get("issues", [])
-            improvements = eval_data.get("improvements", [])
+            actionable_improvements = eval_data.get("actionable_improvements", [])
             feedback = eval_data.get("feedback_for_refinement", "")
 
             # Display evaluation results
-            score_table = Table(title="Design Principles Evaluation", show_header=True)
+            score_table = Table(title=f"LLM Judge: {persona_display}", show_header=True)
             score_table.add_column("Criterion", style="cyan")
             score_table.add_column("Score", style="magenta", justify="center")
 
@@ -642,22 +765,27 @@ class ConversationChatbot:
 
             console.print(score_table)
 
-            if issues:
-                console.print("\n[bold red]Issues Found:[/bold red]")
-                for issue in issues[:5]:  # Limit to top 5
-                    console.print(f"  • {issue}")
+            if strengths:
+                console.print("\n[bold green]Strengths:[/bold green]")
+                for strength in strengths[:3]:
+                    console.print(f"  ✓ {strength}")
 
-            if improvements:
-                console.print("\n[bold green]Suggested Improvements:[/bold green]")
-                for improvement in improvements[:5]:  # Limit to top 5
-                    console.print(f"  • {improvement}")
+            if issues:
+                console.print("\n[bold red]Issues:[/bold red]")
+                for issue in issues[:5]:
+                    console.print(f"  ✗ {issue}")
+
+            if actionable_improvements:
+                console.print("\n[bold yellow]Actionable Improvements:[/bold yellow]")
+                for improvement in actionable_improvements[:5]:
+                    console.print(f"  → {improvement}")
 
             # Store analysis details
             turn.visual_analysis = json.dumps(eval_data, indent=2)
             turn.score = overall_score
             turn.feedback = feedback
 
-            console.print(f"\n[bold]Feedback for refinement:[/bold]")
+            console.print(f"\n[bold]Feedback for DSPy Optimizer:[/bold]")
             console.print(Panel(feedback, border_style="yellow"))
 
             return overall_score, feedback

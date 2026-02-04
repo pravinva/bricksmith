@@ -245,6 +245,25 @@ class ConversationStatus(str, Enum):
     ABANDONED = "abandoned"
 
 
+class EvaluationPersona(str, Enum):
+    """Persona lens for diagram evaluation.
+
+    Different personas emphasize different aspects of architecture diagrams.
+    """
+
+    # Architecture-first (default) - focuses on universal best practices
+    ARCHITECT = "architect"
+
+    # Executive/CTO lens - strategic, cost, risk focused
+    EXECUTIVE = "executive"
+
+    # Developer/Engineer lens - implementation details, APIs, tech stack
+    DEVELOPER = "developer"
+
+    # Auto-detect based on diagram complexity
+    AUTO = "auto"
+
+
 class ConversationTurn(BaseModel):
     """A single turn in the conversation (generate → evaluate → feedback cycle)."""
 
@@ -420,6 +439,10 @@ class ConversationConfig(BaseModel):
     )
     logo_dir: Optional[Path] = Field(
         default=None, description="Logo directory override"
+    )
+    evaluation_persona: EvaluationPersona = Field(
+        default=EvaluationPersona.ARCHITECT,
+        description="Persona lens for LLM Judge evaluation (architect, executive, developer, auto)"
     )
 
     def get_generation_settings(self) -> GenerationSettings:
