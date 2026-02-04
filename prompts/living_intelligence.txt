@@ -95,7 +95,7 @@ Teal/green accent bar, visually separated and prominent
 Title: "Real-World Outcomes & Autonomous Action"
 Three boxes showing impact:
 - "IoT & Edge Devices" - "Field sensors, predictive maintenance"
-- "Robotics & Automation" - "Autonomous workflows, physical actions"
+- "Physical AI" - "Autonomous workflows, physical actions, robotics"
 - "API-Driven Systems" - "Third-party integrations, real-time APIs"
 Small text below: "Living Intelligence made tangible • Where data becomes action"
 
@@ -177,7 +177,6 @@ blurry, low quality, distorted text, spelling errors, typos, 3D render, isometri
 
 Ensure the output does NOT contain any of the above qualities or elements. Double-check all text for spelling accuracy.
 **SPECIFICALLY**:
-- Unity Catalog: Display "Unity Catalog" as text only - do NOT use any logo, icon, or visual symbol for Unity Catalog. Just show the text "Unity Catalog" without any accompanying graphic.
 - Do NOT add numbered circles (1, 2, 3) or step indicators unless explicitly requested in the prompt.
 - Do NOT add numeric labels or annotations to logos or components.
 - GCP logo: You may generate/create the Google Cloud Platform logo (it's not in the logo kit, but you know what it looks like - use the official GCP logo design).
