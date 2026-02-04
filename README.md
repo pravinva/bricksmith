@@ -84,7 +84,28 @@ Style: Modern, professional, {layout_style}.
 
 Test variations systematically, measure results, and build a library of proven templates.
 
-### 5. **Visual Prompt Refinement** ✨ NEW
+### 5. **Web Interface for Collaborative Design** 🌐 NEW
+
+Deploy as a Databricks App for team-wide access:
+
+```bash
+# Deploy to Databricks workspace
+databricks apps deploy
+
+# Access via web browser
+databricks apps open nano-banana-architect
+```
+
+Features:
+- 🎨 Interactive diagram design with chat interface
+- 💬 Real-time refinement through conversation
+- 👥 Share sessions with team members
+- 🗄️ Persistent storage with Lakebase PostgreSQL
+- 📊 Session management and history
+
+See [Web Interface Documentation](docs/WEB_INTERFACE.md) for deployment details.
+
+### 6. **Visual Prompt Refinement** ✨
 
 Use diagram images to improve your prompts:
 
@@ -241,6 +262,35 @@ Your experiment is now in Databricks MLflow:
 ```
 Navigate to: ML → Experiments → /Users/your.email/vertexai-nanobanana-arch-diagrams
 ```
+
+### Web Interface Quick Start 🌐
+
+Deploy collaborative web interface:
+
+```bash
+# Install web dependencies
+uv pip install -e ".[web]"
+
+# Deploy to Databricks Apps
+databricks apps deploy
+
+# Access web interface
+databricks apps open nano-banana-architect
+```
+
+Or run locally:
+
+```bash
+# Start backend
+uv run python -m uvicorn nano_banana.web.main:app --reload
+
+# In another terminal, start frontend
+cd frontend && npm install && npm run dev
+```
+
+Access at http://localhost:5173 for interactive diagram design with chat interface.
+
+See [Web Interface Guide](docs/WEB_INTERFACE.md) for full documentation.
 
 ---
 
