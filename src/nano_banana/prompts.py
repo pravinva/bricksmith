@@ -117,6 +117,20 @@ CRITICAL LOGO REQUIREMENTS (MANDATORY):
 """
             prompt = constraint_block + prompt
 
+        # CRITICAL: Prevent design annotations from appearing in output
+        # Always inject this constraint to prevent rendering of instructional text
+        design_constraint_block = """
+CRITICAL - DO NOT RENDER DESIGN INSTRUCTIONS AS VISIBLE TEXT:
+- Do NOT include design specifications in the diagram (e.g., "16px", "24px", "12px whitespace")
+- Do NOT include organizational labels in the diagram (e.g., "LAYER 0", "LAYER 1", "LAYER 2", "FOOTER")
+- Do NOT include measurement annotations or spacing notes in the visible output
+- Do NOT include any instructional text meant for you (the AI) in the final diagram
+- All design specifications are INSTRUCTIONS FOR YOU to follow, not text to display
+- The diagram should only show the actual content, not the instructions about how to create it
+
+"""
+        prompt = design_constraint_block + prompt
+
         return prompt
 
     def _build_logo_section(self, logo_kit: list[LogoInfo]) -> str:
