@@ -112,12 +112,29 @@ class DiagramRunner:
                 )
 
                 # Step 4: Convert logos to image parts
+                # Strategy: Pass problematic logos (like Unity Catalog) multiple times
+                # for better recognition - once at the start and once at the end
                 task = progress.add_task("Converting logos...", total=None)
-                logo_parts = [
-                    self.logo_handler.to_image_part(logo) for logo in logo_kit
-                ]
+                logo_parts = []
+                unity_catalog_part = None
+
+                for logo in logo_kit:
+                    part = self.logo_handler.to_image_part(logo)
+                    # Detect Unity Catalog logo (commonly misrendered)
+                    if "unity" in logo.name.lower() or "catalog" in logo.name.lower():
+                        unity_catalog_part = part
+                        # Add Unity Catalog FIRST for prominence
+                        logo_parts.insert(0, part)
+                    else:
+                        logo_parts.append(part)
+
+                # Add Unity Catalog again at the END for reinforcement
+                if unity_catalog_part:
+                    logo_parts.append(unity_catalog_part)
+
                 progress.update(
-                    task, description=f"[green]✓ Converted {len(logo_parts)} logos"
+                    task, description=f"[green]✓ Converted {len(logo_parts)} logos" +
+                    (" (Unity Catalog prioritized)" if unity_catalog_part else "")
                 )
 
                 # Step 5: Log parameters to MLflow

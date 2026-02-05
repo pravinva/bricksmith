@@ -390,9 +390,25 @@ class ConversationChatbot:
         console.print(f"  Loaded {len(self._logos)} logos{hints_msg}")
 
         # Convert logos to image parts for generation
-        self._logo_parts = [
-            self.logo_handler.to_image_part(logo) for logo in self._logos
-        ]
+        # Strategy: Pass problematic logos (like Unity Catalog) multiple times
+        # for better recognition - once at the start and once at the end
+        self._logo_parts = []
+        unity_catalog_part = None
+
+        for logo in self._logos:
+            part = self.logo_handler.to_image_part(logo)
+            # Detect Unity Catalog logo (commonly misrendered)
+            if "unity" in logo.name.lower() or "catalog" in logo.name.lower():
+                unity_catalog_part = part
+                # Add Unity Catalog FIRST for prominence
+                self._logo_parts.insert(0, part)
+            else:
+                self._logo_parts.append(part)
+
+        # Add Unity Catalog again at the END for reinforcement
+        if unity_catalog_part:
+            self._logo_parts.append(unity_catalog_part)
+            console.print("  [cyan]Unity Catalog logo prioritized (first & last position)[/cyan]")
 
         # Build initial prompt
         if diagram_spec:

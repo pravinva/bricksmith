@@ -75,8 +75,15 @@ CRITICAL LOGO REQUIREMENTS (MANDATORY):
 - Only include logos that are explicitly mentioned in the prompt - do not add logos that aren't referenced
 - Do NOT add numbered circles, labels, annotations, or any text overlays to logos
 - Scale all logos uniformly - maintain consistent size relationships between all logos
-- Unity Catalog logo has pink squares, yellow triangles, navy hexagon - use the uploaded image exactly
 - NO filenames, file paths, or image references may appear anywhere in the diagram
+
+UNITY CATALOG LOGO - SPECIAL HANDLING (HIGHEST PRIORITY):
+- The Unity Catalog logo is provided as an UPLOADED IMAGE FILE in your input
+- It contains: pink/magenta squares, yellow/gold triangles, navy blue hexagon arranged in a CLUSTER
+- YOU MUST: Insert the EXACT uploaded Unity Catalog image file - do not draw or recreate it
+- NEVER draw a single hexagon shape to represent Unity Catalog - that is WRONG
+- If you find yourself drawing ANY geometric shapes for Unity Catalog, STOP and use the uploaded file instead
+- The Unity Catalog logo appears TWICE in your inputs (first and last) - use the uploaded image, not your own creation
 
 VISUAL STYLE & LAYOUT:
 - Clean, professional executive presentation style suitable for C-level audiences
