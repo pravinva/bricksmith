@@ -6,6 +6,7 @@ import mimetypes
 from pathlib import Path
 from typing import Any, Optional
 
+import yaml
 from PIL import Image
 
 from .config import LogoKitConfig
@@ -109,6 +110,7 @@ class LogoKitHandler:
         """
         self.config = config
         self._logo_cache: dict[str, LogoInfo] = {}
+        self._logo_hints: dict[str, dict[str, Any]] = {}
 
     def load_logo_kit(self, logo_dir: Optional[Path] = None) -> list[LogoInfo]:
         """Load all logos from directory.
@@ -309,3 +311,96 @@ class LogoKitHandler:
     def clear_cache(self) -> None:
         """Clear logo cache."""
         self._logo_cache.clear()
+
+    def load_logo_hints(self, logo_dir: Optional[Path] = None) -> dict[str, dict[str, Any]]:
+        """Load logo-specific prompt hints from YAML file.
+
+        Args:
+            logo_dir: Optional logo directory (uses config default if not provided)
+
+        Returns:
+            Dictionary of logo hints (empty if file doesn't exist)
+        """
+        if logo_dir is None:
+            logo_dir = self.config.logo_dir
+
+        hints_file = logo_dir / "logo_hints.yaml"
+        if not hints_file.exists():
+            return {}
+
+        try:
+            with open(hints_file, "r") as f:
+                hints = yaml.safe_load(f) or {}
+                # Only return enabled hints
+                self._logo_hints = {
+                    name: hint
+                    for name, hint in hints.items()
+                    if isinstance(hint, dict) and hint.get("enabled", False)
+                }
+                return self._logo_hints
+        except Exception as e:
+            print(f"Warning: Failed to load logo hints from {hints_file}: {e}")
+            return {}
+
+    def get_logo_hint(self, logo_name: str) -> Optional[dict[str, Any]]:
+        """Get hint for a specific logo if available.
+
+        Args:
+            logo_name: Logo name to get hint for
+
+        Returns:
+            Logo hint dictionary or None if no hint exists
+        """
+        # Normalize logo name
+        normalized = logo_name.lower().replace("_", "-")
+        
+        # Try exact match
+        if normalized in self._logo_hints:
+            return self._logo_hints[normalized]
+        
+        # Try without -logo suffix
+        base_name = normalized.replace("-logo", "").replace("-solo", "")
+        if base_name in self._logo_hints:
+            return self._logo_hints[base_name]
+        
+        return None
+
+    def format_logo_hint(self, hint: dict[str, Any]) -> str:
+        """Format a logo hint into prompt text.
+
+        Args:
+            hint: Logo hint dictionary
+
+        Returns:
+            Formatted prompt text
+        """
+        warning_level = hint.get("warning_level", "WARNING")
+        emoji = "⚠️⚠️⚠️" if warning_level == "CRITICAL" else "⚠️"
+        
+        lines = []
+        lines.append(f"{emoji} {warning_level}: LOGO INSTRUCTIONS {emoji}")
+        lines.append("")
+        
+        if "correct_description" in hint:
+            lines.append("**WHAT THE CORRECT LOGO LOOKS LIKE:**")
+            lines.append(hint["correct_description"].strip())
+            lines.append("")
+        
+        if "wrong_patterns" in hint and hint["wrong_patterns"]:
+            lines.append("**WHAT THE WRONG LOGO LOOKS LIKE (DO NOT DO THIS):**")
+            for pattern in hint["wrong_patterns"]:
+                lines.append(f"- {pattern}")
+            lines.append("")
+        
+        if "stop_condition" in hint:
+            lines.append(f"**INSTRUCTION:** {hint['stop_condition']}")
+            lines.append("")
+        
+        if "additional_notes" in hint:
+            lines.append(hint["additional_notes"])
+            lines.append("")
+        
+        lines.append("---")
+        lines.append("")
+        
+        return "\n".join(lines)

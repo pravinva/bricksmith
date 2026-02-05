@@ -78,7 +78,7 @@ class PromptDevelopmentLab:
                 allowed_extensions=[".jpg", ".jpeg", ".png"],
             )
         )
-        self.prompt_builder = PromptBuilder()
+        self.prompt_builder = PromptBuilder(logo_handler=self.logo_handler)
         self.mcp_enricher = MCPEnricher()
 
         # Initialize MLflow
@@ -116,6 +116,7 @@ class PromptDevelopmentLab:
 
                 # Load components
                 logo_kit = self.logo_handler.load_logo_kit()
+                self.logo_handler.load_logo_hints()
                 spec = DiagramSpec.from_yaml(diagram_spec_path)
 
                 # Build prompt

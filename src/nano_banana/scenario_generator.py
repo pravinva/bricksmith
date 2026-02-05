@@ -117,8 +117,9 @@ constraints:
         available_logos = ["null"]  # Always include null option
         if self.logo_handler:
             try:
-                # Load logo kit to populate cache
+                # Load logo kit and hints to populate cache
                 self.logo_handler.load_logo_kit()
+                self.logo_handler.load_logo_hints()
                 # Get list of loaded logo names
                 available_logos.extend(sorted(self.logo_handler.list_loaded_logos()))
             except Exception as e:

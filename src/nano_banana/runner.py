@@ -92,11 +92,13 @@ class DiagramRunner:
                 # Enable Gemini autologging for automatic tracing
                 mlflow.gemini.autolog(log_traces=True, silent=True)
 
-                # Step 2: Load logo kit
+                # Step 2: Load logo kit and hints
                 task = progress.add_task("Loading logo kit...", total=None)
                 logo_kit = self.logo_handler.load_logo_kit()
+                logo_hints = self.logo_handler.load_logo_hints()
+                hints_msg = f" ({len(logo_hints)} hints)" if logo_hints else ""
                 progress.update(
-                    task, description=f"[green]✓ Loaded {len(logo_kit)} logos"
+                    task, description=f"[green]✓ Loaded {len(logo_kit)} logos{hints_msg}"
                 )
 
                 # Step 3: Load template and build prompt

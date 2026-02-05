@@ -4,20 +4,23 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+from .logos import LogoKitHandler
 from .models import DiagramSpec, LogoInfo, PromptTemplate
 
 
 class PromptBuilder:
     """Builds prompts from templates with variable substitution."""
 
-    def __init__(self, template_dir: Optional[Path] = None):
+    def __init__(self, template_dir: Optional[Path] = None, logo_handler: Optional[LogoKitHandler] = None):
         """Initialize prompt builder.
 
         Args:
             template_dir: Directory containing prompt templates
+            logo_handler: Optional LogoKitHandler for accessing logo hints
         """
         self.template_dir = template_dir or Path("prompts/prompt_templates")
         self._templates: dict[str, PromptTemplate] = {}
+        self.logo_handler = logo_handler
 
     def load_template(self, template_id: str) -> PromptTemplate:
         """Load a prompt template by ID.
@@ -117,6 +120,12 @@ CRITICAL LOGO REQUIREMENTS (MANDATORY):
 """
             prompt = constraint_block + prompt
 
+        # CRITICAL: Inject logo-specific hints if available
+        # Check if any logos in the kit have special instructions
+        logo_hints_block = self._build_logo_hints_section(logo_kit)
+        if logo_hints_block:
+            prompt = logo_hints_block + prompt
+
         # CRITICAL: Prevent design annotations from appearing in output
         # Always inject this constraint to prevent rendering of instructional text
         design_constraint_block = """
@@ -168,6 +177,28 @@ CRITICAL - DO NOT RENDER DESIGN INSTRUCTIONS AS VISIBLE TEXT:
         lines.append("- NO filenames in output")
 
         return "\n".join(lines)
+
+    def _build_logo_hints_section(self, logo_kit: list[LogoInfo]) -> str:
+        """Build logo-specific hints section for logos that need special instructions.
+
+        Args:
+            logo_kit: List of logos
+
+        Returns:
+            Formatted hints text (empty if no hints apply)
+        """
+        if not self.logo_handler:
+            return ""
+
+        hints_blocks = []
+        
+        for logo in logo_kit:
+            hint = self.logo_handler.get_logo_hint(logo.name)
+            if hint:
+                formatted_hint = self.logo_handler.format_logo_hint(hint)
+                hints_blocks.append(formatted_hint)
+        
+        return "\n".join(hints_blocks) if hints_blocks else ""
 
     def _build_diagram_section(
         self,
