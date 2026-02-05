@@ -42,7 +42,7 @@ class Context:
         """
         self.config = AppConfig.load(config_path)
         self.logo_handler = LogoKitHandler(self.config.logo_kit)
-        self.prompt_builder = PromptBuilder()
+        self.prompt_builder = PromptBuilder(logo_handler=self.logo_handler)
         self.gemini_client = GeminiClient()  # Uses API key from environment
         self.mlflow_tracker = MLflowTracker(self.config.mlflow)
         self.evaluator = Evaluator(self.mlflow_tracker)
@@ -467,7 +467,9 @@ def generate_raw(
             logo_path = logo_dir or ctx.config.logo_kit.logo_dir
             console.print(f"[bold]Loading logos from {logo_path}...[/bold]")
             logos = ctx.logo_handler.load_logo_kit(logo_path)
-            console.print(f"  Loaded {len(logos)} logos")
+            logo_hints = ctx.logo_handler.load_logo_hints(logo_path)
+            hints_msg = f" with {len(logo_hints)} hints" if logo_hints else ""
+            console.print(f"  Loaded {len(logos)} logos{hints_msg}")
 
         # Read raw prompt
         console.print(f"[bold]Reading prompt from {prompt_file.name}...[/bold]")
@@ -788,8 +790,9 @@ def validate_logos(ctx: Context, logo_dir: Path):
     try:
         console.print(f"[bold]Validating logos in {logo_dir}...[/bold]\n")
 
-        # Load logos
+        # Load logos and hints
         logos = ctx.logo_handler.load_logo_kit(logo_dir)
+        logo_hints = ctx.logo_handler.load_logo_hints(logo_dir)
 
         # Display table
         table = Table(title=f"Logo Kit ({len(logos)} logos)", show_header=True)
@@ -1156,10 +1159,12 @@ Please regenerate addressing ALL of the above feedback.
         params = run_info["parameters"]
         logo_dir = Path(params.get("logo_dir", "logos/default"))
 
-        # Load logos
+        # Load logos and hints
         console.print(f"[bold]Loading logos from {logo_dir}...[/bold]")
         logos = ctx.logo_handler.load_logo_kit(logo_dir)
-        console.print(f"  Loaded {len(logos)} logos")
+        logo_hints = ctx.logo_handler.load_logo_hints(logo_dir)
+        hints_msg = f" with {len(logo_hints)} hints" if logo_hints else ""
+        console.print(f"  Loaded {len(logos)} logos{hints_msg}")
 
         # Convert logos to image parts
         logo_parts = [ctx.logo_handler.to_image_part(logo) for logo in logos]
@@ -1865,6 +1870,27 @@ def chat(
     default=None,
     help="Session name for output directory",
 )
+@click.option(
+    "--mcp-enrich/--no-mcp-enrich",
+    default=False,
+    help="Enable MCP context enrichment from Glean, Slack, JIRA, Confluence (requires Claude Code)",
+)
+@click.option(
+    "--mcp-sources",
+    type=str,
+    default="glean,confluence",
+    help="Comma-separated MCP sources to query (default: glean,confluence). Options: glean,slack,jira,confluence",
+)
+@click.option(
+    "--resume",
+    type=click.Path(exists=True, path_type=Path),
+    help="Resume a saved session from path (session.json file or session directory)",
+)
+@click.option(
+    "--list-sessions",
+    is_flag=True,
+    help="List available sessions to resume and exit",
+)
 @click.pass_obj
 def architect(
     ctx: Context,
@@ -1877,6 +1903,10 @@ def architect(
     max_turns: int,
     dspy_model: Optional[str],
     name: Optional[str],
+    mcp_enrich: bool,
+    mcp_sources: str,
+    resume: Optional[Path],
+    list_sessions: bool,
 ):
     """Start a collaborative architecture design conversation.
 
@@ -1886,6 +1916,9 @@ def architect(
 
     When ready, type 'output' to generate a diagram prompt suitable
     for generate-raw.
+
+    Sessions are automatically saved after each turn for crash recovery.
+    Use --resume to continue a previous session.
 
     Examples:
 
@@ -1911,52 +1944,127 @@ def architect(
             --logo-dir logos/azure \\
             --name azure-lakehouse
 
+        # Enable MCP enrichment (when invoked from Claude Code)
+        nano-banana architect \\
+            --problem "Coles Unity Catalog governance" \\
+            --mcp-enrich \\
+            --mcp-sources glean,slack,confluence
+
+        # List available sessions to resume
+        nano-banana architect --list-sessions
+
+        # Resume a crashed or interrupted session
+        nano-banana architect --resume outputs/2026-02-05/architect-my-session
+
     During the conversation, you can use these commands:
 
         • Natural text - continue discussing architecture
         • 'output' or 'generate' - generate the diagram prompt
         • 'status' - show current architecture state
         • 'done' - save and exit
+
+    MCP Enrichment (requires Claude Code):
+
+        When --mcp-enrich is enabled and the command is invoked from Claude Code,
+        the chatbot will automatically search internal knowledge sources (Glean,
+        Slack, JIRA, Confluence) for relevant context based on customer names
+        and Databricks concepts mentioned in your input.
     """
     from .architect import ArchitectChatbot
+    from .models import MCPEnrichmentConfig
 
     try:
-        # Get problem description
-        if not problem:
-            console.print("[bold cyan]Describe your architecture problem:[/bold cyan]")
-            console.print("[dim]What system do you need to design? What are the requirements?[/dim]\n")
-            problem = click.prompt("Problem", default="")
+        # Handle --list-sessions flag
+        if list_sessions:
+            sessions = ArchitectChatbot.find_sessions()
+            if not sessions:
+                console.print("[yellow]No saved sessions found in outputs/[/yellow]")
+                raise SystemExit(0)
 
-            if not problem.strip():
-                console.print("[red]Error: Problem description is required[/red]")
-                raise SystemExit(1)
+            table = Table(title="Saved Architect Sessions", show_header=True)
+            table.add_column("Session ID", style="cyan")
+            table.add_column("Problem", style="white", max_width=50)
+            table.add_column("Turns", style="yellow", justify="right")
+            table.add_column("Status", style="green")
+            table.add_column("Path", style="dim")
 
-        # Create config
-        arch_config = ArchitectConfig(
-            max_turns=max_turns,
-            context_file=context,
-            reference_prompt=reference_prompt,
-            output_format=output_format,
-            session_name=name,
-            logo_dir=logo_dir,
-        )
+            for sess in sessions[:20]:  # Limit to 20 most recent
+                table.add_row(
+                    sess["session_id"],
+                    sess["problem"][:50] + "..." if len(sess["problem"]) > 50 else sess["problem"],
+                    str(sess["turns"]),
+                    sess["status"],
+                    str(sess["path"].parent),
+                )
 
-        # Create chatbot
-        chatbot = ArchitectChatbot(
-            config=ctx.config,
-            arch_config=arch_config,
-            dspy_model=dspy_model,
-        )
+            console.print(table)
+            console.print("\n[bold]To resume a session:[/bold]")
+            console.print("  nano-banana architect --resume <path>")
+            raise SystemExit(0)
 
-        # Start session
-        chatbot.start_session(
-            initial_problem=problem,
-            context_file=context,
-            reference_prompt=reference_prompt,
-        )
+        # Handle --resume option
+        if resume:
+            console.print(f"[bold]Resuming session from {resume}...[/bold]")
+            chatbot = ArchitectChatbot.resume_session(
+                session_path=resume,
+                config=ctx.config,
+                dspy_model=dspy_model,
+                mcp_callback=None,
+            )
 
-        # Run conversation
-        session = chatbot.run_conversation()
+            # Run conversation from where we left off
+            session = chatbot.run_conversation(skip_initial=True)
+
+        else:
+            # Start new session
+            # Get problem description
+            if not problem:
+                console.print("[bold cyan]Describe your architecture problem:[/bold cyan]")
+                console.print("[dim]What system do you need to design? What are the requirements?[/dim]\n")
+                problem = click.prompt("Problem", default="")
+
+                if not problem.strip():
+                    console.print("[red]Error: Problem description is required[/red]")
+                    raise SystemExit(1)
+
+            # Parse MCP sources
+            mcp_source_list = [s.strip().lower() for s in mcp_sources.split(",") if s.strip()]
+
+            # Create MCP enrichment config
+            mcp_config = MCPEnrichmentConfig(
+                enabled=mcp_enrich,
+                sources=mcp_source_list,
+            )
+
+            # Create config
+            arch_config = ArchitectConfig(
+                max_turns=max_turns,
+                context_file=context,
+                reference_prompt=reference_prompt,
+                output_format=output_format,
+                session_name=name,
+                logo_dir=logo_dir,
+                mcp_enrichment=mcp_config,
+            )
+
+            # Note: mcp_callback would be provided by Claude Code when invoked programmatically
+            # For CLI usage, enrichment will show a warning that callback is needed
+            chatbot = ArchitectChatbot(
+                config=ctx.config,
+                arch_config=arch_config,
+                dspy_model=dspy_model,
+                mcp_callback=None,  # Would be provided by Claude Code
+            )
+
+            # Start session
+            chatbot.start_session(
+                initial_problem=problem,
+                context_file=context,
+                reference_prompt=reference_prompt,
+            )
+
+            # Run conversation
+            session = chatbot.run_conversation()
 
         # Final output
         console.print(f"\n[bold green]Session complete![/bold green]")

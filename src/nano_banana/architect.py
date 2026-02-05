@@ -3,6 +3,9 @@
 Enables users to have a back-and-forth conversation with an AI solutions
 architect about a complex problem, which eventually produces a diagram
 prompt suitable for generate-raw.
+
+Sessions are automatically saved after each turn for crash recovery.
+Use --resume to continue a previous session.
 """
 
 import json
@@ -10,7 +13,7 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -20,6 +23,7 @@ from rich.table import Table
 from .architect_dspy import ArchitectRefiner
 from .config import AppConfig
 from .logos import LogoKitHandler
+from .mcp_context_enricher import MCPContextEnricher, MCPQuery
 from .models import (
     ArchitectConfig,
     ArchitectSession,
@@ -120,6 +124,7 @@ class ArchitectChatbot:
         config: AppConfig,
         arch_config: Optional[ArchitectConfig] = None,
         dspy_model: Optional[str] = None,
+        mcp_callback: Optional[Callable[[MCPQuery], Any]] = None,
     ):
         """Initialize the architect chatbot.
 
@@ -127,6 +132,9 @@ class ArchitectChatbot:
             config: Application configuration
             arch_config: Architect configuration (uses defaults if not provided)
             dspy_model: Optional Databricks model endpoint for DSPy
+            mcp_callback: Optional callback for executing MCP queries.
+                         When provided, enables context enrichment from
+                         internal knowledge sources (Glean, Slack, etc.)
         """
         self.config = config
         self.arch_config = arch_config or ArchitectConfig()
@@ -137,6 +145,20 @@ class ArchitectChatbot:
         # Initialize DSPy refiner (deferred to allow for lazy loading)
         self._refiner: Optional[ArchitectRefiner] = None
         self._dspy_model = dspy_model
+
+        # Initialize MCP enricher if callback provided and enrichment enabled
+        self._mcp_enricher: Optional[MCPContextEnricher] = None
+        if mcp_callback and self.arch_config.mcp_enrichment.enabled:
+            self._mcp_enricher = MCPContextEnricher(
+                config=self.arch_config.mcp_enrichment,
+                mcp_callback=mcp_callback,
+            )
+            console.print("[dim]MCP context enrichment enabled[/dim]")
+        elif self.arch_config.mcp_enrichment.enabled and not mcp_callback:
+            console.print(
+                "[yellow]Warning: MCP enrichment enabled but no callback provided. "
+                "Enrichment requires Claude Code context.[/yellow]"
+            )
 
         # Session state
         self._session: Optional[ArchitectSession] = None
@@ -171,12 +193,14 @@ class ArchitectChatbot:
         Returns:
             New ArchitectSession
         """
-        # Load logos
+        # Load logos and hints
         logo_dir = self.arch_config.logo_dir or self.config.logo_kit.logo_dir
         console.print(f"[bold]Loading logos from {logo_dir}...[/bold]")
         self._logos = self.logo_handler.load_logo_kit(logo_dir)
+        logo_hints = self.logo_handler.load_logo_hints(logo_dir)
         self._logo_names = [logo.name for logo in self._logos]
-        console.print(f"  Loaded {len(self._logos)} logos: {', '.join(self._logo_names[:5])}...")
+        hints_msg = f" with {len(logo_hints)} hints" if logo_hints else ""
+        console.print(f"  Loaded {len(self._logos)} logos{hints_msg}: {', '.join(self._logo_names[:5])}...")
 
         # Load custom context if provided
         if context_file:
@@ -233,13 +257,23 @@ class ArchitectChatbot:
         if cmd == "done":
             return "Session ended. Use 'output' to generate the diagram prompt first.", True
 
+        # Enrich context with MCP if available
+        enriched_context = self._custom_context
+        if self._mcp_enricher:
+            mcp_context = self._mcp_enricher.enrich(
+                user_input=user_input,
+                conversation_history=self._session.get_history_json(),
+            )
+            if mcp_context:
+                enriched_context = f"{self._custom_context}\n\n{mcp_context}" if self._custom_context else mcp_context
+
         # Process through DSPy
         response, updated_arch, ready = self.refiner.process_turn(
             user_message=user_input,
             conversation_history=self._session.get_history_json(),
             available_logos=", ".join(self._logo_names),
             current_architecture=self._session.get_architecture_json(),
-            custom_context=self._custom_context,
+            custom_context=enriched_context,
             reference_prompt=self._reference_prompt,
         )
 
@@ -399,32 +433,12 @@ class ArchitectChatbot:
         if not self._session:
             raise ValueError("No active session.")
 
-        # Create output directory
-        output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"architect-{self._session.session_id}"
+        # Use consistent session directory
+        output_dir = self._get_session_dir()
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Save session JSON
-        session_data = {
-            "session_id": self._session.session_id,
-            "initial_problem": self._session.initial_problem,
-            "status": self._session.status.value,
-            "created_at": self._session.created_at,
-            "available_logos": self._session.available_logos,
-            "custom_context": self._session.custom_context,
-            "turns": [
-                {
-                    "turn_number": t.turn_number,
-                    "user_input": t.user_input,
-                    "architect_response": t.architect_response,
-                    "architecture_snapshot": t.architecture_snapshot,
-                    "timestamp": t.timestamp,
-                }
-                for t in self._session.turns
-            ],
-            "final_architecture": self._session.current_architecture,
-        }
-
-        (output_dir / "session.json").write_text(json.dumps(session_data, indent=2))
+        # Save session with full recovery information
+        self._save_session()
 
         # Save prompt
         (output_dir / "prompt.txt").write_text(prompt)
@@ -538,3 +552,297 @@ class ArchitectChatbot:
 
         console.print(f"\n[bold]Turns:[/bold] {len(self._session.turns)}")
         console.print(f"[bold]Status:[/bold] {self._session.status.value}")
+
+    def _get_session_dir(self) -> Path:
+        """Get the session directory path.
+
+        Creates a consistent directory for session files based on creation date
+        and session ID.
+
+        Returns:
+            Path to session directory
+        """
+        if not self._session:
+            raise ValueError("No active session.")
+
+        # Use the session's creation date for consistent directory
+        if self._session.created_at:
+            try:
+                created_dt = datetime.fromisoformat(self._session.created_at)
+                date_str = created_dt.strftime("%Y-%m-%d")
+            except ValueError:
+                date_str = datetime.now().strftime("%Y-%m-%d")
+        else:
+            date_str = datetime.now().strftime("%Y-%m-%d")
+
+        return Path("outputs") / date_str / f"architect-{self._session.session_id}"
+
+    def _save_session(self) -> Path:
+        """Save session state for crash recovery.
+
+        Saves the full session state to disk after each turn so the
+        conversation can be resumed if interrupted.
+
+        Returns:
+            Path to the saved session file
+        """
+        if not self._session:
+            raise ValueError("No active session.")
+
+        session_dir = self._get_session_dir()
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        # Build session data with all recovery information
+        session_data = {
+            "session_id": self._session.session_id,
+            "initial_problem": self._session.initial_problem,
+            "status": self._session.status.value,
+            "created_at": self._session.created_at,
+            "available_logos": self._session.available_logos,
+            "custom_context": self._session.custom_context,
+            "current_architecture": self._session.current_architecture,
+            "turns": [
+                {
+                    "turn_number": t.turn_number,
+                    "user_input": t.user_input,
+                    "architect_response": t.architect_response,
+                    "architecture_snapshot": t.architecture_snapshot,
+                    "timestamp": t.timestamp,
+                }
+                for t in self._session.turns
+            ],
+            # Save config for restoration
+            "_config": {
+                "logo_dir": str(self.arch_config.logo_dir) if self.arch_config.logo_dir else None,
+                "max_turns": self.arch_config.max_turns,
+                "context_file": str(self.arch_config.context_file) if self.arch_config.context_file else None,
+                "reference_prompt": str(self.arch_config.reference_prompt) if self.arch_config.reference_prompt else None,
+                "output_format": self.arch_config.output_format,
+            },
+            "_custom_context": self._custom_context,
+            "_reference_prompt": self._reference_prompt,
+            "_last_saved": datetime.now().isoformat(),
+        }
+
+        session_file = session_dir / "session.json"
+        session_file.write_text(json.dumps(session_data, indent=2))
+
+        return session_file
+
+    @classmethod
+    def find_sessions(cls, base_dir: Path = Path("outputs")) -> list[dict]:
+        """Find all saved architect sessions.
+
+        Args:
+            base_dir: Base directory to search (default: outputs/)
+
+        Returns:
+            List of session info dicts with path, session_id, problem, turns, status
+        """
+        sessions = []
+
+        if not base_dir.exists():
+            return sessions
+
+        # Search for session.json files in architect-* directories
+        for date_dir in sorted(base_dir.iterdir(), reverse=True):
+            if not date_dir.is_dir():
+                continue
+
+            for session_dir in date_dir.iterdir():
+                if not session_dir.is_dir() or not session_dir.name.startswith("architect-"):
+                    continue
+
+                session_file = session_dir / "session.json"
+                if session_file.exists():
+                    try:
+                        data = json.loads(session_file.read_text())
+                        sessions.append({
+                            "path": session_file,
+                            "session_id": data.get("session_id", "unknown"),
+                            "problem": data.get("initial_problem", "")[:80],
+                            "turns": len(data.get("turns", [])),
+                            "status": data.get("status", "unknown"),
+                            "created_at": data.get("created_at", ""),
+                            "last_saved": data.get("_last_saved", ""),
+                        })
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+
+        return sessions
+
+    @classmethod
+    def resume_session(
+        cls,
+        session_path: Path,
+        config: AppConfig,
+        dspy_model: Optional[str] = None,
+        mcp_callback: Optional[Callable[[MCPQuery], Any]] = None,
+    ) -> "ArchitectChatbot":
+        """Resume a saved session from disk.
+
+        Args:
+            session_path: Path to session.json file or session directory
+            config: Application configuration
+            dspy_model: Optional Databricks model endpoint
+            mcp_callback: Optional MCP callback for enrichment
+
+        Returns:
+            ArchitectChatbot instance with restored session
+        """
+        # Handle both file path and directory path
+        if session_path.is_dir():
+            session_file = session_path / "session.json"
+        else:
+            session_file = session_path
+
+        if not session_file.exists():
+            raise FileNotFoundError(f"Session file not found: {session_file}")
+
+        # Load session data
+        session_data = json.loads(session_file.read_text())
+
+        # Restore arch_config from saved data
+        saved_config = session_data.get("_config", {})
+        from .models import ArchitectConfig, MCPEnrichmentConfig
+
+        arch_config = ArchitectConfig(
+            max_turns=saved_config.get("max_turns", 20),
+            context_file=Path(saved_config["context_file"]) if saved_config.get("context_file") else None,
+            reference_prompt=Path(saved_config["reference_prompt"]) if saved_config.get("reference_prompt") else None,
+            output_format=saved_config.get("output_format", "prompt"),
+            session_name=session_data.get("session_id"),
+            logo_dir=Path(saved_config["logo_dir"]) if saved_config.get("logo_dir") else None,
+        )
+
+        # Create chatbot instance
+        chatbot = cls(
+            config=config,
+            arch_config=arch_config,
+            dspy_model=dspy_model,
+            mcp_callback=mcp_callback,
+        )
+
+        # Load logos
+        logo_dir = arch_config.logo_dir or config.logo_kit.logo_dir
+        console.print(f"[bold]Loading logos from {logo_dir}...[/bold]")
+        chatbot._logos = chatbot.logo_handler.load_logo_kit(logo_dir)
+        chatbot._logo_names = [logo.name for logo in chatbot._logos]
+        console.print(f"  Loaded {len(chatbot._logos)} logos")
+
+        # Restore session state
+        chatbot._session = ArchitectSession(
+            session_id=session_data["session_id"],
+            initial_problem=session_data["initial_problem"],
+            available_logos=session_data.get("available_logos", chatbot._logo_names),
+            custom_context=session_data.get("custom_context"),
+            created_at=session_data.get("created_at", datetime.now().isoformat()),
+            status=ConversationStatus(session_data.get("status", "active")),
+            current_architecture=session_data.get("current_architecture", {"components": [], "connections": []}),
+        )
+
+        # Restore turns
+        for turn_data in session_data.get("turns", []):
+            turn = ArchitectTurn(
+                turn_number=turn_data["turn_number"],
+                user_input=turn_data["user_input"],
+                architect_response=turn_data["architect_response"],
+                architecture_snapshot=turn_data.get("architecture_snapshot"),
+                timestamp=turn_data.get("timestamp", ""),
+            )
+            chatbot._session.turns.append(turn)
+
+        # Restore custom context and reference prompt
+        chatbot._custom_context = session_data.get("_custom_context", "")
+        chatbot._reference_prompt = session_data.get("_reference_prompt", "")
+
+        console.print(f"\n[bold green]Session restored: {chatbot._session.session_id}[/bold green]")
+        console.print(f"  Turns: {len(chatbot._session.turns)}")
+        console.print(f"  Status: {chatbot._session.status.value}")
+
+        return chatbot
+
+    def run_conversation(self, skip_initial: bool = False) -> ArchitectSession:
+        """Run the full conversation loop.
+
+        Args:
+            skip_initial: If True, skip processing the initial problem
+                         (used when resuming a session)
+
+        Returns:
+            Completed ArchitectSession
+        """
+        if not self._session:
+            raise ValueError("No active session. Call start_session() first.")
+
+        # Show session panel
+        resume_note = " (Resumed)" if skip_initial else ""
+        console.print(Panel(
+            f"[bold]Problem:[/bold] {self._session.initial_problem}\n\n"
+            f"[dim]Available logos: {', '.join(self._logo_names[:8])}...[/dim]\n\n"
+            f"[dim]Session: {self._session.session_id}{resume_note}[/dim]\n\n"
+            "Commands:\n"
+            "  • Natural text - continue discussing architecture\n"
+            "  • 'output' or 'generate' - generate the diagram prompt\n"
+            "  • 'status' - show current architecture state\n"
+            "  • 'done' - save and exit",
+            title="Architect Session",
+            border_style="cyan",
+        ))
+
+        # Process the initial problem (skip if resuming)
+        if not skip_initial:
+            response, _ = self.process_user_input(self._session.initial_problem)
+            console.print("\n[bold blue]Architect:[/bold blue]")
+            console.print(Panel(response, border_style="blue"))
+
+            # Auto-save after initial turn
+            session_file = self._save_session()
+            console.print(f"[dim]Session auto-saved to {session_file.parent}[/dim]")
+        else:
+            # Show last response when resuming
+            if self._session.turns:
+                last_turn = self._session.turns[-1]
+                console.print("\n[bold blue]Architect (last response):[/bold blue]")
+                console.print(Panel(last_turn.architect_response, border_style="blue"))
+
+        # Conversation loop
+        while len(self._session.turns) < self.arch_config.max_turns:
+            # Get user input
+            console.print()
+            user_input = Prompt.ask("[bold green]You[/bold green]")
+
+            if not user_input.strip():
+                continue
+
+            # Check for exit
+            if user_input.strip().lower() == "done":
+                self._session.status = ConversationStatus.COMPLETED
+                self._save_session()
+                break
+
+            # Process input
+            response, should_exit = self.process_user_input(user_input)
+
+            # Auto-save after each turn
+            session_file = self._save_session()
+
+            # Display response
+            console.print("\n[bold blue]Architect:[/bold blue]")
+            console.print(Panel(response, border_style="blue"))
+            console.print(f"[dim]Session auto-saved ({len(self._session.turns)} turns)[/dim]")
+
+            if should_exit:
+                self._session.status = ConversationStatus.COMPLETED
+                self._save_session()
+                break
+
+        else:
+            console.print("\n[yellow]Max turns reached.[/yellow]")
+            self._session.status = ConversationStatus.COMPLETED
+            self._save_session()
+
+        # Show summary
+        self._show_summary()
+
+        return self._session

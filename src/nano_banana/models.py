@@ -533,6 +533,39 @@ class ArchitectSession(BaseModel):
         return json.dumps(self.current_architecture, indent=2)
 
 
+class MCPEnrichmentConfig(BaseModel):
+    """Configuration for MCP-based context enrichment.
+
+    When enabled and invoked from Claude Code with an mcp_callback,
+    the architect chatbot will automatically search internal knowledge
+    sources for relevant context before processing user input.
+    """
+
+    enabled: bool = Field(
+        default=False,
+        description="Enable MCP-based context enrichment (requires Claude Code callback)",
+    )
+
+    sources: list[str] = Field(
+        default_factory=lambda: ["glean", "confluence"],
+        description="MCP sources to query: glean, slack, jira, confluence",
+    )
+
+    max_results_per_source: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Maximum results to retrieve per source",
+    )
+
+    max_context_chars: int = Field(
+        default=2000,
+        ge=100,
+        le=10000,
+        description="Maximum characters for enriched context",
+    )
+
+
 class ArchitectConfig(BaseModel):
     """Configuration for architect sessions."""
 
@@ -555,4 +588,8 @@ class ArchitectConfig(BaseModel):
     )
     logo_dir: Optional[Path] = Field(
         default=None, description="Logo directory override"
+    )
+    mcp_enrichment: MCPEnrichmentConfig = Field(
+        default_factory=MCPEnrichmentConfig,
+        description="MCP context enrichment configuration",
     )

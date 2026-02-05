@@ -307,7 +307,7 @@ class ConversationChatbot:
 
         # Initialize components
         self.logo_handler = LogoKitHandler(config.logo_kit)
-        self.prompt_builder = PromptBuilder()
+        self.prompt_builder = PromptBuilder(logo_handler=self.logo_handler)
         self.gemini_client = GeminiClient()
         self.mlflow_tracker = MLflowTracker(config.mlflow)
 
@@ -381,11 +381,13 @@ class ConversationChatbot:
         if not initial_prompt and not diagram_spec:
             raise ValueError("Must provide either initial_prompt or diagram_spec")
 
-        # Load logos
+        # Load logos and hints
         logo_dir = self.conv_config.logo_dir or self.config.logo_kit.logo_dir
         console.print(f"[bold]Loading logos from {logo_dir}...[/bold]")
         self._logos = self.logo_handler.load_logo_kit(logo_dir)
-        console.print(f"  Loaded {len(self._logos)} logos")
+        logo_hints = self.logo_handler.load_logo_hints(logo_dir)
+        hints_msg = f" with {len(logo_hints)} hints" if logo_hints else ""
+        console.print(f"  Loaded {len(self._logos)} logos{hints_msg}")
 
         # Convert logos to image parts for generation
         self._logo_parts = [
@@ -675,18 +677,24 @@ class ConversationChatbot:
             return score, feedback, retry_settings
 
         # Check if feedback is a reference image path
-        if feedback and not feedback.lower() == "done":
-            feedback_path = Path(feedback.strip())
-            if feedback_path.exists() and feedback_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
-                console.print(f"[cyan]Using as reference image: {feedback_path}[/cyan]")
-                # Analyze the reference and get comparison feedback
-                self.analyze_reference_image(feedback_path)
-                self.conv_config.reference_image = feedback_path
-                # Run reference comparison
-                ref_score, ref_feedback = self._evaluate_against_reference(turn)
-                turn.score = ref_score
-                turn.feedback = ref_feedback
-                return ref_score, ref_feedback, None
+        # Only try to parse as path if it's short enough to be a valid filename
+        # (avoid "File name too long" errors on long feedback text)
+        if feedback and not feedback.lower() == "done" and len(feedback.strip()) < 256:
+            try:
+                feedback_path = Path(feedback.strip())
+                if feedback_path.exists() and feedback_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
+                    console.print(f"[cyan]Using as reference image: {feedback_path}[/cyan]")
+                    # Analyze the reference and get comparison feedback
+                    self.analyze_reference_image(feedback_path)
+                    self.conv_config.reference_image = feedback_path
+                    # Run reference comparison
+                    ref_score, ref_feedback = self._evaluate_against_reference(turn)
+                    turn.score = ref_score
+                    turn.feedback = ref_feedback
+                    return ref_score, ref_feedback, None
+            except OSError:
+                # Path is too long or invalid - treat as regular feedback
+                pass
 
         turn.score = score
         turn.feedback = feedback
@@ -894,19 +902,33 @@ class ConversationChatbot:
             Refined prompt
         """
         console.print("\n[yellow]Refining prompt with DSPy...[/yellow]")
+        console.print("[dim]  (This may take 30-60 seconds for Databricks model serving)[/dim]")
 
         # Get conversation history
         history = self._session.get_history_json() if self._session else "[]"
 
-        # Run refinement
-        refined_prompt, reasoning, expected = self.refiner.refine_with_context(
-            session_history=history,
-            original_prompt=self._session.initial_prompt if self._session else current_prompt,
-            current_prompt=current_prompt,
-            feedback=turn.feedback or "",
-            score=turn.score or 3,
-            visual_analysis=turn.visual_analysis or "",
-        )
+        # Run refinement with status update
+        import time
+        start_time = time.time()
+
+        try:
+            refined_prompt, reasoning, expected = self.refiner.refine_with_context(
+                session_history=history,
+                original_prompt=self._session.initial_prompt if self._session else current_prompt,
+                current_prompt=current_prompt,
+                feedback=turn.feedback or "",
+                score=turn.score or 3,
+                visual_analysis=turn.visual_analysis or "",
+            )
+            elapsed = time.time() - start_time
+            console.print(f"[dim]  Refinement completed in {elapsed:.1f}s[/dim]")
+        except Exception as e:
+            elapsed = time.time() - start_time
+            console.print(f"[red]  DSPy refinement failed after {elapsed:.1f}s: {e}[/red]")
+            console.print("[yellow]  Falling back to appending feedback to prompt...[/yellow]")
+            # Fallback: just append feedback to prompt
+            feedback_section = f"\n\n---\nREFINEMENT FEEDBACK (MUST ADDRESS):\n{turn.feedback}\n---\n"
+            return current_prompt + feedback_section
 
         # Store reasoning
         turn.refinement_reasoning = reasoning
