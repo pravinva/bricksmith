@@ -199,6 +199,7 @@ Diagrams scored 0-5 on four dimensions:
 
 - `docs/nano_banana/AUTHENTICATION.md` - Complete auth setup
 - `docs/nano_banana/LOGO_SETUP.md` - Logo configuration
+- `docs/nano_banana/LOGO_HINTS.md` - Automatic logo-specific instructions (Unity Catalog fix)
 - `docs/nano_banana/CHAT_REFINEMENT.md` - Interactive chat loop for iterative diagram refinement
 - `docs/nano_banana/PROMPT_REFINEMENT.md` - Visual prompt refinement
 - `docs/nano_banana/SCENARIO_TO_DIAGRAM.md` - Scenario-based generation

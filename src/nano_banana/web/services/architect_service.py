@@ -75,6 +75,7 @@ class ArchitectService:
         # We need to capture logo names before starting the session
         logo_path = logo_dir or str(self.config.logo_kit.logo_dir)
         logos = chatbot.logo_handler.load_logo_kit(logo_path)
+        chatbot.logo_handler.load_logo_hints(logo_path)
         available_logos = [logo.name for logo in logos]
 
         # Store in session store
@@ -160,6 +161,7 @@ class ArchitectService:
         logo_path = str(self.config.logo_kit.logo_dir)
 
         logos = chatbot.logo_handler.load_logo_kit(logo_path)
+        chatbot.logo_handler.load_logo_hints(logo_path)
         chatbot._logos = logos
         chatbot._logo_names = [logo.name for logo in logos]
         chatbot._custom_context = session_data.get("custom_context") or ""
