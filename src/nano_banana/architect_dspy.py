@@ -153,9 +153,10 @@ class ArchitectRefiner(dspy.Module):
         self.model_name = model or self.DATABRICKS_MODELS[0]
 
         # Configure DSPy with Databricks model serving
+        # Use high max_tokens to handle long diagram prompts (can be 8000+ tokens)
         self.lm = dspy.LM(
             model=f"databricks/{self.model_name}",
-            max_tokens=4096,
+            max_tokens=16384,
             temperature=0.4,  # Slightly higher for more conversational responses
         )
 
