@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .logos import LogoKitHandler
-from .models import DiagramSpec, LogoInfo, PromptTemplate
+from .models import LogoInfo, PromptTemplate
 
 
 class PromptBuilder:
@@ -47,100 +47,6 @@ class PromptBuilder:
         self._templates[template_id] = template
         return template
 
-    def build_prompt(
-        self,
-        template: PromptTemplate,
-        diagram_spec: DiagramSpec,
-        logo_kit: list[LogoInfo],
-        variables: Optional[dict[str, Any]] = None,
-    ) -> str:
-        """Build complete prompt with all sections.
-
-        Logo constraints are ALWAYS included in the final prompt, either via
-        template placeholders or automatically prepended if missing.
-
-        Args:
-            template: Prompt template
-            diagram_spec: Diagram specification
-            logo_kit: List of available logos
-            variables: Optional additional variables for substitution
-
-        Returns:
-            Complete prompt text with logo constraints guaranteed
-        """
-        # Start with template
-        prompt = template.template
-
-        # Build sections (pass logo_kit to diagram section for index mapping)
-        logo_section = self._build_logo_section(logo_kit)
-        diagram_section = self._build_diagram_section(diagram_spec, logo_kit)
-
-        # Prepare variables for substitution
-        all_variables = {
-            "logo_section": logo_section,
-            "diagram_section": diagram_section,
-            **(template.variables or {}),
-            **(variables or {}),
-        }
-
-        # Substitute variables
-        prompt = self.substitute_variables(prompt, all_variables)
-
-        # CRITICAL: Ensure logo section is ALWAYS included
-        # If template didn't include {logo_section}, prepend it
-        if "{logo_section}" not in template.template and logo_section not in prompt:
-            prompt = f"{logo_section}\n\n{prompt}"
-
-        # CRITICAL: Ensure diagram section is ALWAYS included
-        # If template didn't include {diagram_section}, append it
-        if "{diagram_section}" not in template.template and "Diagram:" not in prompt:
-            prompt = f"{prompt}\n\n{diagram_section}"
-
-        # CRITICAL: Ensure logo constraints are ALWAYS present
-        # Double-check the critical constraint text appears
-        critical_constraints = [
-            "Reuse uploaded logos EXACTLY",
-            "Scale all logos uniformly",
-            "NO filenames"
-        ]
-
-        has_constraints = all(
-            constraint.lower() in prompt.lower()
-            for constraint in critical_constraints
-        )
-
-        if not has_constraints:
-            # Force-inject constraints at the top
-            constraint_block = """
-CRITICAL LOGO REQUIREMENTS (MANDATORY):
-- Reuse uploaded logos EXACTLY as provided
-- Scale all logos uniformly
-- NO filenames or file labels may appear in the output
-
-"""
-            prompt = constraint_block + prompt
-
-        # CRITICAL: Inject logo-specific hints if available
-        # Check if any logos in the kit have special instructions
-        logo_hints_block = self._build_logo_hints_section(logo_kit)
-        if logo_hints_block:
-            prompt = logo_hints_block + prompt
-
-        # CRITICAL: Prevent design annotations from appearing in output
-        # Always inject this constraint to prevent rendering of instructional text
-        design_constraint_block = """
-CRITICAL - DO NOT RENDER DESIGN INSTRUCTIONS AS VISIBLE TEXT:
-- Do NOT include design specifications in the diagram (e.g., "16px", "24px", "12px whitespace")
-- Do NOT include organizational labels in the diagram (e.g., "LAYER 0", "LAYER 1", "LAYER 2", "FOOTER")
-- Do NOT include measurement annotations or spacing notes in the visible output
-- Do NOT include any instructional text meant for you (the AI) in the final diagram
-- All design specifications are INSTRUCTIONS FOR YOU to follow, not text to display
-- The diagram should only show the actual content, not the instructions about how to create it
-
-"""
-        prompt = design_constraint_block + prompt
-
-        return prompt
 
     def _build_logo_section(self, logo_kit: list[LogoInfo]) -> str:
         """Build the logo kit reference section.
@@ -199,83 +105,6 @@ CRITICAL - DO NOT RENDER DESIGN INSTRUCTIONS AS VISIBLE TEXT:
                 hints_blocks.append(formatted_hint)
         
         return "\n".join(hints_blocks) if hints_blocks else ""
-
-    def _build_diagram_section(
-        self,
-        diagram_spec: DiagramSpec,
-        logo_kit: Optional[list[LogoInfo]] = None
-    ) -> str:
-        """Build the diagram specification section.
-
-        Args:
-            diagram_spec: Diagram specification
-            logo_kit: Optional logo kit for index-based references
-
-        Returns:
-            Diagram section text
-        """
-        # Create logo name to index mapping if logo_kit provided
-        logo_index_map = {}
-        if logo_kit:
-            for idx, logo in enumerate(logo_kit, 1):
-                logo_name = logo.name.lower()
-                # Map exact name
-                logo_index_map[logo_name] = idx
-                # Map with/without underscores and hyphens
-                logo_index_map[logo_name.replace('_', '-')] = idx
-                logo_index_map[logo_name.replace('-', '_')] = idx
-                # Map base name without -logo/-logo suffix
-                base_name = logo_name.replace('-logo', '').replace('_logo', '').replace('.svg', '')
-                logo_index_map[base_name] = idx
-                logo_index_map[base_name.replace('_', '-')] = idx
-                logo_index_map[base_name.replace('-', '_')] = idx
-                # Map first part before underscore/hyphen (e.g., "kaluza" from "kaluza_logo_black")
-                first_part = logo_name.split('_')[0].split('-')[0]
-                if first_part and first_part not in logo_index_map:
-                    logo_index_map[first_part] = idx
-
-        lines = [f"Diagram: {diagram_spec.name}"]
-        lines.append(f"Description: {diagram_spec.description}")
-        lines.append("")
-
-        # Components
-        lines.append("Components:")
-        for comp in diagram_spec.components:
-            comp_line = f"- {comp.id}: {comp.label} (type: {comp.type})"
-            if comp.logo_name:
-                logo_ref = f" [use {comp.logo_name} logo"
-                # Add index if available
-                if logo_kit and comp.logo_name in logo_index_map:
-                    idx = logo_index_map[comp.logo_name]
-                    logo_ref += f" = Image {idx}"
-                logo_ref += " - USE EXACT UPLOADED IMAGE]"
-                comp_line += logo_ref
-            lines.append(comp_line)
-
-        lines.append("")
-
-        # Connections
-        lines.append("Connections:")
-        for conn in diagram_spec.connections:
-            conn_line = f"- {conn.from_id} → {conn.to_id}"
-            if conn.label:
-                conn_line += f' "{conn.label}"'
-            if conn.style != "solid":
-                conn_line += f" ({conn.style})"
-            lines.append(conn_line)
-
-        lines.append("")
-
-        # Constraints
-        lines.append("Layout Constraints:")
-        lines.append(f"- Layout: {diagram_spec.constraints.layout}")
-        lines.append(f"- Background: {diagram_spec.constraints.background}")
-        lines.append(f"- Label style: {diagram_spec.constraints.label_style}")
-        lines.append(f"- Spacing: {diagram_spec.constraints.spacing}")
-        if diagram_spec.constraints.show_grid:
-            lines.append("- Show grid lines")
-
-        return "\n".join(lines)
 
     def substitute_variables(self, template: str, variables: dict[str, Any]) -> str:
         """Replace {variable} placeholders with values.

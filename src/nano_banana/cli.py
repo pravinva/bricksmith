@@ -14,16 +14,13 @@ from . import __version__
 
 # Load environment variables from .env file
 load_dotenv()
-from .analyzer import PromptAnalyzer
 from .config import AppConfig
 from .evaluator import Evaluator
 from .gemini_client import GeminiClient
 from .logos import LogoKitHandler
 from .mlflow_tracker import MLflowTracker
-from .models import DiagramSpec
 from .prompts import PromptBuilder
 from .prompt_refiner import PromptRefiner
-from .runner import DiagramRunner
 from .conversation import ConversationChatbot
 from .models import ConversationConfig, ArchitectConfig, EvaluationPersona
 
@@ -46,14 +43,6 @@ class Context:
         self.gemini_client = GeminiClient()  # Uses API key from environment
         self.mlflow_tracker = MLflowTracker(self.config.mlflow)
         self.evaluator = Evaluator(self.mlflow_tracker)
-        self.analyzer = PromptAnalyzer(self.mlflow_tracker)
-        self.runner = DiagramRunner(
-            self.config,
-            self.logo_handler,
-            self.prompt_builder,
-            self.gemini_client,
-            self.mlflow_tracker,
-        )
         self.prompt_refiner = PromptRefiner(
             self.gemini_client,
             self.mlflow_tracker,
@@ -75,78 +64,6 @@ def main(ctx: click.Context, config: Optional[Path]):
     Generate, track, and evaluate architecture diagrams using Vertex AI.
     """
     ctx.obj = Context(config)
-
-
-@main.command()
-@click.option(
-    "--diagram-spec",
-    required=True,
-    type=click.Path(exists=True, path_type=Path),
-    help="Path to diagram specification YAML file",
-)
-@click.option(
-    "--template",
-    required=True,
-    help="Prompt template ID (e.g., 'baseline', 'detailed')",
-)
-@click.option("--run-name", help="Optional run name for MLflow")
-@click.option(
-    "--tag",
-    multiple=True,
-    help="Tags as key=value (can be specified multiple times)",
-)
-@click.pass_obj
-def generate(
-    ctx: Context,
-    diagram_spec: Path,
-    template: str,
-    run_name: Optional[str],
-    tag: tuple[str],
-):
-    """Generate a diagram from a specification.
-
-    Example:
-
-        nano-banana generate \\
-            --diagram-spec prompts/diagram_specs/example_basic.yaml \\
-            --template baseline \\
-            --run-name "test-run-1" \\
-            --tag "experiment=baseline" \\
-            --tag "version=1"
-    """
-    try:
-        # Parse tags
-        tags = {}
-        for tag_str in tag:
-            if "=" in tag_str:
-                key, value = tag_str.split("=", 1)
-                tags[key] = value
-            else:
-                console.print(f"[yellow]Warning: Ignoring invalid tag '{tag_str}'[/yellow]")
-
-        # Initialize MLflow
-        console.print("[bold]Initializing MLflow...[/bold]")
-        ctx.mlflow_tracker.initialize()
-
-        # Load diagram spec
-        console.print(f"[bold]Loading diagram spec from {diagram_spec.name}...[/bold]")
-        spec = DiagramSpec.from_yaml(diagram_spec)
-
-        # Run experiment
-        console.print(f"\n[bold]Generating diagram...[/bold]\n")
-        result = ctx.runner.run_experiment(spec, template, run_name, tags)
-
-        if result.success:
-            console.print(f"\n[bold green]Success![/bold green]")
-            console.print(f"\nTo evaluate: nano-banana evaluate {result.run_id}")
-            console.print(f"To view runs: nano-banana list-runs")
-        else:
-            console.print(f"\n[bold red]Failed: {result.error_message}[/bold red]")
-            raise SystemExit(1)
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
 
 
 @main.command()
@@ -819,225 +736,6 @@ def validate_logos(ctx: Context, logo_dir: Path):
 
 
 @main.command()
-@click.pass_obj
-def check_auth(ctx: Context):
-    """Verify Google Cloud OAuth authentication.
-
-    Checks that Application Default Credentials are configured correctly.
-
-    Example:
-
-        nano-banana check-auth
-    """
-    try:
-        console.print("[bold]Checking OAuth authentication...[/bold]\n")
-
-        if ctx.vertex_client.verify_auth():
-            console.print("[bold green]✓ Authentication successful![/bold green]")
-            console.print(f"\nProject: {ctx.config.vertex.project_id}")
-            console.print(f"Location: {ctx.config.vertex.location}")
-            console.print(f"Model: {ctx.config.vertex.model_id}")
-        else:
-            console.print("[bold red]✗ Authentication failed[/bold red]")
-            console.print("\nPlease run: gcloud auth application-default login")
-            raise SystemExit(1)
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        console.print("\nPlease run: gcloud auth application-default login")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.pass_obj
-def verify_setup(ctx: Context):
-    """Verify complete system setup.
-
-    Checks auth, MLflow, logos, and templates.
-
-    Example:
-
-        nano-banana verify-setup
-    """
-    try:
-        # Authenticate
-        ctx.vertex_client.authenticate()
-
-        # Run verification
-        if ctx.runner.verify_setup():
-            console.print("\n[bold green]Ready to generate diagrams![/bold green]")
-        else:
-            raise SystemExit(1)
-
-    except Exception as e:
-        console.print(f"\n[bold red]Setup verification failed: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.option(
-    "--min-score",
-    default=4.0,
-    type=float,
-    help="Minimum overall score to consider (default: 4.0)",
-)
-@click.option(
-    "--dimension",
-    type=click.Choice(
-        [
-            "logo_fidelity_score",
-            "layout_clarity_score",
-            "text_legibility_score",
-            "constraint_compliance_score",
-        ]
-    ),
-    help="Focus on specific dimension instead of overall score",
-)
-@click.option(
-    "--max-runs",
-    default=50,
-    type=int,
-    help="Maximum number of runs to analyze",
-)
-@click.pass_obj
-def analyze_prompts(
-    ctx: Context,
-    min_score: float,
-    dimension: Optional[str],
-    max_runs: int,
-):
-    """Analyze patterns in high-scoring prompts.
-
-    Finds common patterns, phrases, and correlations in prompts
-    from runs that scored above the threshold.
-
-    Example:
-
-        nano-banana analyze-prompts --min-score 4.5
-        nano-banana analyze-prompts --dimension logo_fidelity_score --min-score 4.0
-    """
-    try:
-        # Initialize MLflow
-        ctx.mlflow_tracker.initialize()
-
-        # Run analysis
-        ctx.analyzer.analyze_high_scoring_runs(
-            min_score=min_score,
-            dimension=dimension,
-            max_runs=max_runs,
-        )
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.option(
-    "--template",
-    help="Template ID to analyze and suggest improvements for",
-)
-@click.option(
-    "--min-score",
-    default=4.0,
-    type=float,
-    help="Minimum score for reference runs (default: 4.0)",
-)
-@click.pass_obj
-def suggest_improvements(
-    ctx: Context,
-    template: Optional[str],
-    min_score: float,
-):
-    """Suggest prompt improvements based on successful runs.
-
-    Analyzes high-scoring runs and suggests what to add or change
-    in your prompts to improve results.
-
-    Example:
-
-        nano-banana suggest-improvements --template baseline --min-score 4.5
-        nano-banana suggest-improvements --min-score 4.0
-    """
-    try:
-        # Initialize MLflow
-        ctx.mlflow_tracker.initialize()
-
-        # Get current prompt if template specified
-        current_prompt = None
-        if template:
-            try:
-                template_obj = ctx.prompt_builder.load_template(template)
-                current_prompt = template_obj.template
-            except Exception:
-                console.print(f"[yellow]Note: Could not load template '{template}'[/yellow]")
-
-        # Get suggestions
-        ctx.analyzer.suggest_improvements(
-            template_id=template,
-            current_prompt=current_prompt,
-            min_score=min_score,
-        )
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.pass_obj
-def template_stats(ctx: Context):
-    """Show performance statistics by template.
-
-    Displays average scores, run counts, and score ranges
-    for each prompt template.
-
-    Example:
-
-        nano-banana template-stats
-    """
-    try:
-        # Initialize MLflow
-        ctx.mlflow_tracker.initialize()
-
-        # Get stats
-        ctx.analyzer.template_performance()
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.option(
-    "--template",
-    help="Filter by specific template",
-)
-@click.pass_obj
-def dimension_stats(ctx: Context, template: Optional[str]):
-    """Show score statistics by evaluation dimension.
-
-    Displays average scores for each evaluation dimension
-    (logo fidelity, layout clarity, etc.).
-
-    Example:
-
-        nano-banana dimension-stats
-        nano-banana dimension-stats --template baseline
-    """
-    try:
-        # Initialize MLflow
-        ctx.mlflow_tracker.initialize()
-
-        # Get stats
-        ctx.analyzer.dimension_analysis(template_id=template)
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
 @click.argument("run_id")
 @click.option(
     "--feedback",
@@ -1368,220 +1066,10 @@ def refine_prompt(
 
 @main.command()
 @click.option(
-    "--good-run",
-    required=True,
-    help="MLflow run ID of the better diagram",
-)
-@click.option(
-    "--bad-run",
-    required=True,
-    help="MLflow run ID of the worse diagram",
-)
-@click.pass_obj
-def compare_diagrams(
-    ctx: Context,
-    good_run: str,
-    bad_run: str,
-):
-    """Compare two diagrams to identify what makes one better.
-
-    Analyzes both diagrams visually and compares their prompts to extract
-    concrete, actionable differences that explain quality improvements.
-
-    Example:
-        nano-banana compare-diagrams --good-run abc123 --bad-run def456
-    """
-    try:
-        console.print("\n[bold blue]🔍 Comparing diagrams...[/bold blue]\n")
-
-        comparison = ctx.prompt_refiner.compare_diagrams(good_run, bad_run)
-
-        console.print("[bold green]✓ Comparison complete![/bold green]\n")
-
-        # Display visual differences
-        if comparison.get("visual_differences"):
-            console.print("[bold]Visual Differences:[/bold]")
-            for diff in comparison["visual_differences"]:
-                console.print(f"  • {diff}")
-            console.print()
-
-        # Display prompt differences
-        if comparison.get("prompt_differences"):
-            console.print("[bold]Prompt Differences:[/bold]")
-            for diff in comparison["prompt_differences"]:
-                console.print(f"  • {diff}")
-            console.print()
-
-        # Display recommendations
-        if comparison.get("recommendations"):
-            console.print("[bold]Recommendations:[/bold]")
-            for rec in comparison["recommendations"]:
-                console.print(f"  • {rec}")
-            console.print()
-
-        # Display full analysis
-        console.print("[bold]Full Analysis:[/bold]")
-        console.print("─" * 80)
-        console.print(comparison.get("raw_analysis", "No detailed analysis available"))
-        console.print("─" * 80)
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.option(
-    "--scenario",
-    required=True,
-    type=str,
-    help="Natural language description of the architecture scenario",
-)
-@click.option(
-    "--output",
-    type=click.Path(path_type=Path),
-    help="Path to save the generated diagram spec (default: prompts/diagram_specs/generated-<timestamp>.yaml)",
-)
-@click.pass_context
-def scenario_to_spec(ctx: click.Context, scenario: str, output: Optional[Path]):
-    """Generate a diagram specification from a scenario description.
-
-    Takes a natural language description of an architecture and uses AI to
-    generate a structured YAML diagram specification.
-
-    Examples:
-
-        # Generate spec from scenario
-        nano-banana scenario-to-spec \\
-            --scenario "Build a lakehouse on AWS with Databricks, S3, and Redshift" \\
-            --output prompts/diagram_specs/my-lakehouse.yaml
-
-        # Generate spec and print to console
-        nano-banana scenario-to-spec \\
-            --scenario "Real-time data pipeline with Kafka, Spark, and Delta Lake"
-    """
-    from datetime import datetime
-
-    from .scenario_generator import ScenarioGenerator
-
-    try:
-        # Create generator
-        generator = ScenarioGenerator(logo_handler=ctx.obj.logo_handler)
-
-        # Set default output path if not provided
-        if not output:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output = Path(f"prompts/diagram_specs/generated-{timestamp}.yaml")
-
-        # Generate specification
-        console.print(f"\n[bold cyan]Scenario:[/bold cyan] {scenario}\n")
-        diagram_spec = generator.generate_spec_from_scenario(scenario, output)
-
-        console.print(f"\n[bold green]✓ Generated specification:[/bold green]")
-        console.print(f"  • Name: {diagram_spec.name}")
-        console.print(f"  • Components: {len(diagram_spec.components)}")
-        console.print(f"  • Connections: {len(diagram_spec.connections)}")
-        console.print(f"\n[bold]Next steps:[/bold]")
-        console.print(f"  nano-banana generate --diagram-spec {output} --template baseline")
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.option(
-    "--scenario",
-    required=True,
-    type=str,
-    help="Natural language description of the architecture scenario",
-)
-@click.option(
-    "--template",
-    default="baseline",
-    help="Prompt template to use (default: baseline)",
-)
-@click.option(
-    "--save-spec",
-    type=click.Path(path_type=Path),
-    help="Optional path to save the generated diagram spec",
-)
-@click.option(
-    "--run-name",
-    type=str,
-    help="Optional run name for MLflow tracking",
-)
-@click.pass_context
-def generate_from_scenario(
-    ctx: click.Context,
-    scenario: str,
-    template: str,
-    save_spec: Optional[Path],
-    run_name: Optional[str],
-):
-    """Generate diagram specification AND diagram from a scenario description.
-
-    This is a convenience command that combines scenario-to-spec and generate
-    into a single step. It uses AI to create a diagram spec from your scenario,
-    then immediately generates the diagram.
-
-    Examples:
-
-        # Generate diagram from scenario (one step)
-        nano-banana generate-from-scenario \\
-            --scenario "Build a lakehouse on AWS with Databricks processing data from S3 to Redshift"
-
-        # Generate with custom template and save spec
-        nano-banana generate-from-scenario \\
-            --scenario "Real-time streaming pipeline with Kafka and Spark" \\
-            --template detailed \\
-            --save-spec prompts/diagram_specs/streaming.yaml \\
-            --run-name "streaming-demo"
-    """
-    from .scenario_generator import ScenarioGenerator
-
-    try:
-        # Create generator
-        generator = ScenarioGenerator(logo_handler=ctx.obj.logo_handler)
-
-        # Generate spec and diagram
-        console.print(f"\n[bold cyan]Scenario:[/bold cyan] {scenario}\n")
-        diagram_spec, run_id = generator.generate_and_create_diagram(
-            scenario=scenario,
-            template=template,
-            spec_output=save_spec,
-            run_name=run_name,
-        )
-
-        console.print(f"\n[bold green]✓ Complete![/bold green]")
-        console.print(f"  • Diagram spec: {diagram_spec.name}")
-        console.print(f"  • Components: {len(diagram_spec.components)}")
-        console.print(f"  • Connections: {len(diagram_spec.connections)}")
-        console.print(f"  • MLflow run ID: {run_id}")
-        console.print(f"\n[bold]Next steps:[/bold]")
-        console.print(f"  nano-banana show-run {run_id}")
-        console.print(f"  nano-banana evaluate {run_id}")
-
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/bold red]")
-        raise SystemExit(1)
-
-
-@main.command()
-@click.option(
     "--prompt-file",
+    required=True,
     type=click.Path(exists=True, path_type=Path),
     help="Initial prompt file (.txt)",
-)
-@click.option(
-    "--diagram-spec",
-    type=click.Path(exists=True, path_type=Path),
-    help="Diagram specification YAML file",
-)
-@click.option(
-    "--template",
-    default="baseline",
-    help="Template ID to use with diagram spec (default: baseline)",
 )
 @click.option(
     "--logo-dir",
@@ -1666,9 +1154,7 @@ def generate_from_scenario(
 @click.pass_obj
 def chat(
     ctx: Context,
-    prompt_file: Optional[Path],
-    diagram_spec: Optional[Path],
-    template: str,
+    prompt_file: Path,
     logo_dir: Optional[Path],
     max_iterations: int,
     target_score: int,
@@ -1689,15 +1175,10 @@ def chat(
     This command creates a generate -> evaluate -> feedback -> refine loop
     that iteratively improves your diagram through conversation.
 
-    You can start with either a prompt file or a diagram specification:
-
     Examples:
 
         # Start with a prompt file
         nano-banana chat --prompt-file prompts/my_prompt.txt
-
-        # Start with a diagram spec
-        nano-banana chat --diagram-spec prompts/diagram_specs/example.yaml --template baseline
 
         # Customize iteration settings
         nano-banana chat --prompt-file prompt.txt --max-iterations 5 --target-score 4
@@ -1728,26 +1209,15 @@ def chat(
         • 'done': Finish session
     """
     try:
-        # Validate inputs
-        if not prompt_file and not diagram_spec:
-            console.print("[red]Error: Must provide either --prompt-file or --diagram-spec[/red]")
-            raise SystemExit(1)
-
-        if prompt_file and diagram_spec:
-            console.print("[yellow]Warning: Both prompt and spec provided. Using diagram spec.[/yellow]")
-
         # Reference image implies auto-refine
         if reference_image and not auto_refine:
             console.print("[dim]Reference image provided - enabling auto-refine mode[/dim]")
             auto_refine = True
 
-        # Default session name to prompt/spec filename
+        # Default session name to prompt filename
         session_name = name
         if not session_name:
-            if prompt_file:
-                session_name = prompt_file.stem  # filename without extension
-            elif diagram_spec:
-                session_name = diagram_spec.stem
+            session_name = prompt_file.stem  # filename without extension
 
         # Create conversation config
         conv_config = ConversationConfig(
@@ -1777,24 +1247,13 @@ def chat(
         if reference_image:
             chatbot.analyze_reference_image(reference_image)
 
-        # Prepare initial input
-        initial_prompt = None
-        spec = None
-
-        if diagram_spec:
-            console.print(f"[bold]Loading diagram spec: {diagram_spec.name}[/bold]")
-            from .models import DiagramSpec as DS
-            spec = DS.from_yaml(diagram_spec)
-        elif prompt_file:
-            console.print(f"[bold]Loading prompt: {prompt_file.name}[/bold]")
-            initial_prompt = prompt_file.read_text()
+        # Load prompt
+        console.print(f"[bold]Loading prompt: {prompt_file.name}[/bold]")
+        initial_prompt = prompt_file.read_text()
 
         # Start session
         chatbot.start_session(
             initial_prompt=initial_prompt,
-            diagram_spec=spec,
-            template_id=template if diagram_spec else None,
-            diagram_spec_path=diagram_spec,
         )
 
         # Run conversation
@@ -1843,9 +1302,9 @@ def chat(
 )
 @click.option(
     "--output-format",
-    type=click.Choice(["prompt", "spec"]),
+    type=click.Choice(["prompt"]),
     default="prompt",
-    help="Output format: prompt for generate-raw or spec for YAML (default: prompt)",
+    help="Output format: prompt for generate-raw (default: prompt)",
 )
 @click.option(
     "--output-file",

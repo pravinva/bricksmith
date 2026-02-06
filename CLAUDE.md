@@ -2,190 +2,144 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Repository Overview
+## Repository overview
 
-**nano_banana** is an MLflow-tracked prompt engineering system for generating architecture diagrams using Google AI's Gemini models. The system emphasizes reproducibility, logo fidelity, and structured evaluation.
+**nano_banana** is an MLflow-tracked prompt engineering system for generating architecture diagrams using Google AI's Gemini models. The system emphasizes reproducibility, logo fidelity, and iterative refinement.
 
 **Note:** While `pyproject.toml` references an `rfp_refiner` package, only `nano_banana` currently exists in the codebase.
 
-## Development Commands
+## Development commands
 
 **This project uses `uv` exclusively.**
 
 ```bash
-# Quick start (sets up everything)
-./quickstart.sh
-
-# Or manual setup
+# Setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 
 # Run tests
-uv run pytest                                      # All tests
-uv run pytest tests/test_specific.py::test_name   # Single test
-uv run pytest --cov                                # With coverage
+uv run pytest
 
 # Code quality
-uv run black src/ tests/                          # Format
-uv run mypy src/                                  # Type check
-uv run ruff check src/ tests/                     # Lint
+uv run black src/ tests/
+uv run ruff check src/ tests/
+uv run mypy src/
 ```
 
 ### Makefile shortcuts
 
 ```bash
-make dev-install    # Install with dev dependencies
 make test           # Run tests
-make test-cov       # Tests with coverage report
 make format         # Format code
 make lint           # Lint code
-make type-check     # Type check
 make check          # All quality checks
-make verify         # Verify setup
-make run-example    # Generate example diagram
-make pre-commit     # Run all pre-commit checks
 ```
 
-## Environment Setup
+## Environment setup
 
 ```bash
 cp .env.example .env   # Create from template
 source .env            # Load environment
-nano-banana check-auth # Verify credentials
 ```
 
 **Required environment variables:**
-- `GEMINI_API_KEY` - Google AI Studio API key (from https://aistudio.google.com/app/apikey)
+- `GEMINI_API_KEY` - Google AI Studio API key
 - `DATABRICKS_HOST` - Databricks workspace URL
 - `DATABRICKS_TOKEN` - Databricks access token
 - `DATABRICKS_USER` - Databricks username/email
 
-## CLI Commands
+## CLI commands
 
-### Core Generation
+### Generation
 ```bash
-# Generate from diagram spec (structured YAML)
-nano-banana generate --diagram-spec prompts/diagram_specs/example.yaml --template baseline
-
-# Generate from raw prompt file (more flexible, recommended for iteration)
+# Generate from raw prompt file (primary workflow)
 nano-banana generate-raw --prompt-file prompts/my_prompt.txt --logo-dir logos/default
-
-# Generate from natural language scenario
-nano-banana generate-from-scenario --scenario "Lakehouse on AWS with S3 and Redshift"
-nano-banana scenario-to-spec --scenario "Real-time pipeline" --output spec.yaml
 ```
 
-### Evaluation & Analysis
+### Evaluation
 ```bash
 nano-banana evaluate <run-id>                     # Score a diagram interactively
 nano-banana list-runs --filter "metrics.overall_score > 4.0"
 nano-banana show-run <run-id>
-nano-banana template-stats                        # Compare template performance
-nano-banana dimension-stats                       # Analyze by rubric dimension
-nano-banana analyze-prompts --min-score 4.5       # Find patterns in high-scoring prompts
 ```
 
 ### Refinement
 ```bash
-# Refine based on feedback (regenerates with feedback appended)
+# Refine based on feedback
 nano-banana refine <run-id> --feedback "logos not included, text blurry"
 
 # Analyze diagram and get prompt improvement suggestions
 nano-banana refine-prompt --run-id <run-id> --feedback "logos too small"
 
-# Compare two diagrams to extract what makes one better
-nano-banana compare-diagrams --good-run <id1> --bad-run <id2>
-
 # Interactive conversation mode for iterative refinement
 nano-banana chat --prompt-file prompt.txt --max-iterations 10 --target-score 5
+
+# Auto-refine (fully autonomous)
+nano-banana chat --prompt-file prompt.txt --auto-refine --target-score 4
+```
+
+### Collaborative design
+```bash
+# Conversational architecture design
+nano-banana architect --problem "Build a real-time analytics pipeline"
+```
+
+### Web interface
+```bash
+nano-banana web                                    # Run locally
 ```
 
 ### Utilities
 ```bash
 nano-banana validate-logos --logo-dir logos/default/
-nano-banana verify-setup
-nano-banana check-auth
 ```
 
-## Architecture Overview
-
-The system follows a pipeline architecture:
+## Architecture overview
 
 1. **Configuration** (`config.py`): YAML + env var loading with Pydantic validation
 2. **Logo Kit** (`logos.py`): Logo validation with SHA256 hashing for reproducibility
-3. **Prompt Building** (`prompts.py`): Template-based with automatic logo constraint injection
+3. **Prompt Building** (`prompts.py`): Automatic logo constraint injection
 4. **Generation** (`gemini_client.py`): Google AI Gemini API calls
 5. **MLflow Tracking** (`mlflow_tracker.py`): Full experiment tracking to Databricks
 6. **Evaluation** (`evaluator.py`): Manual rubric-based scoring (0-5 scale)
-7. **Analysis** (`analyzer.py`): Cross-run prompt performance analysis
-8. **Refinement** (`prompt_refiner.py`, `conversation.py`): Visual analysis and iterative improvement
+7. **Refinement** (`prompt_refiner.py`, `conversation.py`): Visual analysis and iterative improvement
+8. **Architect** (`architect.py`): Conversational architecture design with DSPy
 
-### Key Principles
+### Key principles
 
-- **Logo Descriptions Not Filenames**: AI receives descriptions ("red icon"), never filenames
-- **Automatic Constraint Injection**: Logo requirements prepended to ALL prompts automatically
-- **MLflow-First**: Every generation creates a tracked run
-- **DSPy Integration**: `conversation_dspy.py` enables AI-driven prompt refinement
+- **Logo descriptions, not filenames**: AI receives descriptions ("red icon"), never filenames
+- **Automatic constraint injection**: Logo requirements prepended to ALL prompts
+- **MLflow-first**: Every generation creates a tracked run
+- **DSPy integration**: `conversation_dspy.py` enables AI-driven prompt refinement
 
-## Key Modules
+## Key modules
 
 | Module | Purpose |
 |--------|---------|
 | `cli.py` | Click CLI entry point |
-| `runner.py` | Pipeline orchestrator |
 | `config.py` | Pydantic config (YAML/env) |
-| `models.py` | Data models (DiagramSpec, LogoInfo, ConversationSession) |
+| `models.py` | Data models (LogoInfo, ConversationSession, ArchitectSession) |
 | `logos.py` | Logo validation and SHA tracking |
-| `prompts.py` | Template loading and prompt building |
+| `prompts.py` | Logo section building and prompt validation |
 | `gemini_client.py` | Google AI Gemini client |
-| `vertex_client.py` | Vertex AI client (alternative) |
 | `mlflow_tracker.py` | MLflow/Databricks integration |
 | `evaluator.py` | Manual evaluation interface |
-| `analyzer.py` | Cross-run analysis |
 | `prompt_refiner.py` | Visual analysis for prompt improvement |
 | `conversation.py` | Interactive chatbot for iterative refinement |
 | `conversation_dspy.py` | DSPy-based conversational refiner |
-| `scenario_generator.py` | Natural language → diagram spec |
-| `mcp_enricher.py` | MCP enrichment utilities |
-| `dspy_optimizer.py` | DSPy optimizer for automatic prompt improvement |
-| `logo_compositor.py` | Logo composition engine |
+| `architect.py` | Conversational architecture design |
 
-## Diagram Specification Format
-
-YAML files in `prompts/diagram_specs/`:
-
-```yaml
-name: "architecture-name"
-description: "What this architecture does"
-
-components:
-  - id: "component-1"
-    label: "Display Name"
-    type: "service"           # service, storage, external, compute, network
-    logo_name: "databricks"   # Must match logo file in logo_kit
-
-connections:
-  - from_id: "component-1"
-    to_id: "component-2"
-    label: "data flow"
-    style: "solid"            # solid, dashed, dotted
-
-constraints:
-  layout: "left-to-right"
-  background: "white"
-```
-
-## Evaluation Rubric
+## Evaluation rubric
 
 Diagrams scored 0-5 on four dimensions:
-1. **Logo Fidelity**: Logos reused exactly without modifications
-2. **Layout Clarity**: Clear flow, logical grouping, good spacing
-3. **Text Legibility**: All labels readable and well-formatted
-4. **Constraint Compliance**: All requirements from spec followed
+1. **Logo fidelity**: Logos reused exactly without modifications
+2. **Layout clarity**: Clear flow, logical grouping, good spacing
+3. **Text legibility**: All labels readable and well-formatted
+4. **Constraint compliance**: All requirements from prompt followed
 
 **Critical:** Any filename in output = automatic penalty.
 
-## Configuration Precedence
+## Configuration precedence
 
 1. Environment variables (e.g., `NANO_BANANA_VERTEX__MODEL_ID`)
 2. YAML config file (`configs/default.yaml`)
@@ -197,10 +151,8 @@ Diagrams scored 0-5 on four dimensions:
 
 ## Documentation
 
-- `docs/nano_banana/AUTHENTICATION.md` - Complete auth setup
-- `docs/nano_banana/LOGO_SETUP.md` - Logo configuration
-- `docs/nano_banana/LOGO_HINTS.md` - Automatic logo-specific instructions (Unity Catalog fix)
-- `docs/nano_banana/CHAT_REFINEMENT.md` - Interactive chat loop for iterative diagram refinement
-- `docs/nano_banana/PROMPT_REFINEMENT.md` - Visual prompt refinement
-- `docs/nano_banana/SCENARIO_TO_DIAGRAM.md` - Scenario-based generation
-- `docs/START_HERE.md` - DSPy and MCP integration
+- `docs/SETUP.md` - Installation, authentication, logo setup, configuration
+- `docs/WORKFLOWS.md` - All three workflows (generate-raw, architect, chat)
+- `docs/TROUBLESHOOTING.md` - Common issues and solutions
+- `docs/WEB_INTERFACE.md` - Web interface deployment
+- `docs/nano_banana/LOGO_HINTS.md` - Automatic logo-specific instructions

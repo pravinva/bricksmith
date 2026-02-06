@@ -76,8 +76,8 @@ sleep 30 && uv run nano-banana generate [your-options]
 2. **Reduce request frequency:**
 Add delays between batch generations:
 ```bash
-for spec in *.yaml; do
-    uv run nano-banana generate --diagram-spec "$spec" --template baseline
+for prompt in prompts/*.txt; do
+    uv run nano-banana generate-raw --prompt-file "$prompt" --logo-dir logos/default
     sleep 60  # Wait between requests
 done
 ```
@@ -151,13 +151,8 @@ vertex:
 ls -la logos/default/
 ```
 
-2. **Check logo kit configuration:**
-Edit your diagram spec to ensure logos are specified:
-```yaml
-components:
-  - id: "databricks"
-    logo_name: "databricks-full"  # Must match file in logos/default/
-```
+2. **Check logo references in your prompt:**
+Ensure your prompt references logo names that exist in the logo directory.
 
 3. **Validate logos:**
 ```bash
@@ -222,11 +217,8 @@ Download from official brand resources.
 - Right: Data consumers"
 ```
 
-2. **Use different template:**
-```bash
-# Try minimal for simpler layouts
-uv run nano-banana generate --template minimal [other-options]
-```
+2. **Adjust your prompt:**
+Try simpler, more explicit layout instructions in your prompt file.
 
 3. **Reduce component count:**
 Break complex diagrams into multiple simpler ones.
@@ -339,18 +331,18 @@ Error: Could not find file: prompts/my_spec.yaml
 1. **Check current directory:**
 ```bash
 pwd  # Should be in /path/to/bricksmith
-ls prompts/diagram_specs/
+ls prompts/
 ```
 
 2. **Use absolute paths:**
 ```bash
-uv run nano-banana generate \
-    --diagram-spec /full/path/to/spec.yaml
+uv run nano-banana generate-raw \
+    --prompt-file /full/path/to/prompt.txt
 ```
 
 3. **Verify file exists:**
 ```bash
-ls -la prompts/diagram_specs/my_spec.yaml
+ls -la prompts/my_prompt.txt
 ```
 
 ### Issue: Permission denied errors
@@ -476,7 +468,7 @@ python -c "import yaml; yaml.safe_load(open('configs/default.yaml'))"
 
 3. **Use explicit config:**
 ```bash
-uv run nano-banana generate --config configs/local.yaml [other-options]
+uv run nano-banana generate-raw --config configs/local.yaml --prompt-file prompts/my_prompt.txt
 ```
 
 ### Issue: Environment variables not working
@@ -573,17 +565,14 @@ uv run nano-banana [command]
 
 ### Common Debug Commands
 ```bash
-# Verify setup
-uv run nano-banana verify-setup
-
-# Check authentication
-uv run nano-banana check-auth
-
 # Validate logos
 uv run nano-banana validate-logos --logo-dir logos/default/
 
-# List available templates
-ls prompts/prompt_templates/
+# List prompt files
+ls prompts/
+
+# Check CLI works
+uv run nano-banana generate-raw --help
 ```
 
 ### Report Issues

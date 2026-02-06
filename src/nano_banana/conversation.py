@@ -26,7 +26,6 @@ from .models import (
     ConversationSession,
     ConversationStatus,
     ConversationTurn,
-    DiagramSpec,
     EvaluationPersona,
     GenerationSettings,
 )
@@ -359,27 +358,21 @@ class ConversationChatbot:
 
     def start_session(
         self,
-        initial_prompt: Optional[str] = None,
-        diagram_spec: Optional[DiagramSpec] = None,
-        template_id: Optional[str] = None,
-        diagram_spec_path: Optional[Path] = None,
+        initial_prompt: str,
     ) -> ConversationSession:
         """Start a new conversation session.
 
         Args:
-            initial_prompt: Direct prompt text (mutually exclusive with diagram_spec)
-            diagram_spec: Diagram specification (builds prompt from spec)
-            template_id: Template ID to use with diagram_spec
-            diagram_spec_path: Path to diagram spec for tracking
+            initial_prompt: Prompt text for the session
 
         Returns:
             New ConversationSession
 
         Raises:
-            ValueError: If neither prompt nor spec provided
+            ValueError: If no prompt provided
         """
-        if not initial_prompt and not diagram_spec:
-            raise ValueError("Must provide either initial_prompt or diagram_spec")
+        if not initial_prompt:
+            raise ValueError("Must provide initial_prompt")
 
         # Load logos and hints
         logo_dir = self.conv_config.logo_dir or self.config.logo_kit.logo_dir
@@ -410,16 +403,9 @@ class ConversationChatbot:
             self._logo_parts.append(unity_catalog_part)
             console.print("  [cyan]Unity Catalog logo prioritized (first & last position)[/cyan]")
 
-        # Build initial prompt
-        if diagram_spec:
-            template = self.prompt_builder.load_template(template_id or "baseline")
-            initial_prompt = self.prompt_builder.build_prompt(
-                template, diagram_spec, self._logos
-            )
-        else:
-            # For raw prompts, prepend logo section
-            logo_section = self.prompt_builder._build_logo_section(self._logos)
-            initial_prompt = f"{logo_section}\n\n{initial_prompt}"
+        # Prepend logo section to prompt
+        logo_section = self.prompt_builder._build_logo_section(self._logos)
+        initial_prompt = f"{logo_section}\n\n{initial_prompt}"
 
         # Create session ID from name or generate random
         if self.conv_config.session_name:
@@ -434,8 +420,6 @@ class ConversationChatbot:
             session_id=session_id,
             initial_prompt=initial_prompt,
             created_at=datetime.now().isoformat(),
-            diagram_spec_path=diagram_spec_path,
-            template_id=template_id,
         )
 
         console.print(f"\n[bold green]Session started: {session_id}[/bold green]")

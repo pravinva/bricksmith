@@ -5,7 +5,7 @@ from typing import Optional
 
 from .gemini_client import GeminiClient
 from .mlflow_tracker import MLflowTracker
-from .models import PromptRefinement, DiagramSpec
+from .models import PromptRefinement
 from .prompts import PromptBuilder
 
 
@@ -33,7 +33,6 @@ class PromptRefiner:
         self,
         image_path: Path,
         original_prompt: str,
-        diagram_spec: Optional[DiagramSpec] = None,
         user_feedback: Optional[str] = None,
     ) -> dict[str, any]:
         """Analyze a diagram image and identify strengths/weaknesses.
@@ -48,7 +47,7 @@ class PromptRefiner:
             Analysis dict with strengths, weaknesses, and observations
         """
         analysis_prompt = self._build_analysis_prompt(
-            original_prompt, diagram_spec, user_feedback
+            original_prompt, user_feedback
         )
 
         # Use Gemini vision to analyze the image
@@ -63,7 +62,6 @@ class PromptRefiner:
         self,
         image_path: Path,
         original_prompt: str,
-        diagram_spec: Optional[DiagramSpec] = None,
         user_feedback: Optional[str] = None,
     ) -> PromptRefinement:
         """Generate concrete prompt improvement suggestions.
@@ -79,7 +77,7 @@ class PromptRefiner:
         """
         # First, analyze the diagram
         analysis = self.analyze_diagram(
-            image_path, original_prompt, diagram_spec, user_feedback
+            image_path, original_prompt, user_feedback
         )
 
         # Generate improvement suggestions
@@ -116,16 +114,8 @@ class PromptRefiner:
         with open(prompt_path) as f:
             original_prompt = f.read()
 
-        # Load diagram spec if available
-        diagram_spec = None
-        try:
-            spec_path = self.mlflow_tracker.download_artifact(run_id, "diagram_spec.yaml")
-            diagram_spec = DiagramSpec.from_file(spec_path)
-        except Exception:
-            pass
-
         return self.suggest_improvements(
-            diagram_path, original_prompt, diagram_spec, user_feedback
+            diagram_path, original_prompt, user_feedback
         )
 
     def compare_diagrams(
@@ -183,7 +173,6 @@ class PromptRefiner:
     def _build_analysis_prompt(
         self,
         original_prompt: str,
-        diagram_spec: Optional[DiagramSpec],
         user_feedback: Optional[str],
     ) -> str:
         """Build prompt for diagram analysis."""
@@ -193,15 +182,6 @@ class PromptRefiner:
         ```
         {original_prompt}
         ```
-
-        """
-
-        if diagram_spec:
-            prompt += f"""
-        The diagram was supposed to represent:
-        - Components: {', '.join(c.label for c in diagram_spec.components)}
-        - Connections: {len(diagram_spec.connections)} relationships
-        - Constraints: {diagram_spec.constraints}
 
         """
 

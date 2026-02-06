@@ -8,7 +8,7 @@ import mlflow
 from mlflow.entities import ViewType
 
 from .config import MLflowConfig
-from .models import DiagramSpec, EvaluationScores
+from .models import EvaluationScores
 
 
 class MLflowTracker:
@@ -113,17 +113,6 @@ class MLflowTracker:
         mlflow.log_artifact(str(temp_file), artifact_path="prompts")
         temp_file.unlink()  # Clean up
 
-    def log_diagram_spec(self, spec: DiagramSpec, filename: str = "diagram_spec.yaml") -> None:
-        """Log diagram spec as YAML artifact.
-
-        Args:
-            spec: Diagram specification
-            filename: Artifact filename
-        """
-        temp_file = Path(f"/tmp/{self._current_run_id}_{filename}")
-        spec.to_yaml(temp_file)
-        mlflow.log_artifact(str(temp_file), artifact_path="specs")
-        temp_file.unlink()
 
     def log_generation_config(
         self, config: dict[str, Any], filename: str = "generation_config.json"

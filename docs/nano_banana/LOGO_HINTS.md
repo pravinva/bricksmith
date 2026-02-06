@@ -103,11 +103,10 @@ The uploaded Unity Catalog logo file contains MULTIPLE DISTINCT GEOMETRIC SHAPES
 
 Logo hints work automatically with:
 
-- `nano-banana generate` - Standard generation
-- `nano-banana generate-raw` - Raw prompt generation  
+- `nano-banana generate-raw` - Raw prompt generation
 - `nano-banana chat` - Interactive refinement (every iteration!)
 - `nano-banana refine` - Feedback-based refinement
-- `nano-banana scenario-to-spec` - Scenario generation
+- `nano-banana architect` - Conversational design
 - All web API endpoints
 
 ## Configuration Files
@@ -185,11 +184,10 @@ A: Yes! Hints are reapplied on every iteration automatically.
 **Q: How do I know if hints are working?**  
 A: Check console output: "Loaded X logos with Y hints"
 
-## Related Documentation
+## Related documentation
 
-- [Logo Setup Guide](LOGO_SETUP.md) - Complete logo configuration
-- [Chat Refinement](CHAT_REFINEMENT.md) - Interactive diagram refinement
-- [Logo Hints README](../../logos/default/README_LOGO_HINTS.md) - Detailed technical docs
+- [Setup Guide](../SETUP.md) - Complete setup including logo configuration
+- [Workflows](../WORKFLOWS.md) - All diagram generation workflows
 
 ## Next Steps
 

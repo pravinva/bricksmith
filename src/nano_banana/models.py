@@ -4,7 +4,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
-import yaml
 from pydantic import BaseModel, Field
 
 
@@ -19,83 +18,6 @@ class LogoInfo(BaseModel):
     sha256_hash: str = Field(..., description="SHA256 hash for tracking")
     content_type: str = Field(..., description="MIME type (e.g., 'image/jpeg')")
     size_bytes: int = Field(..., description="File size in bytes")
-
-
-class Component(BaseModel):
-    """A component in the architecture diagram."""
-
-    id: str = Field(..., description="Unique component identifier")
-    label: str = Field(..., description="Display label for the component")
-    type: str = Field(..., description="Component type (service, storage, database, etc.)")
-    logo_name: Optional[str] = Field(
-        default=None, description="Logo name reference (from LogoInfo.name)"
-    )
-
-
-class Connection(BaseModel):
-    """A connection between components."""
-
-    from_id: str = Field(..., description="Source component ID")
-    to_id: str = Field(..., description="Target component ID")
-    label: Optional[str] = Field(default=None, description="Connection label")
-    style: str = Field(default="solid", description="Line style: solid, dashed, or dotted")
-
-
-class DiagramConstraints(BaseModel):
-    """Layout and style constraints for the diagram."""
-
-    layout: str = Field(
-        default="left-to-right",
-        description="Layout direction: left-to-right, top-to-bottom, or grid",
-    )
-    background: str = Field(default="white", description="Background color")
-    label_style: str = Field(
-        default="sentence-case", description="Label formatting style"
-    )
-    show_grid: bool = Field(default=False, description="Whether to show grid lines")
-    spacing: str = Field(
-        default="comfortable", description="Spacing: compact, comfortable, or spacious"
-    )
-
-
-class DiagramSpec(BaseModel):
-    """Complete diagram specification."""
-
-    name: str = Field(..., description="Diagram name/identifier")
-    description: str = Field(..., description="Diagram description")
-    components: list[Component] = Field(..., description="List of components")
-    connections: list[Connection] = Field(..., description="List of connections")
-    constraints: DiagramConstraints = Field(
-        default_factory=DiagramConstraints, description="Layout and style constraints"
-    )
-
-    @classmethod
-    def from_yaml(cls, path: Path) -> "DiagramSpec":
-        """Load diagram specification from YAML file.
-
-        Args:
-            path: Path to YAML file
-
-        Returns:
-            DiagramSpec instance
-
-        Raises:
-            FileNotFoundError: If file doesn't exist
-            yaml.YAMLError: If YAML is invalid
-            ValidationError: If spec doesn't match schema
-        """
-        with open(path, "r") as f:
-            data = yaml.safe_load(f)
-        return cls(**data)
-
-    def to_yaml(self, path: Path) -> None:
-        """Save diagram specification to YAML file.
-
-        Args:
-            path: Path to save YAML file
-        """
-        with open(path, "w") as f:
-            yaml.safe_dump(self.model_dump(), f, default_flow_style=False, sort_keys=False)
 
 
 class PromptTemplate(BaseModel):
