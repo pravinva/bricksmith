@@ -26,7 +26,6 @@ from .models import (
     ConversationSession,
     ConversationStatus,
     ConversationTurn,
-    EvaluationPersona,
     GenerationSettings,
 )
 from .prompts import PromptBuilder
@@ -539,7 +538,7 @@ class ConversationChatbot:
             # Don't end MLflow run yet - will be ended after scoring
             return turn
 
-        except Exception as e:
+        except Exception:
             self.mlflow_tracker.end_run("FAILED")
             raise
 
@@ -635,11 +634,11 @@ class ConversationChatbot:
         Returns:
             Tuple of (score, feedback_text, retry_settings or None)
         """
-        console.print(f"\n[bold]Please review the image:[/bold]")
+        console.print("\n[bold]Please review the image:[/bold]")
         console.print(f"  [cyan]{turn.image_path}[/cyan]")
 
         if turn.visual_analysis:
-            console.print(f"\n[bold]AI Analysis:[/bold]")
+            console.print("\n[bold]AI Analysis:[/bold]")
             # Truncate long analysis
             analysis = turn.visual_analysis[:500]
             if len(turn.visual_analysis) > 500:
@@ -726,7 +725,7 @@ class ConversationChatbot:
             "auto": "Enterprise Solutions Architect",  # Default for auto
         }.get(persona, "Enterprise Solutions Architect")
 
-        console.print(f"\n[bold cyan]LLM Judge Evaluation[/bold cyan]")
+        console.print("\n[bold cyan]LLM Judge Evaluation[/bold cyan]")
         console.print(f"  [dim]Persona: {persona_display}[/dim]")
         console.print(f"  [dim]Image: {turn.image_path}[/dim]")
 
@@ -793,7 +792,7 @@ class ConversationChatbot:
             turn.score = overall_score
             turn.feedback = feedback
 
-            console.print(f"\n[bold]Feedback for DSPy Optimizer:[/bold]")
+            console.print("\n[bold]Feedback for DSPy Optimizer:[/bold]")
             console.print(Panel(feedback, border_style="yellow"))
 
             return overall_score, feedback
@@ -812,7 +811,7 @@ class ConversationChatbot:
         Returns:
             Tuple of (score, feedback_text)
         """
-        console.print(f"\n[bold cyan]Comparing against reference image...[/bold cyan]")
+        console.print("\n[bold cyan]Comparing against reference image...[/bold cyan]")
         console.print(f"  [dim]Generated: {turn.image_path}[/dim]")
         console.print(f"  [dim]Reference: {self.conv_config.reference_image}[/dim]")
 
@@ -875,7 +874,7 @@ class ConversationChatbot:
             turn.score = overall_score
             turn.feedback = feedback
 
-            console.print(f"\n[bold]Feedback for refinement:[/bold]")
+            console.print("\n[bold]Feedback for refinement:[/bold]")
             console.print(Panel(feedback, border_style="yellow"))
 
             return overall_score, feedback
@@ -933,9 +932,9 @@ class ConversationChatbot:
         # Store reasoning
         turn.refinement_reasoning = reasoning
 
-        console.print(f"\n[bold]Refinement Reasoning:[/bold]")
+        console.print("\n[bold]Refinement Reasoning:[/bold]")
         console.print(Panel(reasoning, border_style="cyan"))
-        console.print(f"\n[bold]Expected Improvement:[/bold]")
+        console.print("\n[bold]Expected Improvement:[/bold]")
         console.print(Panel(expected, border_style="green"))
 
         return refined_prompt

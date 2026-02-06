@@ -104,7 +104,7 @@ class PromptRefiner:
             PromptRefinement with suggested changes
         """
         # Load run artifacts from MLflow
-        run = self.mlflow_tracker.get_run(run_id)
+        self.mlflow_tracker.get_run(run_id)
 
         # Download artifacts
         diagram_path = self.mlflow_tracker.download_artifact(run_id, "diagram.png")

@@ -20,54 +20,6 @@ class LogoInfo(BaseModel):
     size_bytes: int = Field(..., description="File size in bytes")
 
 
-class PromptTemplate(BaseModel):
-    """A prompt template with variable substitution."""
-
-    id: str = Field(..., description="Template identifier")
-    name: str = Field(..., description="Human-readable template name")
-    template: str = Field(..., description="Template text with {variable} placeholders")
-    variables: dict[str, Any] = Field(
-        default_factory=dict, description="Default variable values"
-    )
-
-    @classmethod
-    def from_file(cls, path: Path, template_id: Optional[str] = None) -> "PromptTemplate":
-        """Load prompt template from text file.
-
-        Args:
-            path: Path to template file
-            template_id: Optional template ID (defaults to filename without extension)
-
-        Returns:
-            PromptTemplate instance
-        """
-        with open(path, "r") as f:
-            content = f.read()
-
-        if template_id is None:
-            template_id = path.stem
-
-        return cls(
-            id=template_id,
-            name=template_id.replace("_", " ").title(),
-            template=content,
-        )
-
-
-class GenerationResult(BaseModel):
-    """Result of a diagram generation."""
-
-    run_id: str = Field(..., description="MLflow run ID")
-    output_path: Path = Field(..., description="Path to generated image")
-    prompt_text: str = Field(..., description="Complete prompt used for generation")
-    parameters: dict[str, Any] = Field(..., description="Generation parameters")
-    generation_time_seconds: float = Field(..., description="Time taken to generate")
-    success: bool = Field(..., description="Whether generation succeeded")
-    error_message: Optional[str] = Field(
-        default=None, description="Error message if generation failed"
-    )
-
-
 class EvaluationScores(BaseModel):
     """Manual evaluation scores for a generated diagram."""
 
@@ -216,12 +168,6 @@ class ConversationSession(BaseModel):
         default=ConversationStatus.ACTIVE, description="Session status"
     )
     created_at: str = Field(default="", description="Session creation timestamp")
-    diagram_spec_path: Optional[Path] = Field(
-        default=None, description="Path to diagram spec if used"
-    )
-    template_id: Optional[str] = Field(
-        default=None, description="Template ID if used"
-    )
 
     def add_turn(self, turn: ConversationTurn) -> None:
         """Add a turn to the session.
@@ -503,7 +449,7 @@ class ArchitectConfig(BaseModel):
     )
     output_format: str = Field(
         default="prompt",
-        description="Output format: 'prompt' for generate-raw or 'spec' for YAML"
+        description="Output format: 'prompt' for generate-raw"
     )
     session_name: Optional[str] = Field(
         default=None, description="Session name for output directory"

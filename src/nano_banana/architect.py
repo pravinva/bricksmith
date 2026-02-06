@@ -459,67 +459,6 @@ class ArchitectChatbot:
 
         return output_dir
 
-    def run_conversation(self) -> ArchitectSession:
-        """Run the full conversation loop.
-
-        Returns:
-            Completed ArchitectSession
-        """
-        if not self._session:
-            raise ValueError("No active session. Call start_session() first.")
-
-        # Show initial prompt
-        console.print(Panel(
-            f"[bold]Problem:[/bold] {self._session.initial_problem}\n\n"
-            f"[dim]Available logos: {', '.join(self._logo_names[:8])}...[/dim]\n\n"
-            "Commands:\n"
-            "  • Natural text - continue discussing architecture\n"
-            "  • 'output' or 'generate' - generate the diagram prompt\n"
-            "  • 'status' - show current architecture state\n"
-            "  • 'done' - save and exit",
-            title="Architect Session",
-            border_style="cyan",
-        ))
-
-        # Process the initial problem
-        response, _ = self.process_user_input(self._session.initial_problem)
-        console.print("\n[bold blue]Architect:[/bold blue]")
-        console.print(Panel(response, border_style="blue"))
-
-        # Conversation loop
-        while len(self._session.turns) < self.arch_config.max_turns:
-            # Get user input
-            console.print()
-            user_input = Prompt.ask("[bold green]You[/bold green]")
-
-            if not user_input.strip():
-                continue
-
-            # Check for exit
-            if user_input.strip().lower() == "done":
-                self._session.status = ConversationStatus.COMPLETED
-                break
-
-            # Process input
-            response, should_exit = self.process_user_input(user_input)
-
-            # Display response
-            console.print("\n[bold blue]Architect:[/bold blue]")
-            console.print(Panel(response, border_style="blue"))
-
-            if should_exit:
-                self._session.status = ConversationStatus.COMPLETED
-                break
-
-        else:
-            console.print("\n[yellow]Max turns reached.[/yellow]")
-            self._session.status = ConversationStatus.COMPLETED
-
-        # Show summary
-        self._show_summary()
-
-        return self._session
-
     def _show_summary(self) -> None:
         """Display conversation summary."""
         if not self._session:
@@ -704,7 +643,7 @@ class ArchitectChatbot:
 
         # Restore arch_config from saved data
         saved_config = session_data.get("_config", {})
-        from .models import ArchitectConfig, MCPEnrichmentConfig
+        from .models import ArchitectConfig
 
         arch_config = ArchitectConfig(
             max_turns=saved_config.get("max_turns", 20),

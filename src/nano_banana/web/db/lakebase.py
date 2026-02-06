@@ -35,7 +35,6 @@ class LakebaseSessionStore(SessionStore):
     def _get_connection(self):
         """Get a database connection from the pool."""
         if self._pool is None:
-            import psycopg2
             from psycopg2 import pool
 
             self._pool = pool.SimpleConnectionPool(

@@ -5,7 +5,6 @@ with context from internal knowledge sources (Glean, Slack, JIRA, Confluence)
 via Claude Code's MCP tools.
 """
 
-from typing import Optional
 
 from pydantic import BaseModel, Field
 

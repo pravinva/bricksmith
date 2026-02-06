@@ -91,7 +91,7 @@ def evaluate(ctx: Context, run_id: str, eval_file: Optional[Path]):
         interactive = eval_file is None
         scores = ctx.evaluator.evaluate_run(run_id, interactive=interactive, eval_file=eval_file)
 
-        console.print(f"\n[bold green]Evaluation complete![/bold green]")
+        console.print("\n[bold green]Evaluation complete![/bold green]")
         console.print(f"Overall score: {scores.overall_score:.2f}/5")
 
     except Exception as e:
@@ -155,7 +155,7 @@ def list_runs(ctx: Context, filter_string: Optional[str], max_results: int):
             table.add_row(run_id, run_name, status, template, score_str, time_str)
 
         console.print(table)
-        console.print(f"\nTo view details: nano-banana show-run <run_id>")
+        console.print("\nTo view details: nano-banana show-run <run_id>")
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
@@ -196,7 +196,7 @@ def show_run(ctx: Context, run_id: str):
             console.print(f"  {key}: {value}")
 
         # Artifacts
-        console.print(f"\n[bold]Artifacts:[/bold]")
+        console.print("\n[bold]Artifacts:[/bold]")
         console.print(f"  Location: {run_info['artifact_uri']}")
 
     except Exception as e:
@@ -529,7 +529,6 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
         # Files are timestamped: diagram_{HHMMSS}.png, metadata_{HHMMSS}.json
         now = datetime.now()
         date_folder = now.strftime("%Y-%m-%d")
-        time_stamp = now.strftime("%H%M%S")
         batch_name = run_name or prompt_file.stem
         batch_dir = Path("outputs") / date_folder / batch_name
         batch_dir.mkdir(parents=True, exist_ok=True)
@@ -666,7 +665,7 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
                         # Save feedback to file with matching timestamp
                         feedback_data = {"score": user_score, "comment": user_comment}
                         (batch_dir / f"feedback_{gen_time}.json").write_text(json.dumps(feedback_data, indent=2))
-                        console.print(f"  [green]✓ Feedback saved[/green]")
+                        console.print("  [green]✓ Feedback saved[/green]")
 
                 ctx.mlflow_tracker.end_run("FINISHED")
 
@@ -676,7 +675,7 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
 
         console.print(f"\n[bold green]Done! Generated {len(output_images)} image(s)[/bold green]")
         console.print(f"  {batch_dir}/")
-        console.print(f"    ├── prompt.txt")
+        console.print("    ├── prompt.txt")
         for img in output_images:
             meta = img.replace("diagram", "metadata").replace(".png", ".json")
             console.print(f"    ├── {img}")
@@ -707,9 +706,9 @@ def validate_logos(ctx: Context, logo_dir: Path):
     try:
         console.print(f"[bold]Validating logos in {logo_dir}...[/bold]\n")
 
-        # Load logos and hints
+        # Load logos
         logos = ctx.logo_handler.load_logo_kit(logo_dir)
-        logo_hints = ctx.logo_handler.load_logo_hints(logo_dir)
+        ctx.logo_handler.load_logo_hints(logo_dir)
 
         # Display table
         table = Table(title=f"Logo Kit ({len(logos)} logos)", show_header=True)
@@ -728,7 +727,7 @@ def validate_logos(ctx: Context, logo_dir: Path):
             )
 
         console.print(table)
-        console.print(f"\n[bold green]✓ All logos valid![/bold green]")
+        console.print("\n[bold green]✓ All logos valid![/bold green]")
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
@@ -851,7 +850,7 @@ Please regenerate addressing ALL of the above feedback.
 """
 
         refined_prompt = original_prompt + refinement_section
-        console.print(f"  Added refinement instructions")
+        console.print("  Added refinement instructions")
 
         # Get logo directory from original params
         params = run_info["parameters"]
@@ -885,7 +884,6 @@ Please regenerate addressing ALL of the above feedback.
             # Files are timestamped: diagram_{HHMMSS}.png, metadata_{HHMMSS}.json
             now = datetime.now()
             date_folder = now.strftime("%Y-%m-%d")
-            time_stamp = now.strftime("%H%M%S")
             run_dir = Path("outputs") / date_folder / new_run_name
             run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -966,8 +964,8 @@ Please regenerate addressing ALL of the above feedback.
             console.print(f"  {d}/")
             console.print(f"    ├── {img}")
             console.print(f"    ├── {meta}")
-            console.print(f"    ├── prompt.txt")
-            console.print(f"    └── feedback.txt")
+            console.print("    ├── prompt.txt")
+            console.print("    └── feedback.txt")
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
@@ -1260,7 +1258,7 @@ def chat(
         session = chatbot.run_conversation()
 
         # Final output
-        console.print(f"\n[bold green]Session complete![/bold green]")
+        console.print("\n[bold green]Session complete![/bold green]")
         console.print(f"  Status: {session.status.value}")
         console.print(f"  Iterations: {len(session.turns)}")
 
@@ -1268,7 +1266,7 @@ def chat(
         if best:
             console.print(f"  Best score: {best.score}")
             console.print(f"  Best image: {best.image_path}")
-            console.print(f"\n[bold]To evaluate the best run:[/bold]")
+            console.print("\n[bold]To evaluate the best run:[/bold]")
             console.print(f"  nano-banana evaluate {best.run_id}")
 
     except KeyboardInterrupt:
@@ -1526,7 +1524,7 @@ def architect(
             session = chatbot.run_conversation()
 
         # Final output
-        console.print(f"\n[bold green]Session complete![/bold green]")
+        console.print("\n[bold green]Session complete![/bold green]")
         console.print(f"  Status: {session.status.value}")
         console.print(f"  Turns: {len(session.turns)}")
         console.print(f"  Components: {len(session.current_architecture.get('components', []))}")
@@ -1534,10 +1532,10 @@ def architect(
         # Show next steps
         output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"architect-{session.session_id}"
         if (output_dir / "prompt.txt").exists():
-            console.print(f"\n[bold]Next steps:[/bold]")
-            console.print(f"  # Use the generated prompt")
+            console.print("\n[bold]Next steps:[/bold]")
+            console.print("  # Use the generated prompt")
             console.print(f"  nano-banana generate-raw --prompt-file {output_dir}/prompt.txt --logo-dir logos/default")
-            console.print(f"\n  # Or continue refining with chat")
+            console.print("\n  # Or continue refining with chat")
             console.print(f"  nano-banana chat --prompt-file {output_dir}/prompt.txt")
 
     except KeyboardInterrupt:
@@ -1599,7 +1597,6 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
         - Output generation when design is complete
     """
     import subprocess
-    import sys
 
     try:
         import uvicorn
@@ -1612,10 +1609,9 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
         # Development mode: start both backend and frontend
         console.print("[bold]Starting development servers...[/bold]")
         console.print(f"  Backend: http://localhost:{port}")
-        console.print(f"  Frontend: http://localhost:5173")
+        console.print("  Frontend: http://localhost:5173")
         console.print("\n[dim]Press Ctrl+C to stop both servers[/dim]\n")
 
-        import os
         from pathlib import Path
 
         frontend_dir = Path(__file__).parent.parent.parent / "frontend"
@@ -1652,7 +1648,7 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
 
     else:
         # Production mode: serve built frontend from FastAPI
-        console.print(f"[bold]Starting Nano Banana Architect web server...[/bold]")
+        console.print("[bold]Starting Nano Banana Architect web server...[/bold]")
         console.print(f"  URL: http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
         console.print("\n[dim]Press Ctrl+C to stop[/dim]\n")
 

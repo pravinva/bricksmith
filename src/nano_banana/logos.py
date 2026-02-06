@@ -1,6 +1,5 @@
 """Logo kit handling for Nano Banana Pro."""
 
-import base64
 import hashlib
 import mimetypes
 from pathlib import Path

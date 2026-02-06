@@ -4,7 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from ..api.schemas import SessionResponse, ArchitectureState
+from ..api.schemas import SessionResponse
 
 
 class SessionStore(ABC):

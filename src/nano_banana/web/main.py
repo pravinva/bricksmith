@@ -1,6 +1,5 @@
 """FastAPI application entry point for nano-banana web interface."""
 
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 

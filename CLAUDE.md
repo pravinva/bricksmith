@@ -120,7 +120,7 @@ nano-banana validate-logos --logo-dir logos/default/
 | `config.py` | Pydantic config (YAML/env) |
 | `models.py` | Data models (LogoInfo, ConversationSession, ArchitectSession) |
 | `logos.py` | Logo validation and SHA tracking |
-| `prompts.py` | Logo section building and prompt validation |
+| `prompts.py` | Logo section building for prompts |
 | `gemini_client.py` | Google AI Gemini client |
 | `mlflow_tracker.py` | MLflow/Databricks integration |
 | `evaluator.py` | Manual evaluation interface |
@@ -128,6 +128,10 @@ nano-banana validate-logos --logo-dir logos/default/
 | `conversation.py` | Interactive chatbot for iterative refinement |
 | `conversation_dspy.py` | DSPy-based conversational refiner |
 | `architect.py` | Conversational architecture design |
+| `architect_dspy.py` | DSPy modules for architect workflow |
+| `mcp_context_enricher.py` | MCP-based context enrichment for architect |
+| `mcp_config.py` | MCP enrichment configuration |
+| `databricks_style.py` | Databricks brand style guide for diagrams |
 
 ## Evaluation rubric
 

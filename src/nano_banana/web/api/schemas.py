@@ -1,6 +1,5 @@
 """Pydantic request/response schemas for the web API."""
 
-from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field

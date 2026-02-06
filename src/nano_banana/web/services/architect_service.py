@@ -1,6 +1,5 @@
 """Service layer wrapping ArchitectChatbot for web use."""
 
-import json
 import uuid
 from datetime import datetime
 from pathlib import Path
