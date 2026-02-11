@@ -78,10 +78,7 @@ class ConversationalRefiner(dspy.Module):
 
     # Available Databricks model endpoints (in order of preference/capability)
     DATABRICKS_MODELS = [
-        "databricks-claude-opus-4-5",  # Most powerful
-        "databricks-claude-sonnet-4",  # Fast and capable
-        "databricks-meta-llama-3-3-70b-instruct",  # Open source alternative
-        "databricks-meta-llama-3-1-70b-instruct",  # Fallback
+        "databricks-claude-opus-4-6",  # Most powerful
     ]
 
     def __init__(

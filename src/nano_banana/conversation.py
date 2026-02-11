@@ -939,8 +939,15 @@ class ConversationChatbot:
 
         return refined_prompt
 
-    def run_conversation(self) -> ConversationSession:
+    def run_conversation(self, resume_prompt: Optional[str] = None) -> ConversationSession:
         """Run the full conversation loop.
+
+        Sessions are automatically saved after each turn for crash recovery.
+        If interrupted, use resume_session() to continue from the last turn.
+
+        Args:
+            resume_prompt: If resuming, the prompt to continue from.
+                If None, starts from initial_prompt.
 
         Returns:
             Completed ConversationSession
@@ -948,13 +955,19 @@ class ConversationChatbot:
         if not self._session:
             raise ValueError("No active session. Call start_session() first.")
 
-        current_prompt = self._session.initial_prompt
+        current_prompt = resume_prompt or self._session.initial_prompt
         mode = "Auto-refine" if self.conv_config.auto_refine else "Interactive"
         current_settings: Optional[GenerationSettings] = None
 
+        existing_turns = len(self._session.turns)
+        if existing_turns > 0:
+            mode_label = f"{mode} (resumed from iteration {existing_turns})"
+        else:
+            mode_label = mode
+
         console.print(Panel(
             f"Starting conversation refinement loop\n"
-            f"Mode: [bold]{mode}[/bold]\n"
+            f"Mode: [bold]{mode_label}[/bold]\n"
             f"Target score: {self.conv_config.target_score}\n"
             f"Max iterations: {self.conv_config.max_iterations}\n"
             + ("" if self.conv_config.auto_refine else "Type 'done' or score target to finish\nType 'r' or 'r <temp>' to retry with different settings"),
@@ -962,53 +975,66 @@ class ConversationChatbot:
             border_style="cyan",
         ))
 
-        while len(self._session.turns) < self.conv_config.max_iterations:
-            # Generate (with optional custom settings from retry)
-            is_retry = current_settings is not None
-            turn = self.run_iteration(current_prompt, settings=current_settings, is_retry=is_retry)
+        try:
+            while len(self._session.turns) < self.conv_config.max_iterations:
+                # Generate (with optional custom settings from retry)
+                is_retry = current_settings is not None
+                turn = self.run_iteration(current_prompt, settings=current_settings, is_retry=is_retry)
 
-            # Reset settings after use (one-shot for retries)
-            current_settings = None
+                # Reset settings after use (one-shot for retries)
+                current_settings = None
 
-            # Collect feedback (auto or manual)
-            retry_settings: Optional[GenerationSettings] = None
-            if self.conv_config.auto_refine:
-                score, feedback = self.auto_evaluate(turn)
+                # Collect feedback (auto or manual)
+                retry_settings: Optional[GenerationSettings] = None
+                if self.conv_config.auto_refine:
+                    score, feedback = self.auto_evaluate(turn)
+                else:
+                    score, feedback, retry_settings = self.collect_feedback(turn)
+
+                # Log score to MLflow and end the run
+                try:
+                    self.mlflow_tracker.log_metrics({"score": score})
+                    if turn.feedback:
+                        self.mlflow_tracker.log_prompt(turn.feedback, "feedback.txt")
+                    self.mlflow_tracker.end_run("FINISHED")
+                except Exception:
+                    pass  # Run may already be ended
+
+                # Add turn to session
+                self._session.add_turn(turn)
+
+                # Check if done
+                if feedback.lower() == "done" or score >= self.conv_config.target_score:
+                    self._session.status = ConversationStatus.COMPLETED
+                    console.print("\n[bold green]Target reached! Conversation complete.[/bold green]")
+                    break
+
+                # Handle retry vs refine
+                if retry_settings:
+                    # Retry: same prompt, different settings
+                    current_settings = retry_settings
+                    console.print(f"\n[cyan]Retrying with: {retry_settings.summary()}[/cyan]")
+                    # Don't refine prompt - reuse current_prompt as-is
+                else:
+                    # Refine: update prompt based on feedback
+                    current_prompt = self.refine_prompt(current_prompt, turn)
+
+                # Save session after each turn for crash recovery
+                self._save_session(current_prompt=current_prompt)
+
             else:
-                score, feedback, retry_settings = self.collect_feedback(turn)
-
-            # Log score to MLflow and end the run
-            try:
-                self.mlflow_tracker.log_metrics({"score": score})
-                if turn.feedback:
-                    self.mlflow_tracker.log_prompt(turn.feedback, "feedback.txt")
-                self.mlflow_tracker.end_run("FINISHED")
-            except Exception:
-                pass  # Run may already be ended
-
-            # Add turn to session
-            self._session.add_turn(turn)
-
-            # Check if done
-            if feedback.lower() == "done" or score >= self.conv_config.target_score:
+                # Max iterations reached
+                console.print("\n[yellow]Max iterations reached.[/yellow]")
                 self._session.status = ConversationStatus.COMPLETED
-                console.print("\n[bold green]Target reached! Conversation complete.[/bold green]")
-                break
 
-            # Handle retry vs refine
-            if retry_settings:
-                # Retry: same prompt, different settings
-                current_settings = retry_settings
-                console.print(f"\n[cyan]Retrying with: {retry_settings.summary()}[/cyan]")
-                # Don't refine prompt - reuse current_prompt as-is
-            else:
-                # Refine: update prompt based on feedback
-                current_prompt = self.refine_prompt(current_prompt, turn)
-
-        else:
-            # Max iterations reached
-            console.print("\n[yellow]Max iterations reached.[/yellow]")
-            self._session.status = ConversationStatus.COMPLETED
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Session interrupted - saving progress...[/yellow]")
+            self._session.status = ConversationStatus.ACTIVE
+            session_file = self._save_session(current_prompt=current_prompt)
+            console.print(f"[bold green]Progress saved![/bold green]")
+            console.print(f"  Resume with: [cyan]nano-banana chat --resume {session_file.parent}[/cyan]")
+            self._show_summary()
+            return self._session
 
         # Show summary
         self._show_summary()
@@ -1049,17 +1075,35 @@ class ConversationChatbot:
         # Save session
         self._save_session()
 
-    def _save_session(self) -> None:
-        """Save session to JSON file."""
-        if not self._session:
-            return
+    def _save_session(self, current_prompt: Optional[str] = None) -> Path:
+        """Save session to JSON file for crash recovery.
 
-        output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"chat-{self._session.session_id}"
+        Saves full state after every turn so sessions can be resumed
+        if interrupted. Includes all data needed to restore the chatbot.
+
+        Args:
+            current_prompt: The current/latest prompt (for resume continuity)
+
+        Returns:
+            Path to the saved session file
+        """
+        if not self._session:
+            return Path()
+
+        # Use the session's created_at date for consistent output directory
+        try:
+            created_date = datetime.fromisoformat(self._session.created_at).strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            created_date = datetime.now().strftime("%Y-%m-%d")
+
+        output_dir = Path("outputs") / created_date / f"chat-{self._session.session_id}"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         session_file = output_dir / "session.json"
         session_data = {
             "session_id": self._session.session_id,
+            "initial_prompt": self._session.initial_prompt,
+            "current_prompt": current_prompt or self._session.get_latest_prompt(),
             "status": self._session.status.value,
             "created_at": self._session.created_at,
             "diagram_spec_path": str(self._session.diagram_spec_path) if self._session.diagram_spec_path else None,
@@ -1067,6 +1111,7 @@ class ConversationChatbot:
             "turns": [
                 {
                     "iteration": t.iteration,
+                    "prompt_used": t.prompt_used,
                     "run_id": t.run_id,
                     "image_path": str(t.image_path),
                     "generation_time_seconds": t.generation_time_seconds,
@@ -1077,9 +1122,322 @@ class ConversationChatbot:
                 }
                 for t in self._session.turns
             ],
+            # Save config for restoration
+            "_config": {
+                "max_iterations": self.conv_config.max_iterations,
+                "target_score": self.conv_config.target_score,
+                "auto_analyze": self.conv_config.auto_analyze,
+                "auto_refine": self.conv_config.auto_refine,
+                "reference_image": str(self.conv_config.reference_image) if self.conv_config.reference_image else None,
+                "session_name": self.conv_config.session_name,
+                "temperature": self.conv_config.temperature,
+                "top_p": self.conv_config.top_p,
+                "top_k": self.conv_config.top_k,
+                "presence_penalty": self.conv_config.presence_penalty,
+                "frequency_penalty": self.conv_config.frequency_penalty,
+                "logo_dir": str(self.conv_config.logo_dir) if self.conv_config.logo_dir else None,
+                "evaluation_persona": self.conv_config.evaluation_persona.value,
+            },
+            "_reference_style": self._reference_style,
+            "_dspy_model": self._dspy_model,
+            "_last_saved": datetime.now().isoformat(),
         }
 
         with open(session_file, "w") as f:
             json.dump(session_data, f, indent=2)
 
-        console.print(f"\n[dim]Session saved: {session_file}[/dim]")
+        console.print(f"[dim]Session saved: {session_file}[/dim]")
+        return session_file
+
+    @classmethod
+    def find_sessions(cls, base_dir: Path = Path("outputs")) -> list[dict]:
+        """Find all saved chat sessions available for resume.
+
+        Args:
+            base_dir: Base directory to search (default: outputs/)
+
+        Returns:
+            List of session info dicts with path, session_id, turns, status, etc.
+        """
+        sessions = []
+
+        if not base_dir.exists():
+            return sessions
+
+        # Search for session.json files in chat-* directories
+        for date_dir in sorted(base_dir.iterdir(), reverse=True):
+            if not date_dir.is_dir():
+                continue
+
+            for session_dir in date_dir.iterdir():
+                if not session_dir.is_dir() or not session_dir.name.startswith("chat-"):
+                    continue
+
+                session_file = session_dir / "session.json"
+                if session_file.exists():
+                    try:
+                        data = json.loads(session_file.read_text())
+                        sessions.append({
+                            "path": session_dir,
+                            "session_id": data.get("session_id", "unknown"),
+                            "turns": len(data.get("turns", [])),
+                            "status": data.get("status", "unknown"),
+                            "created_at": data.get("created_at", ""),
+                            "last_saved": data.get("_last_saved", ""),
+                            "initial_prompt_preview": data.get("initial_prompt", "")[:80],
+                        })
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+
+        return sessions
+
+    @classmethod
+    def _reconstruct_session_from_files(cls, session_dir: Path) -> Optional[dict]:
+        """Reconstruct session data from iteration files on disk.
+
+        Handles sessions that were interrupted before session.json was written
+        (e.g. sessions started before the recovery feature was added, or
+        interrupted during the very first iteration).
+
+        Args:
+            session_dir: Directory containing iteration_N.png and iteration_N_prompt.txt files
+
+        Returns:
+            Reconstructed session data dict, or None if no iteration files found
+        """
+        import re
+
+        if not session_dir.exists() or not session_dir.is_dir():
+            return None
+
+        # Find all iteration prompt files
+        prompt_files = sorted(session_dir.glob("iteration_*_prompt.txt"))
+        image_files = sorted(session_dir.glob("iteration_*.png"))
+
+        if not prompt_files and not image_files:
+            return None
+
+        # Extract session_id from directory name (chat-<session_id>)
+        dir_name = session_dir.name
+        session_id = dir_name.removeprefix("chat-") if dir_name.startswith("chat-") else dir_name
+
+        # Extract date from parent directory name
+        date_str = session_dir.parent.name  # e.g. "2026-02-11"
+
+        # Build turns from files
+        turns = []
+        iteration_nums = set()
+
+        for pf in prompt_files:
+            match = re.search(r'iteration_(\d+)_prompt\.txt', pf.name)
+            if match:
+                iteration_nums.add(int(match.group(1)))
+
+        for img in image_files:
+            match = re.search(r'iteration_(\d+)\.png', img.name)
+            if match:
+                iteration_nums.add(int(match.group(1)))
+
+        for iteration in sorted(iteration_nums):
+            prompt_file = session_dir / f"iteration_{iteration}_prompt.txt"
+            image_file = session_dir / f"iteration_{iteration}.png"
+
+            prompt_used = prompt_file.read_text() if prompt_file.exists() else ""
+
+            turns.append({
+                "iteration": iteration,
+                "prompt_used": prompt_used,
+                "run_id": f"reconstructed-{session_id}-iter-{iteration}",
+                "image_path": str(image_file) if image_file.exists() else "",
+                "generation_time_seconds": 0.0,
+                "score": None,
+                "feedback": None,
+                "visual_analysis": None,
+                "refinement_reasoning": None,
+            })
+
+        # Use the first iteration's prompt as initial_prompt
+        initial_prompt = ""
+        if turns:
+            initial_prompt = turns[0].get("prompt_used", "")
+
+        # Use the last iteration's prompt as current_prompt
+        current_prompt = ""
+        if turns:
+            current_prompt = turns[-1].get("prompt_used", "")
+
+        console.print(f"  [dim]Reconstructed {len(turns)} turn(s) from iteration files[/dim]")
+
+        return {
+            "session_id": session_id,
+            "initial_prompt": initial_prompt,
+            "current_prompt": current_prompt,
+            "status": "active",
+            "created_at": f"{date_str}T00:00:00",
+            "diagram_spec_path": None,
+            "template_id": None,
+            "turns": turns,
+        }
+
+    @classmethod
+    def resume_session(
+        cls,
+        session_path: Path,
+        config: AppConfig,
+        dspy_model: Optional[str] = None,
+    ) -> tuple["ConversationChatbot", str]:
+        """Resume a saved session from disk.
+
+        Restores full chatbot state including session history, config,
+        logos, and reference style so the conversation can continue
+        seamlessly from where it left off.
+
+        Args:
+            session_path: Path to session.json file or session directory
+            config: Application configuration
+            dspy_model: Optional Databricks model endpoint override
+
+        Returns:
+            Tuple of (restored ConversationChatbot, current_prompt to continue from)
+
+        Raises:
+            FileNotFoundError: If session file not found
+            ValueError: If session data is invalid
+        """
+        # Handle both file path and directory path
+        if session_path.is_dir():
+            session_dir = session_path
+            session_file = session_path / "session.json"
+        else:
+            session_dir = session_path.parent
+            session_file = session_path
+
+        if not session_file.exists():
+            # No session.json - try to reconstruct from iteration files on disk
+            # This handles sessions that were interrupted before the first save
+            session_data = cls._reconstruct_session_from_files(session_dir)
+            if session_data is None:
+                raise FileNotFoundError(
+                    f"No session.json or iteration files found in {session_dir}"
+                )
+            console.print("[yellow]No session.json found - reconstructed session from iteration files[/yellow]")
+        else:
+            # Load session data
+            session_data = json.loads(session_file.read_text())
+
+        # Restore conversation config from saved data
+        saved_config = session_data.get("_config", {})
+        from .models import EvaluationPersona
+
+        conv_config = ConversationConfig(
+            max_iterations=saved_config.get("max_iterations", 10),
+            target_score=saved_config.get("target_score", 5),
+            auto_analyze=saved_config.get("auto_analyze", True),
+            auto_refine=saved_config.get("auto_refine", False),
+            reference_image=Path(saved_config["reference_image"]) if saved_config.get("reference_image") else None,
+            session_name=saved_config.get("session_name"),
+            temperature=saved_config.get("temperature", 0.8),
+            top_p=saved_config.get("top_p", 0.95),
+            top_k=saved_config.get("top_k", 50),
+            presence_penalty=saved_config.get("presence_penalty", 0.1),
+            frequency_penalty=saved_config.get("frequency_penalty", 0.1),
+            logo_dir=Path(saved_config["logo_dir"]) if saved_config.get("logo_dir") else None,
+            evaluation_persona=EvaluationPersona(saved_config.get("evaluation_persona", "architect")),
+        )
+
+        # Use saved dspy_model unless overridden
+        restored_dspy_model = dspy_model or session_data.get("_dspy_model")
+
+        # Create chatbot instance
+        chatbot = cls(
+            config=config,
+            conv_config=conv_config,
+            dspy_model=restored_dspy_model,
+        )
+
+        # Load logos
+        logo_dir = conv_config.logo_dir or config.logo_kit.logo_dir
+        console.print(f"[bold]Loading logos from {logo_dir}...[/bold]")
+        chatbot._logos = chatbot.logo_handler.load_logo_kit(logo_dir)
+        logo_hints = chatbot.logo_handler.load_logo_hints(logo_dir)
+        hints_msg = f" with {len(logo_hints)} hints" if logo_hints else ""
+        console.print(f"  Loaded {len(chatbot._logos)} logos{hints_msg}")
+
+        # Rebuild logo parts (same strategy as start_session)
+        chatbot._logo_parts = []
+        unity_catalog_part = None
+
+        for logo in chatbot._logos:
+            part = chatbot.logo_handler.to_image_part(logo)
+            if "unity" in logo.name.lower() or "catalog" in logo.name.lower():
+                unity_catalog_part = part
+                chatbot._logo_parts.insert(0, part)
+            else:
+                chatbot._logo_parts.append(part)
+
+        if unity_catalog_part:
+            chatbot._logo_parts.append(unity_catalog_part)
+            console.print("  [cyan]Unity Catalog logo prioritized (first & last position)[/cyan]")
+
+        # Determine session directory for reading prompt files
+        session_dir = session_file.parent
+
+        # Recover initial_prompt from saved data or from iteration_1_prompt.txt
+        initial_prompt = session_data.get("initial_prompt", "")
+        if not initial_prompt:
+            iter1_prompt_file = session_dir / "iteration_1_prompt.txt"
+            if iter1_prompt_file.exists():
+                initial_prompt = iter1_prompt_file.read_text()
+                console.print("[dim]  Recovered initial_prompt from iteration_1_prompt.txt[/dim]")
+
+        # Restore session state
+        chatbot._session = ConversationSession(
+            session_id=session_data["session_id"],
+            initial_prompt=initial_prompt,
+            created_at=session_data.get("created_at", datetime.now().isoformat()),
+            status=ConversationStatus(session_data.get("status", "active")),
+            template_id=session_data.get("template_id"),
+            diagram_spec_path=Path(session_data["diagram_spec_path"]) if session_data.get("diagram_spec_path") else None,
+        )
+
+        # Restore turns, recovering prompt_used from disk if not in session data
+        for turn_data in session_data.get("turns", []):
+            prompt_used = turn_data.get("prompt_used", "")
+            if not prompt_used:
+                # Fall back to reading iteration_N_prompt.txt from disk
+                iter_prompt_file = session_dir / f"iteration_{turn_data['iteration']}_prompt.txt"
+                if iter_prompt_file.exists():
+                    prompt_used = iter_prompt_file.read_text()
+
+            turn = ConversationTurn(
+                iteration=turn_data["iteration"],
+                prompt_used=prompt_used,
+                run_id=turn_data["run_id"],
+                image_path=Path(turn_data["image_path"]),
+                generation_time_seconds=turn_data["generation_time_seconds"],
+                score=turn_data.get("score"),
+                feedback=turn_data.get("feedback"),
+                visual_analysis=turn_data.get("visual_analysis"),
+                refinement_reasoning=turn_data.get("refinement_reasoning"),
+            )
+            chatbot._session.add_turn(turn)
+
+        # Restore reference style
+        chatbot._reference_style = session_data.get("_reference_style")
+
+        # Determine the prompt to continue from:
+        # 1. Explicit current_prompt saved in session (best - includes refined prompt)
+        # 2. Latest turn's prompt_used (fallback)
+        # 3. initial_prompt (last resort)
+        current_prompt = session_data.get("current_prompt") or chatbot._session.get_latest_prompt()
+
+        num_turns = len(chatbot._session.turns)
+        console.print(f"\n[bold green]Session restored: {chatbot._session.session_id}[/bold green]")
+        console.print(f"  Turns completed: {num_turns}")
+        console.print(f"  Remaining iterations: {conv_config.max_iterations - num_turns}")
+        if chatbot._session.turns:
+            last_turn = chatbot._session.turns[-1]
+            console.print(f"  Last score: {last_turn.score or 'N/A'}")
+            console.print(f"  Last image: {last_turn.image_path}")
+
+        return chatbot, current_prompt

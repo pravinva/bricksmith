@@ -109,10 +109,7 @@ class ArchitectRefiner(dspy.Module):
 
     # Available Databricks model endpoints (in order of preference)
     DATABRICKS_MODELS = [
-        "databricks-claude-opus-4-5",
-        "databricks-claude-sonnet-4",
-        "databricks-meta-llama-3-3-70b-instruct",
-        "databricks-meta-llama-3-1-70b-instruct",
+        "databricks-claude-opus-4-6",
     ]
 
     def __init__(

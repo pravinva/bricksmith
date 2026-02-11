@@ -168,6 +168,12 @@ class ConversationSession(BaseModel):
         default=ConversationStatus.ACTIVE, description="Session status"
     )
     created_at: str = Field(default="", description="Session creation timestamp")
+    template_id: Optional[str] = Field(
+        default=None, description="Prompt template identifier (e.g. 'raw', 'refined')"
+    )
+    diagram_spec_path: Optional[Path] = Field(
+        default=None, description="Path to the diagram spec file if generated"
+    )
 
     def add_turn(self, turn: ConversationTurn) -> None:
         """Add a turn to the session.

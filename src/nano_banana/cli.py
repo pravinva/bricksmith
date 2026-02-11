@@ -1065,9 +1065,19 @@ def refine_prompt(
 @main.command()
 @click.option(
     "--prompt-file",
-    required=True,
+    required=False,
     type=click.Path(exists=True, path_type=Path),
-    help="Initial prompt file (.txt)",
+    help="Initial prompt file (.txt) - required unless using --resume or --list-sessions",
+)
+@click.option(
+    "--resume",
+    type=click.Path(exists=True, path_type=Path),
+    help="Resume a saved session from path (session.json file or session directory)",
+)
+@click.option(
+    "--list-sessions",
+    is_flag=True,
+    help="List available sessions to resume and exit",
 )
 @click.option(
     "--logo-dir",
@@ -1152,7 +1162,9 @@ def refine_prompt(
 @click.pass_obj
 def chat(
     ctx: Context,
-    prompt_file: Path,
+    prompt_file: Optional[Path],
+    resume: Optional[Path],
+    list_sessions: bool,
     logo_dir: Optional[Path],
     max_iterations: int,
     target_score: int,
@@ -1172,6 +1184,9 @@ def chat(
 
     This command creates a generate -> evaluate -> feedback -> refine loop
     that iteratively improves your diagram through conversation.
+
+    Sessions are automatically saved after each turn for crash recovery.
+    Use --resume to continue a previous session.
 
     Examples:
 
@@ -1196,6 +1211,12 @@ def chat(
         # Use a specific Databricks model for refinement
         nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
 
+        # List available sessions to resume
+        nano-banana chat --list-sessions
+
+        # Resume a crashed or interrupted session
+        nano-banana chat --resume outputs/2026-02-11/chat-my-session
+
     During the conversation, you can use these feedback options:
 
         • Text feedback: Refines the prompt based on your feedback
@@ -1206,7 +1227,77 @@ def chat(
         • Image path: Use as style reference for comparison
         • 'done': Finish session
     """
+    from .models import EvaluationPersona
+
     try:
+        # Handle --list-sessions flag
+        if list_sessions:
+            sessions = ConversationChatbot.find_sessions()
+            if not sessions:
+                console.print("[yellow]No saved chat sessions found in outputs/[/yellow]")
+                raise SystemExit(0)
+
+            console.print(f"\n[bold]Found {len(sessions)} saved chat session(s):[/bold]\n")
+
+            from rich.table import Table
+
+            table = Table(show_header=True)
+            table.add_column("Session", style="cyan")
+            table.add_column("Turns", style="magenta", justify="right")
+            table.add_column("Status", style="yellow")
+            table.add_column("Created", style="green")
+            table.add_column("Last Saved", style="dim")
+            table.add_column("Path", style="dim")
+
+            for s in sessions:
+                status_color = "green" if s["status"] == "completed" else "yellow" if s["status"] == "active" else "red"
+                table.add_row(
+                    s["session_id"],
+                    str(s["turns"]),
+                    f"[{status_color}]{s['status']}[/{status_color}]",
+                    s["created_at"][:19] if s["created_at"] else "",
+                    s["last_saved"][:19] if s["last_saved"] else "",
+                    str(s["path"]),
+                )
+
+            console.print(table)
+            console.print("\n[bold]To resume a session:[/bold]")
+            console.print("  nano-banana chat --resume <path>")
+            raise SystemExit(0)
+
+        # Handle --resume option
+        if resume:
+            console.print(f"[bold]Resuming session from {resume}...[/bold]")
+            chatbot, current_prompt = ConversationChatbot.resume_session(
+                session_path=resume,
+                config=ctx.config,
+                dspy_model=dspy_model,
+            )
+
+            # Run conversation from where it left off
+            session = chatbot.run_conversation(resume_prompt=current_prompt)
+
+            # Final output
+            console.print("\n[bold green]Session complete![/bold green]")
+            console.print(f"  Status: {session.status.value}")
+            console.print(f"  Iterations: {len(session.turns)}")
+
+            best = session.get_best_turn()
+            if best:
+                console.print(f"  Best score: {best.score}")
+                console.print(f"  Best image: {best.image_path}")
+                console.print("\n[bold]To evaluate the best run:[/bold]")
+                console.print(f"  nano-banana evaluate {best.run_id}")
+
+            return
+
+        # Require --prompt-file for new sessions
+        if not prompt_file:
+            raise click.ClickException(
+                "--prompt-file is required when starting a new session. "
+                "Use --resume to continue an existing session, or --list-sessions to find one."
+            )
+
         # Reference image implies auto-refine
         if reference_image and not auto_refine:
             console.print("[dim]Reference image provided - enabling auto-refine mode[/dim]")
@@ -1270,6 +1361,9 @@ def chat(
             console.print(f"  nano-banana evaluate {best.run_id}")
 
     except KeyboardInterrupt:
+        # KeyboardInterrupt is now handled inside run_conversation()
+        # with proper session save. This catches interrupts before
+        # the conversation loop starts.
         console.print("\n[yellow]Conversation interrupted.[/yellow]")
         raise SystemExit(0)
     except Exception as e:

@@ -1,0 +1,183 @@
+⚠️⚠️⚠️ CRITICAL: UNITY CATALOG LOGO INSTRUCTIONS ⚠️⚠️⚠️
+
+**WHAT THE CORRECT UNITY CATALOG LOGO LOOKS LIKE:**
+The uploaded Unity Catalog logo file contains MULTIPLE DISTINCT GEOMETRIC SHAPES:
+- Pink/magenta SQUARES (multiple)
+- Yellow/gold TRIANGULAR shapes (multiple)
+- Navy blue HEXAGON (one, in center)
+These shapes are arranged in a SPECIFIC cluster/constellation pattern - NOT a single shape.
+
+**WHAT THE WRONG LOGO LOOKS LIKE (DO NOT DO THIS):**
+- A single hexagon shape
+- A stylized hexagon
+- A "multi-colored hexagonal logo"
+- Any single geometric shape
+- Any logo you generate/draw yourself
+
+**INSTRUCTION:** You MUST use the EXACT uploaded Unity Catalog image file from the logo kit. If you find yourself drawing or generating ANY hexagon shape, STOP - that is wrong. The correct logo is a MULTI-ELEMENT composition that was uploaded as an image file.
+
+---
+
+⚠️⚠️⚠️ CRITICAL: DO NOT INCLUDE THESE IN THE DIAGRAM ⚠️⚠️⚠️
+
+- NO "LAYER 1", "LAYER 2", "LAYER 3", "LAYER 4", "LAYER 5" text labels
+- NO "EXACT UPLOADED" text annotations
+- NO layer numbering of any kind
+- NO Databricks logo in the Intelligence Engine section (only in top-left title area)
+
+---
+
+LOGO KIT (uploaded as image attachments):
+Use these EXACT logos - do NOT recreate or substitute.
+
+- Databricks Full: red/orange stacked bars icon with 'databricks' text (USE ONLY IN TITLE AREA)
+- Delta Lake Logo: teal triangle icon
+- Iceberg Logo: blue iceberg icon
+- Postgres Logo: blue elephant icon
+- Unity Catalog: MULTI-SHAPE logo with pink squares + yellow triangles + navy hexagon - USE THIS EXACT FILE
+- Aws Logo: grey 'AWS' text with orange smile underneath
+- Azure Logo: blue Microsoft Azure symbol
+- GCP logo: You may generate/create the Google Cloud Platform logo
+
+LOGO RULES:
+- Use EXACT uploaded images - do NOT redraw or recreate
+- Ensure logos appear CRISP and VIBRANT (not washed out or faded)
+- Scale logos uniformly
+- NO filenames in output
+
+=== PROFESSIONAL PRESENTATION QUALITY ===
+
+**TARGET QUALITY:** LinkedIn-worthy, executive presentation standard. Tailored for Coles Group retail leadership.
+
+**TYPOGRAPHY:**
+- Primary font: Clean sans-serif (Inter, Lato, or Open Sans style)
+- Layer titles: 16-18pt BOLD
+- Box titles: 12-14pt BOLD
+- Subtitles: 10-11pt Regular
+- Generous line height (1.5x)
+
+**SPACING (CRITICAL):**
+- 30px+ vertical padding within each layer
+- 40px+ horizontal margins
+- 20px+ gap between boxes
+- Text should NEVER touch edges
+
+**COLOR PALETTE:**
+- Coles Red: #E01A22 (primary accent, used in title bar and key highlights)
+- Databricks Orange: #FF3621 (Databricks platform elements)
+- Navy: #1B3139 (text, headers)
+- Teal: #42BA91 (positive outcomes, success indicators)
+- Light Gray: #F5F5F5 (backgrounds)
+- White: #FFFFFF (backgrounds)
+
+=== DIAGRAM STRUCTURE ===
+
+**Title:** "Coles Group: Intelligent Retail Platform" with Databricks logo in top-left corner of the entire diagram (this is the ONLY place the Databricks logo should appear)
+**Subtitle:** "Powering Australia's Next-Generation Grocery & Retail Experience" in smaller text below title
+**Accent:** Thin Coles Red (#E01A22) bar across the very top of the diagram (6px height) for brand identity
+
+**Style:** Clean, professional, modern. White background. Well-defined layers with generous spacing. Coles retail context throughout.
+
+=== 5 HORIZONTAL LAYERS (Top to Bottom) ===
+
+**TOP LAYER - REAL-WORLD RETAIL OUTCOMES:**
+- Background: Light teal (#E8F5F0) with 4px teal left border
+- Title: "Real-World Retail Outcomes Across 850+ Stores" (bold, centered)
+- Three well-spaced boxes:
+  - "WITRON ADCs & Ocado CFCs" | "4.6M cartons/week, automated fulfilment, next-day delivery"
+  - "In-Store Intelligence" | "Computer vision for fresh produce, deli queue alerts, shelf monitoring"
+  - "Customer & Partner APIs" | "flybuys offers, supplier integrations, Coles Online marketplace"
+- Footer: "Intelligence driving every aisle, every store, every day — from Redbank to Kemps Creek"
+
+**SECOND LAYER - INTELLIGENT RETAIL APPS:**
+- Background: Light orange (#FFF5F3) with 4px Coles Red (#E01A22) left border
+- Title: "Intelligent Retail Apps — 1.6 Billion Predictions Daily" (bold, centered)
+- Three well-spaced boxes:
+  - "AI/BI Dashboards" | "20,000 SKU demand planning, category performance, waste reduction"
+  - "Agentic AI" | "Automated markdown, RELEX replenishment, pricing compliance agents"
+  - "Custom Apps" | "flybuys personalisation for 4M+ members, ChatGPT Enterprise tools"
+- Footer: "Data intelligence operationalised across 2,000+ data sources"
+
+**THIRD LAYER - INTELLIGENCE ENGINE:**
+- Background: White with thin Databricks Orange border (#FF3621)
+- NO Databricks logo here (it's already in the title area)
+- Title: "Intelligence Platform" (bold, centered)
+- Subtitle: "Unified compute • Continuous model retraining • Retail-scale processing"
+- Four well-spaced boxes:
+  - "Lakeflow" | "Ingest SAP ERP, Datasphere, POS, IoT, Ocado"
+  - "DBSQL" | "Category analytics across 850 stores"
+  - "Agent Bricks" | "LLMs, RAG, product & recipe search"
+  - "Lakebase" | "Transactional apps, pricing rules engine"
+- Footer: "Closed-loop learning from SAP to shelf"
+
+**FOURTH LAYER - GOVERNANCE:**
+- Background: SOLID Coles Red (#E01A22) - NO GRADIENT
+- ⚠️ Place the EXACT UPLOADED Unity Catalog logo file here ⚠️
+- The logo should appear CRISP and VIBRANT against the red background
+- If needed, place a small white or light rectangle BEHIND the logo for contrast
+- Title: "Unity Catalog" (white text, bold, next to logo)
+- Subtitle: "Security • Governance • Lineage • Pricing & Promotion Compliance" (white text)
+- Note: "Governing Liquor & Super data domains — every product, every price, every promotion" (white, smaller)
+
+**BOTTOM LAYER - OPEN LAKEHOUSE:**
+- Background: Navy (#1B3139)
+- Title: "Open Data Lakehouse" (white, bold, centered)
+- Three logos with labels:
+  - [Delta Lake logo] "Delta Lake"
+  - [Iceberg logo] "Iceberg"
+  - [Postgres logo] "Postgres"
+- Subtitle: "SAP ERP, POS, WITRON, Ocado, flybuys, IoT — all data, open standards" (white)
+
+**FOOTER - Cloud:**
+- Background: Light grey (#F0F0F0)
+- Three cloud logos: [AWS logo] [Azure logo] [GCP logo]
+- Text: "Multi-cloud • Serverless"
+
+=== VISUAL FLOW ARROWS ===
+
+**⚠️ LEFT SIDE - SEPARATE INDIVIDUAL ARROWS (CRITICAL) ⚠️**
+
+DO NOT draw one continuous connected line. Instead, draw FOUR SEPARATE, INDIVIDUAL arrows:
+
+1. **Arrow 1:** Standalone arrow from Open Lakehouse UP to Governance layer
+   - Label: "Data enriched"
+   - This arrow is NOT connected to any other arrow
+
+2. **Arrow 2:** Standalone arrow from Governance layer UP to Intelligence Engine layer
+   - Label: "Data governed"
+   - This arrow is NOT connected to any other arrow
+
+3. **Arrow 3:** Standalone arrow from Intelligence Engine layer UP to Apps layer
+   - Label: "Insights generated"
+   - This arrow is NOT connected to any other arrow
+
+4. **Arrow 4:** Standalone arrow from Apps layer UP to Real-World layer
+   - Label: "Actions taken"
+   - This arrow is NOT connected to any other arrow
+
+**Arrow Style for ALL four arrows:**
+- Each arrow is INDEPENDENT and SEPARATE
+- Color: Navy (#1B3139)
+- Thickness: 2px (thin, elegant)
+- Each arrow has its own arrowhead pointing UP
+- Small gap/space between each arrow (they do NOT touch or connect)
+- Position: Left margin of the diagram
+
+**RIGHT SIDE - Feedback Loop:**
+- Curved dashed arrow from top to bottom
+- Color: Teal (#42BA91), 4px dashed
+- Label: "Continuous Learning Loop"
+
+=== AVOID ===
+- NO numbered circles
+- NO overlapping layers
+- NO "LAYER 1", "LAYER 2", etc. labels anywhere in the diagram
+- NO "EXACT UPLOADED" text annotations
+- NO serif fonts
+- NO cluttered appearance
+- NO gradient backgrounds on Governance layer
+- NO recreating logos - use exact uploaded files
+- NO washed out or faded logos
+- NO single continuous line connecting all left-side arrows - they must be SEPARATE
+- NO Databricks logo in the Intelligence Engine section
+- NO Snowflake, Power BI, or Palantir logos (this is a Databricks-native architecture)
