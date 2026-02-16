@@ -24,14 +24,14 @@ class EvaluationScores(BaseModel):
     """Manual evaluation scores for a generated diagram."""
 
     logo_fidelity_score: int = Field(
-        ..., ge=0, le=5, description="Logo reuse fidelity (0-5)"
+        ..., ge=1, le=10, description="Logo reuse fidelity (1-10)"
     )
-    layout_clarity_score: int = Field(..., ge=0, le=5, description="Layout clarity (0-5)")
+    layout_clarity_score: int = Field(..., ge=1, le=10, description="Layout clarity (1-10)")
     text_legibility_score: int = Field(
-        ..., ge=0, le=5, description="Text legibility (0-5)"
+        ..., ge=1, le=10, description="Text legibility (1-10)"
     )
     constraint_compliance_score: int = Field(
-        ..., ge=0, le=5, description="Constraint compliance (0-5)"
+        ..., ge=1, le=10, description="Constraint compliance (1-10)"
     )
     notes: str = Field(default="", description="Evaluation notes")
 
@@ -40,7 +40,7 @@ class EvaluationScores(BaseModel):
         """Calculate average score across all dimensions.
 
         Returns:
-            Average score (0.0-5.0)
+            Average score (1.0-10.0)
         """
         return (
             self.logo_fidelity_score
@@ -144,9 +144,17 @@ class ConversationTurn(BaseModel):
     iteration: int = Field(..., description="Turn number (1-based)")
     prompt_used: str = Field(..., description="The prompt used for this generation")
     run_id: str = Field(..., description="MLflow run ID for this iteration")
-    image_path: Path = Field(..., description="Path to generated image")
+    image_path: Path = Field(..., description="Path to generated/selected image")
+    variant_paths: list[Path] = Field(
+        default_factory=list,
+        description="Paths to all variant images when num_variants > 1",
+    )
+    selected_variant: Optional[int] = Field(
+        default=None,
+        description="Index (1-based) of the selected variant, or None if single generation",
+    )
     generation_time_seconds: float = Field(..., description="Time taken to generate")
-    score: Optional[int] = Field(default=None, ge=1, le=5, description="User score (1-5)")
+    score: Optional[int] = Field(default=None, ge=1, le=10, description="User score (1-10)")
     feedback: Optional[str] = Field(default=None, description="User feedback text")
     visual_analysis: Optional[str] = Field(
         default=None, description="AI visual analysis of the generated image"
@@ -202,7 +210,7 @@ class ConversationSession(BaseModel):
             })
         return json.dumps(history, indent=2)
 
-    def is_satisfied(self, target_score: int = 5) -> bool:
+    def is_satisfied(self, target_score: int = 10) -> bool:
         """Check if the latest score meets the target.
 
         Args:
@@ -261,6 +269,14 @@ class GenerationSettings(BaseModel):
         default=0.1, ge=0.0, le=2.0,
         description="Penalty for frequent patterns"
     )
+    image_size: str = Field(
+        default="2K",
+        description="Image resolution: 1K, 2K, or 4K"
+    )
+    aspect_ratio: str = Field(
+        default="16:9",
+        description="Image aspect ratio: 1:1, 4:3, 16:9, 9:16, 3:4, 21:9"
+    )
 
     def summary(self) -> str:
         """Return a short summary of settings."""
@@ -269,6 +285,10 @@ class GenerationSettings(BaseModel):
             parts.append(f"p={self.top_p}")
         if self.top_k != 50:
             parts.append(f"k={self.top_k}")
+        if self.image_size != "2K":
+            parts.append(f"size={self.image_size}")
+        if self.aspect_ratio != "16:9":
+            parts.append(f"ar={self.aspect_ratio}")
         return " ".join(parts)
 
 
@@ -276,10 +296,11 @@ class ConversationConfig(BaseModel):
     """Configuration for conversation sessions."""
 
     max_iterations: int = Field(
-        default=10, ge=1, le=50, description="Maximum number of iterations"
+        default=0, ge=0, le=500,
+        description="Maximum number of iterations (0 = no limit)"
     )
     target_score: int = Field(
-        default=5, ge=1, le=5, description="Target score to stop refinement"
+        default=10, ge=1, le=10, description="Target score to stop refinement"
     )
     auto_analyze: bool = Field(
         default=True, description="Automatically analyze images with AI"
@@ -318,6 +339,22 @@ class ConversationConfig(BaseModel):
         default=EvaluationPersona.ARCHITECT,
         description="Persona lens for LLM Judge evaluation (architect, executive, developer, auto)"
     )
+    image_size: str = Field(
+        default="2K",
+        description="Image resolution: 1K, 2K, or 4K"
+    )
+    aspect_ratio: str = Field(
+        default="16:9",
+        description="Image aspect ratio: 1:1, 4:3, 16:9, 9:16, 3:4, 21:9"
+    )
+    num_variants: int = Field(
+        default=1, ge=1, le=8,
+        description="Number of image variants to generate per iteration (1-8)"
+    )
+    selected_output_dir: Optional[Path] = Field(
+        default=None,
+        description="Folder to copy selected/best images to (default: outputs/selected)",
+    )
 
     def get_generation_settings(self) -> GenerationSettings:
         """Get current generation settings."""
@@ -327,6 +364,8 @@ class ConversationConfig(BaseModel):
             top_k=self.top_k,
             presence_penalty=self.presence_penalty,
             frequency_penalty=self.frequency_penalty,
+            image_size=self.image_size,
+            aspect_ratio=self.aspect_ratio,
         )
 
 

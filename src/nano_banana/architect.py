@@ -222,6 +222,16 @@ class ArchitectChatbot:
         if self.arch_config.session_name:
             safe_name = re.sub(r'[^\w\-_]', '_', self.arch_config.session_name)
             session_id = safe_name[:50]
+
+            # If directory already exists, append a short random suffix to avoid
+            # collisions when multiple sessions share the same name.
+            candidate_dir = (
+                Path("outputs")
+                / datetime.now().strftime("%Y-%m-%d")
+                / f"architect-{session_id}"
+            )
+            if candidate_dir.exists():
+                session_id = f"{session_id}-{str(uuid.uuid4())[:6]}"
         else:
             session_id = str(uuid.uuid4())[:8]
 

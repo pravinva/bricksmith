@@ -34,8 +34,27 @@ class PromptBuilder:
         lines.append("Do NOT add numbered labels or circles to the diagram.")
         lines.append("")
 
+        # Filename suffixes that are conventions, not part of the logo identity.
+        # These must never leak into the prompt or Gemini will render them as text.
+        _FILENAME_SUFFIXES = [
+            "-full", "-logo", "-solo", "-notext", "-icon",
+            "-wordmark", "-black", "-final", "-white",
+        ]
+
         for logo in logo_kit:
-            logo_name = logo.name.replace('-', ' ').replace('_', ' ').title()
+            # Strip filename-convention suffixes before building the display name.
+            # Loop to handle chained suffixes (e.g. "mlflow-logo-final-black").
+            clean_name = logo.name
+            changed = True
+            while changed:
+                changed = False
+                for suffix in _FILENAME_SUFFIXES:
+                    if clean_name.endswith(suffix):
+                        clean_name = clean_name[: -len(suffix)]
+                        changed = True
+                        break
+
+            logo_name = clean_name.replace('-', ' ').replace('_', ' ').title()
             description = logo.description
 
             if description and description != f"{logo.name} logo":

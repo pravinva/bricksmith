@@ -31,7 +31,7 @@ class ConversationalRefinementSignature(dspy.Signature):
         desc="User's feedback on the current generation"
     )
     current_score: str = dspy.InputField(
-        desc="User's score (1-5) for the current generation"
+        desc="User's score (1-10) for the current generation"
     )
     visual_analysis: str = dspy.InputField(
         desc="AI analysis of what the current diagram looks like"
@@ -60,7 +60,7 @@ class PromptAnalysisSignature(dspy.Signature):
     visual_analysis: str = dspy.InputField(
         desc="AI description of what the generated diagram looks like"
     )
-    user_score: str = dspy.InputField(desc="User's score (1-5)")
+    user_score: str = dspy.InputField(desc="User's score (1-10)")
 
     issues_identified: str = dspy.OutputField(
         desc="List of specific issues found in the diagram based on the analysis"
@@ -149,7 +149,7 @@ class ConversationalRefiner(dspy.Module):
             current_prompt: Most recent prompt
             conversation_history: JSON of previous turns
             current_feedback: User's current feedback
-            current_score: User's current score (1-5)
+            current_score: User's current score (1-10)
             visual_analysis: AI analysis of current image
 
         Returns:
@@ -202,14 +202,14 @@ class ConversationalRefiner(dspy.Module):
             original_prompt: Initial prompt
             current_prompt: Latest prompt
             feedback: User feedback
-            score: User score (1-5)
+            score: User score (1-10)
             visual_analysis: Optional visual analysis
 
         Returns:
             Tuple of (refined_prompt, reasoning, expected_improvement)
         """
         # If no feedback provided and score is low, try to analyze issues
-        if not feedback.strip() and score < 4:
+        if not feedback.strip() and score < 8:
             if visual_analysis:
                 analysis = self.analyze_issues(
                     prompt_text=current_prompt,

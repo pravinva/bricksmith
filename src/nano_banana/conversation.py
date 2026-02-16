@@ -5,6 +5,7 @@ generate -> evaluate -> feedback -> refine loop.
 """
 
 import json
+import shutil
 import time
 import uuid
 from datetime import datetime
@@ -30,6 +31,13 @@ from .models import (
 )
 from .prompts import PromptBuilder
 
+# Try to import native MCP client for search functionality
+try:
+    from . import mcp_client as native_mcp
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+
 
 # Preset generation settings for quick access
 GENERATION_PRESETS = {
@@ -41,6 +49,151 @@ GENERATION_PRESETS = {
 }
 
 console = Console()
+
+# Optional readline for input history (UP/DOWN); not available on Windows
+try:
+    import readline as _readline  # noqa: F401
+except ImportError:
+    _readline = None
+
+# Global history file for chat feedback (persists across sessions)
+_CHAT_HISTORY_PATH = Path.home() / ".config" / "nano_banana" / "chat_history"
+
+
+def _prompt_with_history(prompt_label: str, default: str = "") -> str:
+    """Prompt for input with readline history (UP/DOWN) when available.
+
+    Uses ~/.config/nano_banana/chat_history. Falls back to Rich Prompt.ask
+    when readline is not available (e.g. Windows).
+
+    Args:
+        prompt_label: Label for the prompt (e.g. "Feedback", "Retry?")
+        default: Default value when input is empty.
+
+    Returns:
+        User input string, or default if empty.
+    """
+    if _readline is not None:
+        _CHAT_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            _readline.read_history_file(str(_CHAT_HISTORY_PATH))
+        except FileNotFoundError:
+            pass
+        try:
+            _readline.set_history_length(500)
+        except (AttributeError, OSError):
+            pass
+        console.print(f"[bold]{prompt_label}[/bold] ", end="")
+        try:
+            line = input().strip() or default
+        except EOFError:
+            line = default
+        if line:
+            try:
+                _readline.add_history(line)
+                _readline.write_history_file(str(_CHAT_HISTORY_PATH))
+            except OSError:
+                pass
+        return line
+    return Prompt.ask(f"[bold]{prompt_label}[/bold]", default=default)
+
+
+def _ask_score_1_to_10(default: int = 6) -> int:
+    """Prompt for a score 1-10, using first line only so pasted newlines don't crash.
+
+    Handles accidental newlines (e.g. paste with trailing newline or multi-line).
+    """
+    valid = set(range(1, 11))
+    while True:
+        raw = _prompt_with_history("Score (1-10)", str(default))
+        first_line = raw.splitlines()[0].strip() if raw else ""
+        value = first_line or str(default)
+        try:
+            score = int(value)
+            if score in valid:
+                return score
+        except ValueError:
+            pass
+        console.print("[yellow]Please enter a number from 1 to 10.[/yellow]")
+
+
+def show_chat_help() -> None:
+    """Display comprehensive help for all available chat session commands."""
+    help_table = Table(
+        title="Chat Session Commands",
+        show_header=True,
+        header_style="bold cyan",
+        border_style="dim",
+        title_style="bold",
+        pad_edge=True,
+    )
+    help_table.add_column("Command", style="cyan", width=32)
+    help_table.add_column("Description", style="white")
+
+    # Feedback & flow
+    help_table.add_row("[bold]Feedback & Flow[/bold]", "")
+    help_table.add_row("<text>", "Provide feedback to refine the prompt via DSPy")
+    help_table.add_row("done / end", "Finish session and show summary")
+    help_table.add_row("help  /  ?  /  h", "Show this help message")
+    help_table.add_row("", "")
+
+    # Selected folder & rename
+    help_table.add_row("[bold]Selected folder & rename[/bold]", "")
+    help_table.add_row("select  /  s", "Copy current image to outputs/selected (or --selected-dir)")
+    help_table.add_row("best", "Copy best-scoring image so far to selected folder")
+    help_table.add_row("rename <name>  /  folder <name>", "Rename session folder (e.g. folder my-diagram)")
+    help_table.add_row("", "")
+
+    # Search
+    help_table.add_row("[bold]Search (via MCP/Glean)[/bold]", "")
+    help_table.add_row("search <query>  /  glean <query>", "Search internal knowledge base (Glean)")
+    help_table.add_row("", "")
+
+    # Variants (same prompt, N images, pick best)
+    help_table.add_row("[bold]Variants (run same prompt N times, pick best)[/bold]", "")
+    help_table.add_row("v 3  /  variants 3", "Generate 3 images from current prompt, then pick one (2-8)")
+    help_table.add_row("v 3 r creative", "Same, but use a retry preset (e.g. creative, wild) for those variants")
+    help_table.add_row("[bold]Joint (feedback + settings)[/bold]", "")
+    help_table.add_row("<text> r creative", "Refine prompt with your text, then generate with that preset")
+    help_table.add_row("<text> v 3", "Refine prompt with your text, then generate 3 variants")
+    help_table.add_row("", "[dim]One command per line; combine only as 'v N r <preset>'[/dim]")
+    help_table.add_row("", "")
+
+    # Retry commands
+    help_table.add_row("[bold]Retry (same prompt, different settings)[/bold]", "")
+    help_table.add_row("r", "Retry with slight random temperature jitter")
+    help_table.add_row("r 0.5", "Retry with specific temperature (0.5)")
+    help_table.add_row("r t=0.5 p=0.9", "Retry with specific temp and top_p")
+    help_table.add_row("r k=30", "Retry with specific top_k")
+    help_table.add_row("r pp=0.3 fp=0.3", "Retry with presence/frequency penalty")
+    help_table.add_row("r size=4K", "Retry at different resolution (1K / 2K / 4K)")
+    help_table.add_row("r ar=1:1", "Retry with different aspect ratio")
+    help_table.add_row("r size=4K ar=1:1 t=0.5", "Combine multiple settings")
+    help_table.add_row("", "")
+
+    # Presets
+    help_table.add_row("[bold]Retry Presets[/bold]", "")
+    help_table.add_row("r deterministic", "t=0.0, p=1.0, k=1  (most consistent)")
+    help_table.add_row("r conservative", "t=0.4, p=0.9, k=30")
+    help_table.add_row("r balanced", "t=0.8, p=0.95, k=50 (default)")
+    help_table.add_row("r creative", "t=1.2, p=0.98, k=80")
+    help_table.add_row("r wild", "t=1.8, p=1.0, k=0   (most varied)")
+    help_table.add_row("", "")
+
+    # Reference image
+    help_table.add_row("[bold]Reference Image[/bold]", "")
+    help_table.add_row("<image path>", "Use a .png/.jpg file as style reference for comparison")
+    help_table.add_row("", "")
+
+    # Resolution & aspect ratio quick reference
+    help_table.add_row("[bold]Resolution & Aspect Ratio Values[/bold]", "")
+    help_table.add_row("size: 1K / 2K / 4K", "Image resolution (higher = sharper, slower)")
+    help_table.add_row("ar: 1:1 / 4:3 / 16:9 / 9:16 / 3:4 / 21:9", "Aspect ratio options")
+
+    console.print()
+    console.print(help_table)
+    console.print()
+
 
 # Design principles evaluation prompt for automatic refinement
 REFERENCE_IMAGE_ANALYSIS_PROMPT = """Analyze this reference architecture diagram and extract its design patterns and style characteristics.
@@ -67,37 +220,37 @@ ARCHITECTURE_JUDGE_BASE = """You are an expert Architecture Diagram Judge evalua
 Your role is to provide ACTIONABLE feedback that will help an AI system generate better diagrams.
 Be specific, concrete, and constructive. Avoid vague feedback like "improve layout" - instead say exactly what to change.
 
-CORE EVALUATION CRITERIA (score each 1-5):
+CORE EVALUATION CRITERIA (score each 1-10):
 
 1. **Information Hierarchy** - Can viewers grasp the key message in 5 seconds?
-   - 5: Clear focal point, obvious data flow, priority components stand out
-   - 3: Main message visible but requires study
-   - 1: Cluttered, no clear entry point, viewers don't know where to look
+   - 10: Clear focal point, obvious data flow, priority components stand out
+   - 6: Main message visible but requires study
+   - 2: Cluttered, no clear entry point, viewers don't know where to look
 
 2. **Technical Accuracy** - Does the diagram correctly represent architecture patterns?
-   - 5: Correct terminology, logical connections, proper component relationships
-   - 3: Minor inaccuracies that don't mislead
-   - 1: Misleading flows, incorrect relationships, wrong terminology
+   - 10: Correct terminology, logical connections, proper component relationships
+   - 6: Minor inaccuracies that don't mislead
+   - 2: Misleading flows, incorrect relationships, wrong terminology
 
 3. **Logo Fidelity** - Are provided logos used correctly?
-   - 5: All logos crisp, unmodified, appropriately sized (40-60px), no filenames shown
-   - 3: Minor sizing issues or slight quality loss
-   - 1: Logos distorted, replaced with text, or filenames visible
+   - 10: All logos crisp, unmodified, appropriately sized (40-60px), no filenames shown
+   - 6: Minor sizing issues or slight quality loss
+   - 2: Logos distorted, replaced with text, or filenames visible
 
 4. **Visual Clarity** - Is the diagram clean and professional?
-   - 5: Excellent whitespace, clear groupings, balanced composition
-   - 3: Acceptable but some crowding or imbalance
-   - 1: Cluttered, overlapping elements, chaotic layout
+   - 10: Excellent whitespace, clear groupings, balanced composition
+   - 6: Acceptable but some crowding or imbalance
+   - 2: Cluttered, overlapping elements, chaotic layout
 
 5. **Data Flow Legibility** - Are connections and relationships clear?
-   - 5: Clear directional arrows, logical routing, well-labeled connections
-   - 3: Flow mostly understandable with some ambiguity
-   - 1: Confusing arrows, crossing lines, unclear relationships
+   - 10: Clear directional arrows, logical routing, well-labeled connections
+   - 6: Flow mostly understandable with some ambiguity
+   - 2: Confusing arrows, crossing lines, unclear relationships
 
 6. **Text Readability** - Is all text legible and well-formatted?
-   - 5: Consistent fonts, good contrast, readable at presentation scale
-   - 3: Some text hard to read or inconsistent
-   - 1: Text illegible, overlapping, or poorly placed"""
+   - 10: Consistent fonts, good contrast, readable at presentation scale
+   - 6: Some text hard to read or inconsistent
+   - 2: Text illegible, overlapping, or poorly placed"""
 
 # Persona-specific evaluation addendums
 PERSONA_ARCHITECT = """
@@ -163,14 +316,14 @@ RESPONSE FORMAT (use exactly this JSON structure):
 ```json
 {{
   "scores": {{
-    "information_hierarchy": <1-5>,
-    "technical_accuracy": <1-5>,
-    "logo_fidelity": <1-5>,
-    "visual_clarity": <1-5>,
-    "data_flow_legibility": <1-5>,
-    "text_readability": <1-5>
+    "information_hierarchy": <1-10>,
+    "technical_accuracy": <1-10>,
+    "logo_fidelity": <1-10>,
+    "visual_clarity": <1-10>,
+    "data_flow_legibility": <1-10>,
+    "text_readability": <1-10>
   }},
-  "overall_score": <1-5 weighted average>,
+  "overall_score": <1-10 weighted average>,
   "strengths": [
     "specific strength 1",
     "specific strength 2"
@@ -218,44 +371,44 @@ REFERENCE_COMPARISON_PROMPT = """You are an expert architecture diagram reviewer
 REFERENCE IMAGE STYLE:
 {reference_style}
 
-EVALUATION CRITERIA (score each 1-5 based on how well it matches the reference):
+EVALUATION CRITERIA (score each 1-10 based on how well it matches the reference):
 
 1. **Layout Match** - Does it follow the same flow direction and component arrangement?
-   - 5: Excellent match to reference layout
-   - 3: Partial match, some differences
-   - 1: Completely different layout
+   - 10: Excellent match to reference layout
+   - 6: Partial match, some differences
+   - 2: Completely different layout
 
 2. **Visual Style Match** - Does it use similar colors, backgrounds, and styling?
-   - 5: Consistent with reference style
-   - 3: Some style elements match
-   - 1: Very different visual style
+   - 10: Consistent with reference style
+   - 6: Some style elements match
+   - 2: Very different visual style
 
 3. **Typography Match** - Are labels and text styled similarly?
-   - 5: Text treatment matches reference
-   - 3: Partial match
-   - 1: Very different text styling
+   - 10: Text treatment matches reference
+   - 6: Partial match
+   - 2: Very different text styling
 
 4. **Logo Treatment** - Are logos sized and positioned similarly?
-   - 5: Logo treatment matches reference
-   - 3: Some differences in logo handling
-   - 1: Very different logo treatment
+   - 10: Logo treatment matches reference
+   - 6: Some differences in logo handling
+   - 2: Very different logo treatment
 
 5. **Overall Quality** - Is it professional and presentation-ready?
-   - 5: Excellent quality, matches reference standard
-   - 3: Acceptable quality
-   - 1: Poor quality
+   - 10: Excellent quality, matches reference standard
+   - 6: Acceptable quality
+   - 2: Poor quality
 
 RESPONSE FORMAT (use exactly this JSON structure):
 ```json
 {{
   "scores": {{
-    "layout_match": <1-5>,
-    "visual_style_match": <1-5>,
-    "typography_match": <1-5>,
-    "logo_treatment": <1-5>,
-    "overall_quality": <1-5>
+    "layout_match": <1-10>,
+    "visual_style_match": <1-10>,
+    "typography_match": <1-10>,
+    "logo_treatment": <1-10>,
+    "overall_quality": <1-10>
   }},
-  "overall_score": <1-5 weighted average>,
+  "overall_score": <1-10 weighted average>,
   "differences": [
     "specific difference from reference 1",
     "specific difference from reference 2"
@@ -281,7 +434,7 @@ class ConversationChatbot:
     Workflow:
     1. User provides initial prompt or diagram spec
     2. System generates diagram
-    3. User scores result (1-5)
+    3. User scores result (1-10)
     4. User provides feedback
     5. DSPy refines prompt based on conversation history
     6. Repeat until satisfied
@@ -412,6 +565,16 @@ class ConversationChatbot:
             import re
             safe_name = re.sub(r'[^\w\-_]', '_', self.conv_config.session_name)
             session_id = safe_name[:50]  # Limit length
+
+            # If directory already exists, append a short random suffix to avoid
+            # collisions when multiple sessions share the same prompt filename.
+            candidate_dir = (
+                Path("outputs")
+                / datetime.now().strftime("%Y-%m-%d")
+                / f"chat-{session_id}"
+            )
+            if candidate_dir.exists():
+                session_id = f"{session_id}-{str(uuid.uuid4())[:6]}"
         else:
             session_id = str(uuid.uuid4())[:8]
 
@@ -429,13 +592,20 @@ class ConversationChatbot:
         prompt: str,
         settings: Optional[GenerationSettings] = None,
         is_retry: bool = False,
+        num_variants_override: Optional[int] = None,
     ) -> ConversationTurn:
         """Run a single generation iteration.
+
+        Generates one or more image variants (controlled by conv_config.num_variants
+        or num_variants_override when set, e.g. from in-chat 'v 3' command).
+        When multiple variants are generated, the user selects the best one before
+        providing feedback.
 
         Args:
             prompt: The prompt to use for generation
             settings: Optional generation settings (uses config defaults if not provided)
             is_retry: Whether this is a retry of the same prompt with different settings
+            num_variants_override: If set (2-8), generate this many variants for this run only
 
         Returns:
             ConversationTurn with generation results
@@ -444,6 +614,11 @@ class ConversationChatbot:
             raise ValueError("No active session. Call start_session() first.")
 
         iteration = len(self._session.turns) + 1
+        num_variants = (
+            min(8, max(2, num_variants_override))
+            if num_variants_override is not None
+            else self.conv_config.num_variants
+        )
 
         # Use provided settings or fall back to config defaults
         gen_settings = settings or self.conv_config.get_generation_settings()
@@ -468,6 +643,9 @@ class ConversationChatbot:
                 "top_k": gen_settings.top_k if gen_settings.top_k > 0 else None,
                 "presence_penalty": gen_settings.presence_penalty,
                 "frequency_penalty": gen_settings.frequency_penalty,
+                "image_size": gen_settings.image_size,
+                "aspect_ratio": gen_settings.aspect_ratio,
+                "num_variants": num_variants,
                 "is_retry": is_retry,
             })
 
@@ -475,38 +653,101 @@ class ConversationChatbot:
             self.mlflow_tracker.log_prompt(prompt, "prompt.txt")
 
             console.print(f"\n[bold cyan]═══ Iteration {iteration}{retry_suffix} ═══[/bold cyan]")
-            console.print(f"[yellow]Generating diagram...[/yellow] [dim]({gen_settings.summary()})[/dim]")
-
-            # Generate image
-            start_time = time.time()
-            image_bytes, response_text, metadata = self.gemini_client.generate_image(
-                prompt=prompt,
-                logo_parts=self._logo_parts,
-                temperature=gen_settings.temperature,
-                top_p=gen_settings.top_p,
-                top_k=gen_settings.top_k if gen_settings.top_k > 0 else None,
-                presence_penalty=gen_settings.presence_penalty,
-                frequency_penalty=gen_settings.frequency_penalty,
+            variants_label = f" ({num_variants} variants)" if num_variants > 1 else ""
+            console.print(
+                f"[yellow]Generating diagram{variants_label}...[/yellow] "
+                f"[dim]({gen_settings.summary()})[/dim]"
             )
-            generation_time = time.time() - start_time
 
-            # Save image and prompt
-            output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"chat-{self._session.session_id}"
+            # Output directory for this session
+            output_dir = (
+                Path("outputs")
+                / datetime.now().strftime("%Y-%m-%d")
+                / f"chat-{self._session.session_id}"
+            )
             output_dir.mkdir(parents=True, exist_ok=True)
-            image_path = output_dir / f"iteration_{iteration}.png"
-            prompt_path = output_dir / f"iteration_{iteration}_prompt.txt"
 
-            with open(image_path, "wb") as f:
-                f.write(image_bytes)
+            # Save prompt (shared across all variants)
+            prompt_path = output_dir / f"iteration_{iteration}_prompt.txt"
             with open(prompt_path, "w") as f:
                 f.write(prompt)
 
+            # Generate variant(s)
+            start_time = time.time()
+            variant_paths: list[Path] = []
+
+            for v in range(num_variants):
+                if num_variants > 1:
+                    console.print(f"  [dim]Generating variant {v + 1}/{num_variants}...[/dim]")
+
+                image_bytes, response_text, metadata = self.gemini_client.generate_image(
+                    prompt=prompt,
+                    logo_parts=self._logo_parts,
+                    temperature=gen_settings.temperature,
+                    top_p=gen_settings.top_p,
+                    top_k=gen_settings.top_k if gen_settings.top_k > 0 else None,
+                    presence_penalty=gen_settings.presence_penalty,
+                    frequency_penalty=gen_settings.frequency_penalty,
+                    image_size=gen_settings.image_size,
+                    aspect_ratio=gen_settings.aspect_ratio,
+                )
+
+                # Name variants: iteration_1.png for single, iteration_1_v1.png for multi
+                if num_variants == 1:
+                    image_path = output_dir / f"iteration_{iteration}.png"
+                else:
+                    image_path = output_dir / f"iteration_{iteration}_v{v + 1}.png"
+
+                with open(image_path, "wb") as f:
+                    f.write(image_bytes)
+
+                variant_paths.append(image_path)
+                console.print(f"  [green]Variant {v + 1}:[/green] {image_path}")
+
+            generation_time = time.time() - start_time
+
+            # Select variant if multiple were generated
+            selected_variant: Optional[int] = None
+            if num_variants > 1:
+                console.print(f"\n[green]All {num_variants} variants generated in {generation_time:.1f}s[/green]")
+                console.print("[bold]Review the variants and select the best one:[/bold]")
+                for i, vp in enumerate(variant_paths, 1):
+                    console.print(f"  [cyan]{i}.[/cyan] {vp}")
+
+                if self.conv_config.auto_refine:
+                    # Auto-select: use LLM to compare all variants
+                    selected_variant = self._auto_select_variant(variant_paths, prompt)
+                else:
+                    # Manual selection
+                    choices = [str(i) for i in range(1, num_variants + 1)]
+                    selection = IntPrompt.ask(
+                        f"[bold]Select variant (1-{num_variants})[/bold]",
+                        default=1,
+                        choices=choices,
+                    )
+                    selected_variant = selection
+
+                selected_path = variant_paths[selected_variant - 1]
+                console.print(f"[bold green]Selected variant {selected_variant}:[/bold green] {selected_path}")
+
+                # Copy selected variant as the canonical iteration image
+                canonical_path = output_dir / f"iteration_{iteration}.png"
+                shutil.copy2(selected_path, canonical_path)
+                image_path = canonical_path
+            else:
+                image_path = variant_paths[0]
+
             # Log to MLflow
             self.mlflow_tracker.log_output_image(image_path)
-            self.mlflow_tracker.log_metrics({
+            log_metrics = {
                 "generation_time_seconds": generation_time,
                 "iteration": iteration,
-            })
+            }
+            if num_variants > 1:
+                log_metrics["num_variants"] = num_variants
+                if selected_variant is not None:
+                    log_metrics["selected_variant"] = selected_variant
+            self.mlflow_tracker.log_metrics(log_metrics)
 
             console.print(f"[green]Generated in {generation_time:.1f}s[/green]")
             console.print(f"[bold]Image:[/bold] {image_path}")
@@ -518,6 +759,8 @@ class ConversationChatbot:
                 prompt_used=prompt,
                 run_id=run_id,
                 image_path=image_path,
+                variant_paths=variant_paths,
+                selected_variant=selected_variant,
                 generation_time_seconds=generation_time,
             )
 
@@ -541,6 +784,49 @@ class ConversationChatbot:
         except Exception:
             self.mlflow_tracker.end_run("FAILED")
             raise
+
+    def _auto_select_variant(self, variant_paths: list[Path], prompt: str) -> int:
+        """Use LLM to select the best variant from multiple generated images.
+
+        Args:
+            variant_paths: Paths to all variant images
+            prompt: The generation prompt (for context)
+
+        Returns:
+            1-based index of the best variant
+        """
+        try:
+            comparison_prompt = (
+                f"You are evaluating {len(variant_paths)} variants of the same architecture "
+                f"diagram generated from the same prompt. Select the BEST variant based on:\n"
+                f"1. Logo fidelity (logos are crisp, unmodified, correctly placed)\n"
+                f"2. Layout clarity (clean, professional, balanced composition)\n"
+                f"3. Text readability (all text is legible)\n"
+                f"4. Data flow clarity (arrows and connections are clear)\n\n"
+                f"Respond with ONLY a JSON object: {{\"best_variant\": <number 1-{len(variant_paths)}>, "
+                f"\"reason\": \"brief explanation\"}}"
+            )
+
+            result = self.gemini_client.analyze_images(
+                [str(p) for p in variant_paths],
+                comparison_prompt,
+                temperature=0.2,
+            )
+
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', result)
+            if json_match:
+                data = json.loads(json_match.group())
+                best = int(data.get("best_variant", 1))
+                reason = data.get("reason", "")
+                if 1 <= best <= len(variant_paths):
+                    console.print(f"[cyan]LLM selected variant {best}: {reason}[/cyan]")
+                    return best
+
+        except Exception as e:
+            console.print(f"[yellow]Auto-selection failed ({e}), defaulting to variant 1[/yellow]")
+
+        return 1
 
     def _parse_retry_command(self, command: str) -> Optional[GenerationSettings]:
         """Parse a retry command and return generation settings.
@@ -584,6 +870,8 @@ class ConversationChatbot:
                 top_k=self.conv_config.top_k,
                 presence_penalty=self.conv_config.presence_penalty,
                 frequency_penalty=self.conv_config.frequency_penalty,
+                image_size=self.conv_config.image_size,
+                aspect_ratio=self.conv_config.aspect_ratio,
             )
 
         # Check for preset name
@@ -597,7 +885,13 @@ class ConversationChatbot:
             top_k=self.conv_config.top_k,
             presence_penalty=self.conv_config.presence_penalty,
             frequency_penalty=self.conv_config.frequency_penalty,
+            image_size=self.conv_config.image_size,
+            aspect_ratio=self.conv_config.aspect_ratio,
         )
+
+        def clamp_temperature(t: float) -> float:
+            """Clamp to Gemini API range [0.0, 2.0]."""
+            return max(0.0, min(2.0, t))
 
         parts = args.split()
         for part in parts:
@@ -605,7 +899,7 @@ class ConversationChatbot:
                 key, value = part.split('=', 1)
                 try:
                     if key in ('t', 'temp', 'temperature'):
-                        settings.temperature = float(value)
+                        settings.temperature = clamp_temperature(float(value))
                     elif key in ('p', 'top_p'):
                         settings.top_p = float(value)
                     elif key in ('k', 'top_k'):
@@ -614,25 +908,170 @@ class ConversationChatbot:
                         settings.presence_penalty = float(value)
                     elif key in ('fp', 'frequency', 'frequency_penalty'):
                         settings.frequency_penalty = float(value)
+                    elif key in ('size', 'image_size'):
+                        if value.upper() in ('1K', '2K', '4K'):
+                            settings.image_size = value.upper()
+                    elif key in ('ar', 'aspect_ratio', 'ratio'):
+                        settings.aspect_ratio = value
                 except ValueError:
                     pass
             else:
                 # Try as bare temperature value
                 try:
-                    settings.temperature = float(part)
+                    settings.temperature = clamp_temperature(float(part))
                 except ValueError:
                     pass
 
         return settings
 
-    def collect_feedback(self, turn: ConversationTurn) -> tuple[int, str, Optional[GenerationSettings]]:
+    def _parse_variants_command(self, command: str) -> Optional[int]:
+        """Parse 'v 3' or 'variants 3' to request N variants for the current prompt.
+
+        Returns:
+            N (2-8) if valid variants command, None otherwise.
+        """
+        cmd = command.strip().lower()
+        if cmd.startswith("variants "):
+            rest = cmd[8:].strip()
+        elif cmd.startswith("v ") and len(cmd) > 2:
+            rest = cmd[2:].strip()
+        else:
+            return None
+        if not rest:
+            return None
+        try:
+            n = int(rest.split()[0])
+            if 2 <= n <= 8:
+                return n
+        except (ValueError, IndexError):
+            pass
+        return None
+
+    def _parse_retry_from_variants_line(self, command: str) -> Optional[GenerationSettings]:
+        """Parse retry preset from the remainder of a variants line, e.g. 'v 3 r creative' -> creative preset.
+
+        Returns:
+            GenerationSettings if the line has 'r <preset>' or 'retry <preset>' after the number, else None.
+        """
+        cmd = command.strip().lower()
+        if cmd.startswith("variants "):
+            rest = cmd[8:].strip()
+        elif cmd.startswith("v "):
+            rest = cmd[2:].strip()
+        else:
+            return None
+        parts = rest.split(maxsplit=1)
+        if len(parts) < 2:
+            return None
+        after_number = parts[1].strip()
+        if after_number.startswith("r ") or after_number.startswith("retry"):
+            return self._parse_retry_command(after_number)
+        return None
+
+    def _parse_joint_feedback(
+        self, feedback: str
+    ) -> Optional[tuple[str, Optional[GenerationSettings], Optional[int]]]:
+        """Parse feedback that combines written text with a trailing retry or variant command.
+
+        E.g. "Make the logo bigger r creative" or "Add data-mesh labels v 3 r balanced".
+        Order does not matter for the final result: we refine the prompt with the written
+        part, then apply the settings (temperature/variants) to the next generation.
+
+        Returns:
+            (written_part, retry_settings, num_variants_override) if a trailing command
+            was found and written part is non-empty, else None.
+        """
+        line = feedback.strip()
+        if len(line) < 4:
+            return None
+        # Try variants first (suffix may be "v 3 r creative"); then retry-only.
+        for i in range(len(line) - 1, 0, -1):
+            suffix = line[i:].strip()
+            n = self._parse_variants_command(suffix)
+            if n is not None:
+                written = line[:i].strip()
+                if len(written) >= 2:
+                    retry = self._parse_retry_from_variants_line(suffix)
+                    return (written, retry, n)
+                break
+        for i in range(len(line) - 1, 0, -1):
+            suffix = line[i:].strip()
+            if self._parse_retry_command(suffix) is not None:
+                written = line[:i].strip()
+                if len(written) >= 2:
+                    return (written, self._parse_retry_command(suffix), None)
+                break
+        return None
+
+    def _get_selected_dir(self) -> Path:
+        """Return the directory for selected/best images (create if needed)."""
+        selected = self.conv_config.selected_output_dir or Path("outputs/selected")
+        selected.mkdir(parents=True, exist_ok=True)
+        return selected
+
+    def _get_current_output_dir(self) -> Path:
+        """Return the current session output directory."""
+        try:
+            created_date = datetime.fromisoformat(
+                self._session.created_at
+            ).strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            created_date = datetime.now().strftime("%Y-%m-%d")
+        return Path("outputs") / created_date / f"chat-{self._session.session_id}"
+
+    def _rename_session_folder(self, new_name: str) -> None:
+        """Rename the session output folder and update session state.
+
+        Args:
+            new_name: New folder name (will be sanitized; used as chat-<name>).
+        """
+        import re
+
+        old_dir = self._get_current_output_dir()
+        if not old_dir.exists():
+            console.print("[yellow]Session folder not found on disk.[/yellow]")
+            return
+
+        safe = re.sub(r"[^\w\-_]", "_", new_name.strip())[:50] or "session"
+        new_session_id = safe
+        try:
+            created_date = datetime.fromisoformat(
+                self._session.created_at
+            ).strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            created_date = datetime.now().strftime("%Y-%m-%d")
+
+        new_dir = Path("outputs") / created_date / f"chat-{new_session_id}"
+        if new_dir == old_dir:
+            console.print("[dim]Name unchanged.[/dim]")
+            return
+        if new_dir.exists():
+            new_session_id = f"{safe}-{str(uuid.uuid4())[:6]}"
+            new_dir = Path("outputs") / created_date / f"chat-{new_session_id}"
+
+        shutil.move(str(old_dir), str(new_dir))
+
+        self._session.session_id = new_session_id
+        self.conv_config.session_name = safe
+
+        for t in self._session.turns:
+            t.image_path = new_dir / t.image_path.name
+            t.variant_paths = [new_dir / vp.name for vp in t.variant_paths]
+        if self._session.diagram_spec_path and self._session.diagram_spec_path.exists():
+            self._session.diagram_spec_path = new_dir / self._session.diagram_spec_path.name
+
+        console.print(f"[green]Folder renamed to: {new_dir}[/green]")
+
+    def collect_feedback(
+        self, turn: ConversationTurn
+    ) -> tuple[int, str, Optional[GenerationSettings], Optional[int]]:
         """Collect user feedback for a turn.
 
         Args:
             turn: The turn to collect feedback for
 
         Returns:
-            Tuple of (score, feedback_text, retry_settings or None)
+            Tuple of (score, feedback_text, retry_settings or None, num_variants_override or None)
         """
         console.print("\n[bold]Please review the image:[/bold]")
         console.print(f"  [cyan]{turn.image_path}[/cyan]")
@@ -646,59 +1085,169 @@ class ConversationChatbot:
             console.print(Panel(analysis, title="Visual Analysis", border_style="dim"))
 
         console.print()
-
-        # Get score
-        score = IntPrompt.ask(
-            "[bold]Score (1-5)[/bold]",
-            default=3,
-            choices=["1", "2", "3", "4", "5"],
+        console.print(
+            "[dim]Enter feedback, 's' to copy to selected folder, 'done' or 'end' to finish, "
+            "'help' for all commands[/dim]"
         )
 
-        # Show retry hint
-        console.print("[dim]Options:[/dim]")
-        console.print("[dim]  • Text feedback → refine prompt[/dim]")
-        console.print("[dim]  • 'r' or 'r 0.5' → retry same prompt with different temp[/dim]")
-        console.print("[dim]  • 'r creative' → retry with creative preset[/dim]")
-        console.print("[dim]  • Image path → use as style reference[/dim]")
-        console.print("[dim]  • 'done' → finish session[/dim]")
+        # Collect feedback (loop for help, select, best, rename)
+        while True:
+            feedback = _prompt_with_history("Feedback", "")
 
-        feedback = Prompt.ask(
-            "[bold]Feedback[/bold]",
-            default="",
-        )
+            # Check for help command
+            if feedback.strip().lower() in ("help", "?", "h"):
+                show_chat_help()
+                continue
 
-        # Check for retry command
-        retry_settings = self._parse_retry_command(feedback)
-        if retry_settings:
-            console.print(f"[cyan]Retrying with settings: {retry_settings.summary()}[/cyan]")
+            # Check for 'done' / 'end' — no score needed
+            if feedback.strip().lower() in ("done", "end"):
+                turn.score = 10
+                turn.feedback = feedback
+                return 10, feedback, None, None
+
+            # Copy current image to selected folder
+            if feedback.strip().lower() in ("select", "s"):
+                selected_dir = self._get_selected_dir()
+                dest = selected_dir / f"{self._session.session_id}_iter_{turn.iteration}.png"
+                shutil.copy2(turn.image_path, dest)
+                console.print(f"[green]Copied to selected folder: {dest}[/green]")
+                continue
+
+            # Copy best-scoring image so far to selected folder
+            if feedback.strip().lower() == "best":
+                best_turn = self._session.get_best_turn()
+                if best_turn:
+                    selected_dir = self._get_selected_dir()
+                    dest = (
+                        selected_dir
+                        / f"{self._session.session_id}_iter_{best_turn.iteration}.png"
+                    )
+                    shutil.copy2(best_turn.image_path, dest)
+                    console.print(
+                        f"[green]Best (iter {best_turn.iteration}, score {best_turn.score}) "
+                        f"copied to: {dest}[/green]"
+                    )
+                else:
+                    console.print("[yellow]No scored turn yet. Score this one first.[/yellow]")
+                continue
+
+            # Rename session folder
+            rename_cmd = feedback.strip().lower()
+            if rename_cmd.startswith("rename ") or rename_cmd.startswith("folder ") or rename_cmd.startswith("name "):
+                for prefix in ("rename ", "folder ", "name "):
+                    if rename_cmd.startswith(prefix):
+                        new_name = feedback.strip()[len(prefix):].strip()
+                        break
+                else:
+                    new_name = ""
+                if new_name:
+                    self._rename_session_folder(new_name)
+                else:
+                    console.print("[yellow]Usage: rename <name> or folder <name>[/yellow]")
+                continue
+
+            # Search Glean for reference material
+            search_cmd = feedback.strip().lower()
+            if search_cmd.startswith("search ") or search_cmd.startswith("glean "):
+                if not MCP_AVAILABLE:
+                    console.print("[yellow]MCP client not available. Install mcp package.[/yellow]")
+                    continue
+                for prefix in ("search ", "glean "):
+                    if search_cmd.startswith(prefix):
+                        query = feedback.strip()[len(prefix):].strip()
+                        break
+                else:
+                    query = ""
+                if query:
+                    console.print(f"[dim]Searching Glean for '{query}'...[/dim]")
+                    results = native_mcp.search_glean(query, page_size=5)
+                    if results:
+                        console.print(f"\n[bold]Found {len(results)} results:[/bold]")
+                        for i, r in enumerate(results, 1):
+                            title = r.get("title", "Untitled")[:60]
+                            url = r.get("url", "")
+                            console.print(f"  {i}. {title}")
+                            if url:
+                                console.print(f"     [dim]{url}[/dim]")
+                    else:
+                        console.print("[yellow]No results found[/yellow]")
+                else:
+                    console.print("[yellow]Usage: search <query> or glean <query>[/yellow]")
+                continue
+
+            # Check for joint feedback: written text + trailing " r preset" or " v N" (or both)
+            # Refine prompt with the written part, then apply settings to the next generation
+            joint = self._parse_joint_feedback(feedback)
+            if joint is not None:
+                written_part, retry_for_joint, variants_for_joint = joint
+                if retry_for_joint:
+                    console.print(
+                        f"[cyan]Refining prompt with your feedback, then generating with "
+                        f"{retry_for_joint.summary()}...[/cyan]"
+                    )
+                if variants_for_joint:
+                    console.print(
+                        f"[cyan]Refining prompt with your feedback, then generating "
+                        f"{variants_for_joint} variants...[/cyan]"
+                    )
+                if not retry_for_joint and not variants_for_joint:
+                    continue  # shouldn't happen
+                score = _ask_score_1_to_10(default=6)
+                turn.score = score
+                turn.feedback = written_part
+                return score, written_part, retry_for_joint, variants_for_joint
+
+            # Check for variants command — re-run same prompt with N variants
+            num_variants_override = self._parse_variants_command(feedback)
+            if num_variants_override is not None:
+                # Optional: parse retry preset from same line, e.g. "v 3 r creative"
+                retry_for_variants = self._parse_retry_from_variants_line(feedback)
+                if retry_for_variants:
+                    console.print(
+                        f"[cyan]Generating {num_variants_override} variants with "
+                        f"{retry_for_variants.summary()}, then you pick the best one...[/cyan]"
+                    )
+                else:
+                    console.print(
+                        f"[cyan]Generating {num_variants_override} variants from same prompt, "
+                        "then you pick the best one...[/cyan]"
+                    )
+                turn.score = 6
+                turn.feedback = f"[VARIANTS] {feedback}"
+                return 6, feedback, retry_for_variants, num_variants_override
+
+            # Check for retry command — no score needed
+            retry_settings = self._parse_retry_command(feedback)
+            if retry_settings:
+                console.print(f"[cyan]Retrying with settings: {retry_settings.summary()}[/cyan]")
+                turn.score = 6
+                turn.feedback = f"[RETRY] {feedback}"
+                return 6, feedback, retry_settings, None
+
+            # Check if feedback is a reference image path
+            # Only try to parse as path if it's short enough to be a valid filename
+            if feedback and len(feedback.strip()) < 256:
+                try:
+                    feedback_path = Path(feedback.strip())
+                    if feedback_path.exists() and feedback_path.suffix.lower() in [
+                        ".png", ".jpg", ".jpeg", ".webp", ".gif"
+                    ]:
+                        console.print(f"[cyan]Using as reference image: {feedback_path}[/cyan]")
+                        self.analyze_reference_image(feedback_path)
+                        self.conv_config.reference_image = feedback_path
+                        ref_score, ref_feedback = self._evaluate_against_reference(turn)
+                        turn.score = ref_score
+                        turn.feedback = ref_feedback
+                        return ref_score, ref_feedback, None, None
+                except OSError:
+                    pass
+
+            # Ask for score (regular text feedback); use first-line-only prompt so
+            # accidental newlines in input don't crash (e.g. paste with trailing newline)
+            score = _ask_score_1_to_10(default=6)
             turn.score = score
-            turn.feedback = f"[RETRY] {feedback}"
-            return score, feedback, retry_settings
-
-        # Check if feedback is a reference image path
-        # Only try to parse as path if it's short enough to be a valid filename
-        # (avoid "File name too long" errors on long feedback text)
-        if feedback and not feedback.lower() == "done" and len(feedback.strip()) < 256:
-            try:
-                feedback_path = Path(feedback.strip())
-                if feedback_path.exists() and feedback_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
-                    console.print(f"[cyan]Using as reference image: {feedback_path}[/cyan]")
-                    # Analyze the reference and get comparison feedback
-                    self.analyze_reference_image(feedback_path)
-                    self.conv_config.reference_image = feedback_path
-                    # Run reference comparison
-                    ref_score, ref_feedback = self._evaluate_against_reference(turn)
-                    turn.score = ref_score
-                    turn.feedback = ref_feedback
-                    return ref_score, ref_feedback, None
-            except OSError:
-                # Path is too long or invalid - treat as regular feedback
-                pass
-
-        turn.score = score
-        turn.feedback = feedback
-
-        return score, feedback, None
+            turn.feedback = feedback
+            return score, feedback, None, None
 
     def auto_evaluate(self, turn: ConversationTurn) -> tuple[int, str]:
         """Automatically evaluate diagram using the LLM Judge.
@@ -750,7 +1299,7 @@ class ConversationChatbot:
 
             # Extract scores
             scores = eval_data.get("scores", {})
-            overall_score = int(round(eval_data.get("overall_score", 3)))
+            overall_score = int(round(eval_data.get("overall_score", 6)))
             strengths = eval_data.get("strengths", [])
             issues = eval_data.get("issues", [])
             actionable_improvements = eval_data.get("actionable_improvements", [])
@@ -763,12 +1312,12 @@ class ConversationChatbot:
 
             for criterion, score_val in scores.items():
                 label = criterion.replace("_", " ").title()
-                color = "green" if score_val >= 4 else "yellow" if score_val >= 3 else "red"
-                score_table.add_row(label, f"[{color}]{score_val}/5[/{color}]")
+                color = "green" if score_val >= 8 else "yellow" if score_val >= 6 else "red"
+                score_table.add_row(label, f"[{color}]{score_val}/10[/{color}]")
 
             score_table.add_row("", "")
-            overall_color = "green" if overall_score >= 4 else "yellow" if overall_score >= 3 else "red"
-            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/5[/bold {overall_color}]")
+            overall_color = "green" if overall_score >= 8 else "yellow" if overall_score >= 6 else "red"
+            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/10[/bold {overall_color}]")
 
             console.print(score_table)
 
@@ -800,7 +1349,8 @@ class ConversationChatbot:
         except Exception as e:
             console.print(f"[yellow]Auto-evaluation failed: {e}[/yellow]")
             console.print("[yellow]Falling back to manual feedback...[/yellow]")
-            return self.collect_feedback(turn)
+            score, feedback, _retry, _variants = self.collect_feedback(turn)
+            return score, feedback
 
     def _evaluate_against_reference(self, turn: ConversationTurn) -> tuple[int, str]:
         """Evaluate diagram by comparing against reference image.
@@ -838,7 +1388,7 @@ class ConversationChatbot:
 
             # Extract scores
             scores = eval_data.get("scores", {})
-            overall_score = int(round(eval_data.get("overall_score", 3)))
+            overall_score = int(round(eval_data.get("overall_score", 6)))
             differences = eval_data.get("differences", [])
             improvements = eval_data.get("improvements", [])
             feedback = eval_data.get("feedback_for_refinement", "")
@@ -850,12 +1400,12 @@ class ConversationChatbot:
 
             for criterion, score_val in scores.items():
                 label = criterion.replace("_", " ").title()
-                color = "green" if score_val >= 4 else "yellow" if score_val >= 3 else "red"
-                score_table.add_row(label, f"[{color}]{score_val}/5[/{color}]")
+                color = "green" if score_val >= 8 else "yellow" if score_val >= 6 else "red"
+                score_table.add_row(label, f"[{color}]{score_val}/10[/{color}]")
 
             score_table.add_row("", "")
-            overall_color = "green" if overall_score >= 4 else "yellow" if overall_score >= 3 else "red"
-            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/5[/bold {overall_color}]")
+            overall_color = "green" if overall_score >= 8 else "yellow" if overall_score >= 6 else "red"
+            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/10[/bold {overall_color}]")
 
             console.print(score_table)
 
@@ -916,7 +1466,7 @@ class ConversationChatbot:
                 original_prompt=self._session.initial_prompt if self._session else current_prompt,
                 current_prompt=current_prompt,
                 feedback=turn.feedback or "",
-                score=turn.score or 3,
+                score=turn.score or 6,
                 visual_analysis=turn.visual_analysis or "",
             )
             elapsed = time.time() - start_time
@@ -965,31 +1515,83 @@ class ConversationChatbot:
         else:
             mode_label = mode
 
+        variants_info = (
+            f"Variants per iteration: {self.conv_config.num_variants}\n"
+            if self.conv_config.num_variants > 1 else ""
+        )
+        help_hint = (
+            "" if self.conv_config.auto_refine
+            else "Type [bold]help[/bold] or [bold]?[/bold] during feedback for all commands"
+        )
+        max_iter_display = (
+            "no limit" if self.conv_config.max_iterations == 0
+            else str(self.conv_config.max_iterations)
+        )
         console.print(Panel(
             f"Starting conversation refinement loop\n"
             f"Mode: [bold]{mode_label}[/bold]\n"
             f"Target score: {self.conv_config.target_score}\n"
-            f"Max iterations: {self.conv_config.max_iterations}\n"
-            + ("" if self.conv_config.auto_refine else "Type 'done' or score target to finish\nType 'r' or 'r <temp>' to retry with different settings"),
+            f"Max iterations: {max_iter_display}\n"
+            f"Resolution: {self.conv_config.image_size} ({self.conv_config.aspect_ratio})\n"
+            + variants_info
+            + help_hint,
             title="Conversation Session",
             border_style="cyan",
         ))
 
         try:
-            while len(self._session.turns) < self.conv_config.max_iterations:
+            while (
+                self.conv_config.max_iterations == 0
+                or len(self._session.turns) < self.conv_config.max_iterations
+            ):
                 # Generate (with optional custom settings from retry)
                 is_retry = current_settings is not None
-                turn = self.run_iteration(current_prompt, settings=current_settings, is_retry=is_retry)
+                try:
+                    turn = self.run_iteration(current_prompt, settings=current_settings, is_retry=is_retry)
+                except Exception as gen_error:
+                    console.print(f"\n[red]Generation failed: {gen_error}[/red]")
+                    console.print("[yellow]'r' to retry, 'r 0.5' for different temp, 'done' or 'end' to exit, 'help' for all options[/yellow]")
+                    recovery = _prompt_with_history("Retry?", "r")
+                    if recovery.strip().lower() in ("done", "end"):
+                        self._session.status = ConversationStatus.COMPLETED
+                        break
+                    # Parse as retry command, default to 'r' (random temp jitter)
+                    current_settings = self._parse_retry_command(recovery) or self._parse_retry_command("r")
+                    continue
 
                 # Reset settings after use (one-shot for retries)
                 current_settings = None
 
-                # Collect feedback (auto or manual)
+                # Collect feedback (with optional "v N" loop: re-run same prompt with N variants)
                 retry_settings: Optional[GenerationSettings] = None
-                if self.conv_config.auto_refine:
-                    score, feedback = self.auto_evaluate(turn)
-                else:
-                    score, feedback, retry_settings = self.collect_feedback(turn)
+                num_variants_override: Optional[int] = None
+                while True:
+                    if self.conv_config.auto_refine:
+                        score, feedback = self.auto_evaluate(turn)
+                        retry_settings = None
+                        num_variants_override = None
+                    else:
+                        score, feedback, retry_settings, num_variants_override = self.collect_feedback(turn)
+
+                    if num_variants_override is not None:
+                        # User asked for N variants (or joint: written feedback + " v N")
+                        has_real = feedback and not (
+                            feedback.startswith("[RETRY]") or feedback.startswith("[VARIANTS]")
+                        )
+                        if has_real:
+                            current_prompt = self.refine_prompt(current_prompt, turn)
+                        try:
+                            self.mlflow_tracker.end_run("FINISHED")
+                        except Exception:
+                            pass
+                        turn = self.run_iteration(
+                            current_prompt,
+                            settings=retry_settings,
+                            is_retry=False,
+                            num_variants_override=num_variants_override,
+                        )
+                        continue
+                    break
 
                 # Log score to MLflow and end the run
                 try:
@@ -1003,37 +1605,56 @@ class ConversationChatbot:
                 # Add turn to session
                 self._session.add_turn(turn)
 
-                # Check if done
-                if feedback.lower() == "done" or score >= self.conv_config.target_score:
+                # Stop if we've reached target score (LLM Judge or user score)
+                if self._session.is_satisfied(self.conv_config.target_score):
                     self._session.status = ConversationStatus.COMPLETED
-                    console.print("\n[bold green]Target reached! Conversation complete.[/bold green]")
+                    console.print(
+                        f"\n[bold green]Target score {self.conv_config.target_score} reached. "
+                        "Conversation complete.[/bold green]"
+                    )
                     break
 
-                # Handle retry vs refine
-                if retry_settings:
-                    # Retry: same prompt, different settings
-                    current_settings = retry_settings
-                    console.print(f"\n[cyan]Retrying with: {retry_settings.summary()}[/cyan]")
-                    # Don't refine prompt - reuse current_prompt as-is
-                else:
-                    # Refine: update prompt based on feedback
+                # Only end when user explicitly says "done" or "end"
+                if feedback.strip().lower() in ("done", "end"):
+                    self._session.status = ConversationStatus.COMPLETED
+                    console.print("\n[bold green]Conversation complete.[/bold green]")
+                    break
+                # In auto-refine, user doesn't type feedback; prompt to continue or end
+                if self.conv_config.auto_refine:
+                    cont = _prompt_with_history(
+                        "Continue? (Enter to refine again, 'done' or 'end' to finish)",
+                        "",
+                    )
+                    if cont.strip().lower() in ("done", "end"):
+                        self._session.status = ConversationStatus.COMPLETED
+                        console.print("\n[bold green]Conversation complete.[/bold green]")
+                        break
+
+                # Handle retry vs refine (joint feedback = refine then apply settings)
+                has_real_feedback = turn.feedback and not (
+                    turn.feedback.startswith("[RETRY]") or turn.feedback.startswith("[VARIANTS]")
+                )
+                if has_real_feedback:
                     current_prompt = self.refine_prompt(current_prompt, turn)
+                if retry_settings:
+                    current_settings = retry_settings
+                    console.print(f"\n[cyan]Using settings: {retry_settings.summary()}[/cyan]")
 
                 # Save session after each turn for crash recovery
                 self._save_session(current_prompt=current_prompt)
 
             else:
-                # Max iterations reached
-                console.print("\n[yellow]Max iterations reached.[/yellow]")
-                self._session.status = ConversationStatus.COMPLETED
+                # Max iterations reached (only when limit > 0)
+                if self.conv_config.max_iterations > 0:
+                    console.print("\n[yellow]Max iterations reached.[/yellow]")
+                    self._session.status = ConversationStatus.COMPLETED
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Session interrupted - saving progress...[/yellow]")
             self._session.status = ConversationStatus.ACTIVE
             session_file = self._save_session(current_prompt=current_prompt)
-            console.print(f"[bold green]Progress saved![/bold green]")
-            console.print(f"  Resume with: [cyan]nano-banana chat --resume {session_file.parent}[/cyan]")
             self._show_summary()
+            self._show_resume_banner(session_file)
             return self._session
 
         # Show summary
@@ -1075,6 +1696,38 @@ class ConversationChatbot:
         # Save session
         self._save_session()
 
+    def _show_resume_banner(self, session_file: Path) -> None:
+        """Display a prominent banner with resume instructions after interruption.
+
+        Args:
+            session_file: Path to the saved session.json file
+        """
+        if not self._session:
+            return
+
+        num_turns = len(self._session.turns)
+        best = self._session.get_best_turn()
+        best_info = (
+            f"Best so far: iteration {best.iteration} (score {best.score})"
+            if best and best.score
+            else "No scored iterations yet"
+        )
+
+        resume_cmd = f"nano-banana chat --resume {session_file.parent}"
+
+        console.print()
+        console.print(Panel(
+            f"[bold green]Session saved![/bold green] {num_turns} iteration(s) completed\n"
+            f"{best_info}\n"
+            f"\n"
+            f"[bold]To resume this session:[/bold]\n"
+            f"  [cyan]{resume_cmd}[/cyan]\n"
+            f"\n"
+            f"[dim]Session file: {session_file}[/dim]",
+            title="Resume Later",
+            border_style="green",
+        ))
+
     def _save_session(self, current_prompt: Optional[str] = None) -> Path:
         """Save session to JSON file for crash recovery.
 
@@ -1114,6 +1767,8 @@ class ConversationChatbot:
                     "prompt_used": t.prompt_used,
                     "run_id": t.run_id,
                     "image_path": str(t.image_path),
+                    "variant_paths": [str(vp) for vp in t.variant_paths],
+                    "selected_variant": t.selected_variant,
                     "generation_time_seconds": t.generation_time_seconds,
                     "score": t.score,
                     "feedback": t.feedback,
@@ -1137,6 +1792,14 @@ class ConversationChatbot:
                 "frequency_penalty": self.conv_config.frequency_penalty,
                 "logo_dir": str(self.conv_config.logo_dir) if self.conv_config.logo_dir else None,
                 "evaluation_persona": self.conv_config.evaluation_persona.value,
+                "image_size": self.conv_config.image_size,
+                "aspect_ratio": self.conv_config.aspect_ratio,
+                "num_variants": self.conv_config.num_variants,
+                "selected_output_dir": (
+                    str(self.conv_config.selected_output_dir)
+                    if self.conv_config.selected_output_dir
+                    else None
+                ),
             },
             "_reference_style": self._reference_style,
             "_dspy_model": self._dspy_model,
@@ -1285,6 +1948,7 @@ class ConversationChatbot:
         session_path: Path,
         config: AppConfig,
         dspy_model: Optional[str] = None,
+        logo_dir_override: Optional[Path] = None,
     ) -> tuple["ConversationChatbot", str]:
         """Resume a saved session from disk.
 
@@ -1296,6 +1960,7 @@ class ConversationChatbot:
             session_path: Path to session.json file or session directory
             config: Application configuration
             dspy_model: Optional Databricks model endpoint override
+            logo_dir_override: If set, use this logo directory instead of saved/config
 
         Returns:
             Tuple of (restored ConversationChatbot, current_prompt to continue from)
@@ -1329,9 +1994,13 @@ class ConversationChatbot:
         saved_config = session_data.get("_config", {})
         from .models import EvaluationPersona
 
+        # Logo dir: CLI override > saved session > config default
+        saved_logo_dir = Path(saved_config["logo_dir"]) if saved_config.get("logo_dir") else None
+        effective_logo_dir = logo_dir_override or saved_logo_dir
+
         conv_config = ConversationConfig(
-            max_iterations=saved_config.get("max_iterations", 10),
-            target_score=saved_config.get("target_score", 5),
+            max_iterations=saved_config.get("max_iterations", 0),
+            target_score=saved_config.get("target_score", 10),
             auto_analyze=saved_config.get("auto_analyze", True),
             auto_refine=saved_config.get("auto_refine", False),
             reference_image=Path(saved_config["reference_image"]) if saved_config.get("reference_image") else None,
@@ -1341,8 +2010,16 @@ class ConversationChatbot:
             top_k=saved_config.get("top_k", 50),
             presence_penalty=saved_config.get("presence_penalty", 0.1),
             frequency_penalty=saved_config.get("frequency_penalty", 0.1),
-            logo_dir=Path(saved_config["logo_dir"]) if saved_config.get("logo_dir") else None,
+            logo_dir=effective_logo_dir,
             evaluation_persona=EvaluationPersona(saved_config.get("evaluation_persona", "architect")),
+            image_size=saved_config.get("image_size", "2K"),
+            aspect_ratio=saved_config.get("aspect_ratio", "16:9"),
+            num_variants=saved_config.get("num_variants", 1),
+            selected_output_dir=(
+                Path(saved_config["selected_output_dir"])
+                if saved_config.get("selected_output_dir")
+                else None
+            ),
         )
 
         # Use saved dspy_model unless overridden
@@ -1390,12 +2067,18 @@ class ConversationChatbot:
                 initial_prompt = iter1_prompt_file.read_text()
                 console.print("[dim]  Recovered initial_prompt from iteration_1_prompt.txt[/dim]")
 
-        # Restore session state
+        # Restore session state; when resuming a "completed" session, reopen as active so user can continue
+        saved_status = session_data.get("status", "active")
+        status = (
+            ConversationStatus.ACTIVE
+            if saved_status == "completed"
+            else ConversationStatus(saved_status)
+        )
         chatbot._session = ConversationSession(
             session_id=session_data["session_id"],
             initial_prompt=initial_prompt,
             created_at=session_data.get("created_at", datetime.now().isoformat()),
-            status=ConversationStatus(session_data.get("status", "active")),
+            status=status,
             template_id=session_data.get("template_id"),
             diagram_spec_path=Path(session_data["diagram_spec_path"]) if session_data.get("diagram_spec_path") else None,
         )
@@ -1414,6 +2097,8 @@ class ConversationChatbot:
                 prompt_used=prompt_used,
                 run_id=turn_data["run_id"],
                 image_path=Path(turn_data["image_path"]),
+                variant_paths=[Path(vp) for vp in turn_data.get("variant_paths", [])],
+                selected_variant=turn_data.get("selected_variant"),
                 generation_time_seconds=turn_data["generation_time_seconds"],
                 score=turn_data.get("score"),
                 feedback=turn_data.get("feedback"),
@@ -1421,6 +2106,10 @@ class ConversationChatbot:
                 refinement_reasoning=turn_data.get("refinement_reasoning"),
             )
             chatbot._session.add_turn(turn)
+
+        num_turns = len(chatbot._session.turns)
+        # Resumed sessions have no iteration limit so you can always continue
+        conv_config.max_iterations = 0
 
         # Restore reference style
         chatbot._reference_style = session_data.get("_reference_style")
@@ -1431,10 +2120,12 @@ class ConversationChatbot:
         # 3. initial_prompt (last resort)
         current_prompt = session_data.get("current_prompt") or chatbot._session.get_latest_prompt()
 
-        num_turns = len(chatbot._session.turns)
         console.print(f"\n[bold green]Session restored: {chatbot._session.session_id}[/bold green]")
         console.print(f"  Turns completed: {num_turns}")
-        console.print(f"  Remaining iterations: {conv_config.max_iterations - num_turns}")
+        if conv_config.max_iterations > 0:
+            console.print(f"  Remaining iterations: {conv_config.max_iterations - num_turns}")
+        else:
+            console.print("  Remaining iterations: no limit")
         if chatbot._session.turns:
             last_turn = chatbot._session.turns[-1]
             console.print(f"  Last score: {last_turn.score or 'N/A'}")

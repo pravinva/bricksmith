@@ -92,7 +92,7 @@ nano-banana chat --prompt-file prompts/my_prompt.txt --reference-image examples/
 
 The loop:
 1. **Generate** diagram from prompt
-2. **Evaluate** - score 1-5 (or auto-refine does this)
+2. **Evaluate** - score 1-10 (or auto-refine does this)
 3. **Feedback** - describe what needs improvement
 4. **Refine** - DSPy analyzes history and refines the prompt
 5. **Repeat** until target score or "done"
@@ -109,7 +109,7 @@ Key options:
 |--------|---------|-------------|
 | `--prompt-file` | required | Initial prompt file |
 | `--max-iterations` | 10 | Maximum refinement iterations |
-| `--target-score` | 5 | Target score to stop (1-5) |
+| `--target-score` | 10 | Target score to stop (1-10) |
 | `--auto-refine` | false | Autonomous refinement |
 | `--reference-image` | - | Reference image to match style |
 | `--temperature` | 0.8 | Generation temperature |

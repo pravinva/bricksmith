@@ -1,5 +1,6 @@
 """MLflow tracking integration for Nano Banana Pro."""
 
+import os
 import json
 from pathlib import Path
 from typing import Any, Optional
@@ -34,6 +35,16 @@ class MLflowTracker:
                            uses this instead of config.experiment_name.
                            Useful for grouping runs by prompt file.
         """
+        # When using Databricks MLflow, use token-from-env so we don't conflict with
+        # CLI profile. Databricks auth is one-or-the-other: DEFAULT or a named profile
+        # (e.g. az-field-east), not both. Clearing the profile here forces host+token
+        # from .env and avoids "cannot configure default credentials" when the
+        # other profile is set elsewhere.
+        if self.config.tracking_uri == "databricks" and os.getenv(
+            "DATABRICKS_HOST"
+        ) and os.getenv("DATABRICKS_TOKEN"):
+            os.environ.pop("DATABRICKS_CONFIG_PROFILE", None)
+
         # Set tracking URI
         mlflow.set_tracking_uri(self.config.tracking_uri)
 

@@ -99,44 +99,44 @@ class Evaluator:
         console.print("=" * 70)
         self.display_rubric()
 
-        console.print("\n[bold]Please provide scores (0-5) for each dimension:[/bold]\n")
+        console.print("\n[bold]Please provide scores (1-10) for each dimension:[/bold]\n")
 
         # Prompt for each score
         logo_fidelity = IntPrompt.ask(
-            "Logo Fidelity Score (0-5)",
-            default=3,
+            "Logo Fidelity Score (1-10)",
+            default=6,
             show_default=True,
         )
-        if logo_fidelity < 0 or logo_fidelity > 5:
-            console.print("[red]Score must be between 0 and 5. Using 3.[/red]")
-            logo_fidelity = 3
+        if logo_fidelity < 1 or logo_fidelity > 10:
+            console.print("[red]Score must be between 1 and 10. Using 6.[/red]")
+            logo_fidelity = 6
 
         layout_clarity = IntPrompt.ask(
-            "Layout Clarity Score (0-5)",
-            default=3,
+            "Layout Clarity Score (1-10)",
+            default=6,
             show_default=True,
         )
-        if layout_clarity < 0 or layout_clarity > 5:
-            console.print("[red]Score must be between 0 and 5. Using 3.[/red]")
-            layout_clarity = 3
+        if layout_clarity < 1 or layout_clarity > 10:
+            console.print("[red]Score must be between 1 and 10. Using 6.[/red]")
+            layout_clarity = 6
 
         text_legibility = IntPrompt.ask(
-            "Text Legibility Score (0-5)",
-            default=3,
+            "Text Legibility Score (1-10)",
+            default=6,
             show_default=True,
         )
-        if text_legibility < 0 or text_legibility > 5:
-            console.print("[red]Score must be between 0 and 5. Using 3.[/red]")
-            text_legibility = 3
+        if text_legibility < 1 or text_legibility > 10:
+            console.print("[red]Score must be between 1 and 10. Using 6.[/red]")
+            text_legibility = 6
 
         constraint_compliance = IntPrompt.ask(
-            "Constraint Compliance Score (0-5)",
-            default=3,
+            "Constraint Compliance Score (1-10)",
+            default=6,
             show_default=True,
         )
-        if constraint_compliance < 0 or constraint_compliance > 5:
-            console.print("[red]Score must be between 0 and 5. Using 3.[/red]")
-            constraint_compliance = 3
+        if constraint_compliance < 1 or constraint_compliance > 10:
+            console.print("[red]Score must be between 1 and 10. Using 6.[/red]")
+            constraint_compliance = 6
 
         notes = Prompt.ask(
             "\nEvaluation Notes (optional)",
@@ -153,11 +153,11 @@ class Evaluator:
 
         # Display summary
         console.print("\n[bold]Evaluation Summary:[/bold]")
-        console.print(f"  Logo Fidelity: {scores.logo_fidelity_score}/5")
-        console.print(f"  Layout Clarity: {scores.layout_clarity_score}/5")
-        console.print(f"  Text Legibility: {scores.text_legibility_score}/5")
-        console.print(f"  Constraint Compliance: {scores.constraint_compliance_score}/5")
-        console.print(f"  [bold]Overall Score: {scores.overall_score:.2f}/5[/bold]")
+        console.print(f"  Logo Fidelity: {scores.logo_fidelity_score}/10")
+        console.print(f"  Layout Clarity: {scores.layout_clarity_score}/10")
+        console.print(f"  Text Legibility: {scores.text_legibility_score}/10")
+        console.print(f"  Constraint Compliance: {scores.constraint_compliance_score}/10")
+        console.print(f"  [bold]Overall Score: {scores.overall_score:.2f}/10[/bold]")
 
         if scores.notes:
             console.print(f"\n  Notes: {scores.notes}")
@@ -195,42 +195,42 @@ class Evaluator:
         # Logo Fidelity
         table.add_row(
             "Logo Fidelity",
-            "5",
+            "10",
             "All logos reused exactly, perfect scaling, no alterations",
         )
-        table.add_row("", "3", "Minor logo alterations or scaling issues")
-        table.add_row("", "1", "Logos significantly altered or incorrectly used")
-        table.add_row("", "0", "Logos not used, completely wrong, or filenames visible")
+        table.add_row("", "6", "Minor logo alterations or scaling issues")
+        table.add_row("", "3", "Logos significantly altered or incorrectly used")
+        table.add_row("", "1", "Logos not used, completely wrong, or filenames visible")
 
         # Layout Clarity
         table.add_row(
             "Layout Clarity",
-            "5",
+            "10",
             "Crystal clear flow, excellent spacing, easy to understand",
         )
-        table.add_row("", "3", "Adequate layout with minor spacing or flow issues")
-        table.add_row("", "1", "Confusing layout, poor spacing")
-        table.add_row("", "0", "Completely unclear or unusable layout")
+        table.add_row("", "6", "Adequate layout with minor spacing or flow issues")
+        table.add_row("", "3", "Confusing layout, poor spacing")
+        table.add_row("", "1", "Completely unclear or unusable layout")
 
         # Text Legibility
         table.add_row(
             "Text Legibility",
-            "5",
+            "10",
             "All text clear, properly sized, and well-formatted",
         )
-        table.add_row("", "3", "Most text readable with minor formatting issues")
-        table.add_row("", "1", "Significant readability issues")
-        table.add_row("", "0", "Text unreadable or missing")
+        table.add_row("", "6", "Most text readable with minor formatting issues")
+        table.add_row("", "3", "Significant readability issues")
+        table.add_row("", "1", "Text unreadable or missing")
 
         # Constraint Compliance
         table.add_row(
             "Constraint Compliance",
-            "5",
+            "10",
             "All constraints followed perfectly",
         )
-        table.add_row("", "3", "Most constraints followed with minor deviations")
-        table.add_row("", "1", "Several constraint violations")
-        table.add_row("", "0", "Major constraint violations or requirements ignored")
+        table.add_row("", "6", "Most constraints followed with minor deviations")
+        table.add_row("", "3", "Several constraint violations")
+        table.add_row("", "1", "Major constraint violations or requirements ignored")
 
         console.print(table)
 

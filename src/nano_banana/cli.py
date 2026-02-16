@@ -92,7 +92,7 @@ def evaluate(ctx: Context, run_id: str, eval_file: Optional[Path]):
         scores = ctx.evaluator.evaluate_run(run_id, interactive=interactive, eval_file=eval_file)
 
         console.print("\n[bold green]Evaluation complete![/bold green]")
-        console.print(f"Overall score: {scores.overall_score:.2f}/5")
+        console.print(f"Overall score: {scores.overall_score:.2f}/10")
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
@@ -298,7 +298,7 @@ def show_run(ctx: Context, run_id: str):
 @click.option(
     "--feedback/--no-feedback",
     default=False,
-    help="Prompt for quick 1-5 scoring after each generation",
+    help="Prompt for quick 1-10 scoring after each generation",
 )
 @click.option(
     "--databricks-style/--no-databricks-style",
@@ -634,7 +634,7 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
                     console.print(f"  [dim]Image at: {image_path}[/dim]")
 
                     score_input = click.prompt(
-                        "  Score (1-5, or Enter to skip)",
+                        "  Score (1-10, or Enter to skip)",
                         default="",
                         show_default=False,
                     )
@@ -643,7 +643,7 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
                     if score_input.strip():
                         try:
                             user_score = int(score_input)
-                            if user_score < 1 or user_score > 5:
+                            if user_score < 1 or user_score > 10:
                                 console.print("  [yellow]Score out of range, skipping[/yellow]")
                                 user_score = None
                         except ValueError:
@@ -1086,15 +1086,15 @@ def refine_prompt(
 )
 @click.option(
     "--max-iterations",
-    default=10,
+    default=0,
     type=int,
-    help="Maximum refinement iterations (default: 10)",
+    help="Maximum refinement iterations (0 = no limit, default: 0)",
 )
 @click.option(
     "--target-score",
-    default=5,
+    default=10,
     type=int,
-    help="Target score to stop (1-5, default: 5)",
+    help="Target score to stop (1-10, default: 10)",
 )
 @click.option(
     "--temperature",
@@ -1148,6 +1148,12 @@ def refine_prompt(
     help="Session name for output directory (defaults to prompt filename)",
 )
 @click.option(
+    "--folder",
+    type=str,
+    default=None,
+    help="Output folder name (outputs/YYYY-MM-DD/chat-<folder>). Same as --name.",
+)
+@click.option(
     "--dspy-model",
     type=str,
     default=None,
@@ -1158,6 +1164,32 @@ def refine_prompt(
     type=click.Choice(["architect", "executive", "developer", "auto"], case_sensitive=False),
     default="architect",
     help="LLM Judge evaluation persona: architect (default), executive/CTO, or developer",
+)
+@click.option(
+    "--size",
+    default="2K",
+    type=click.Choice(["1K", "2K", "4K"]),
+    help="Image size/resolution (default: 2K)",
+)
+@click.option(
+    "--aspect-ratio",
+    default="16:9",
+    type=click.Choice(["1:1", "4:3", "16:9", "9:16", "3:4", "21:9"]),
+    help="Image aspect ratio (default: 16:9). Use 21:9 for wide banners.",
+)
+@click.option(
+    "--num-variants",
+    default=1,
+    type=int,
+    help="Number of image variants to generate per iteration (1-8, default: 1). "
+    "Generates multiple images from the same prompt to deal with non-determinism.",
+)
+@click.option(
+    "--selected-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Folder to copy selected/best images to (default: outputs/selected). "
+    "Use 's' or 'best' in chat to copy current or best image.",
 )
 @click.pass_obj
 def chat(
@@ -1177,8 +1209,13 @@ def chat(
     auto_refine: bool,
     reference_image: Optional[Path],
     name: Optional[str],
+    folder: Optional[str],
     dspy_model: Optional[str],
     persona: str,
+    size: str,
+    aspect_ratio: str,
+    num_variants: int,
+    selected_dir: Optional[Path],
 ):
     """Start interactive diagram refinement conversation.
 
@@ -1192,6 +1229,9 @@ def chat(
 
         # Start with a prompt file
         nano-banana chat --prompt-file prompts/my_prompt.txt
+
+        # Name the output folder (runs go to outputs/YYYY-MM-DD/chat-my-architecture)
+        nano-banana chat --prompt-file prompt.txt --folder my-architecture
 
         # Customize iteration settings
         nano-banana chat --prompt-file prompt.txt --max-iterations 5 --target-score 4
@@ -1208,6 +1248,12 @@ def chat(
         # Use developer persona for evaluation (implementation-focused feedback)
         nano-banana chat --prompt-file prompt.txt --auto-refine --persona developer
 
+        # Generate 3 variants per iteration to pick the best (handles non-determinism)
+        nano-banana chat --prompt-file prompt.txt --num-variants 3
+
+        # Use 4K resolution with 1:1 aspect ratio
+        nano-banana chat --prompt-file prompt.txt --size 4K --aspect-ratio 1:1
+
         # Use a specific Databricks model for refinement
         nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
 
@@ -1217,15 +1263,20 @@ def chat(
         # Resume a crashed or interrupted session
         nano-banana chat --resume outputs/2026-02-11/chat-my-session
 
-    During the conversation, you can use these feedback options:
+        # Resume and use a different logo kit (e.g. AGL logos)
+        nano-banana chat --resume outputs/2026-02-14/chat-prompt-455771 --logo-dir logos/agl
+
+    During the conversation, type 'help' or '?' to see all commands. Quick reference:
 
         • Text feedback: Refines the prompt based on your feedback
         • 'r' or 'retry': Retry same prompt with slight temp variation
         • 'r 0.5': Retry with specific temperature (0.5)
         • 'r t=0.5 p=0.9': Retry with specific temp and top_p
         • 'r creative': Retry with a preset (deterministic/conservative/balanced/creative/wild)
+        • 'r size=4K ar=1:1': Retry with different resolution/aspect ratio
         • Image path: Use as style reference for comparison
         • 'done': Finish session
+        • 'help' or '?': Show all available commands
     """
     from .models import EvaluationPersona
 
@@ -1268,10 +1319,13 @@ def chat(
         # Handle --resume option
         if resume:
             console.print(f"[bold]Resuming session from {resume}...[/bold]")
+            if logo_dir:
+                console.print(f"[dim]Using logo kit: {logo_dir}[/dim]")
             chatbot, current_prompt = ConversationChatbot.resume_session(
                 session_path=resume,
                 config=ctx.config,
                 dspy_model=dspy_model,
+                logo_dir_override=logo_dir,
             )
 
             # Run conversation from where it left off
@@ -1303,8 +1357,8 @@ def chat(
             console.print("[dim]Reference image provided - enabling auto-refine mode[/dim]")
             auto_refine = True
 
-        # Default session name to prompt filename
-        session_name = name
+        # Output folder name: --folder or --name or prompt filename
+        session_name = folder or name
         if not session_name:
             session_name = prompt_file.stem  # filename without extension
 
@@ -1323,6 +1377,10 @@ def chat(
             frequency_penalty=frequency_penalty,
             logo_dir=logo_dir,
             evaluation_persona=EvaluationPersona(persona.lower()),
+            image_size=size,
+            aspect_ratio=aspect_ratio,
+            num_variants=num_variants,
+            selected_output_dir=selected_dir,
         )
 
         # Create chatbot
@@ -1361,10 +1419,15 @@ def chat(
             console.print(f"  nano-banana evaluate {best.run_id}")
 
     except KeyboardInterrupt:
-        # KeyboardInterrupt is now handled inside run_conversation()
-        # with proper session save. This catches interrupts before
-        # the conversation loop starts.
+        # run_conversation() handles interrupts inside the loop.
+        # This catches interrupts during setup (logo loading, session start, etc.).
         console.print("\n[yellow]Conversation interrupted.[/yellow]")
+        # Try to save session if one was started
+        try:
+            session_file = chatbot._save_session()  # noqa: F821
+            chatbot._show_resume_banner(session_file)
+        except (NameError, UnboundLocalError, Exception):
+            pass
         raise SystemExit(0)
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
@@ -1423,8 +1486,8 @@ def chat(
 )
 @click.option(
     "--mcp-enrich/--no-mcp-enrich",
-    default=False,
-    help="Enable MCP context enrichment from Glean, Slack, JIRA, Confluence (requires Claude Code)",
+    default=True,
+    help="Enable MCP context enrichment from Glean, Slack, JIRA, Confluence (uses Claude Code's MCP servers)",
 )
 @click.option(
     "--mcp-sources",
@@ -1514,12 +1577,12 @@ def architect(
         • 'status' - show current architecture state
         • 'done' - save and exit
 
-    MCP Enrichment (requires Claude Code):
+    MCP Enrichment:
 
-        When --mcp-enrich is enabled and the command is invoked from Claude Code,
-        the chatbot will automatically search internal knowledge sources (Glean,
-        Slack, JIRA, Confluence) for relevant context based on customer names
-        and Databricks concepts mentioned in your input.
+        When --mcp-enrich is enabled (default), the chatbot automatically searches
+        internal knowledge sources (Glean, Slack, JIRA, Confluence) for relevant
+        context based on customer names and Databricks concepts in your input.
+        Uses Claude Code's MCP server configuration from ~/.claude/settings.json.
     """
     from .architect import ArchitectChatbot
     from .models import MCPEnrichmentConfig
@@ -1598,13 +1661,12 @@ def architect(
                 mcp_enrichment=mcp_config,
             )
 
-            # Note: mcp_callback would be provided by Claude Code when invoked programmatically
-            # For CLI usage, enrichment will show a warning that callback is needed
+            # MCP enrichment now uses native client - no callback needed
             chatbot = ArchitectChatbot(
                 config=ctx.config,
                 arch_config=arch_config,
                 dspy_model=dspy_model,
-                mcp_callback=None,  # Would be provided by Claude Code
+                mcp_callback=None,  # Native MCP client used when None
             )
 
             # Start session

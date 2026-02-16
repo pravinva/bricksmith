@@ -1,10 +1,11 @@
 """MCP context enrichment for architect conversations.
 
 This module provides context enrichment by querying internal knowledge sources
-(Glean, Slack, JIRA, Confluence) via Claude Code's MCP tools.
+(Glean, Slack, JIRA, Confluence) via MCP servers.
 
-The enricher uses a callback pattern - it defines WHAT to search, and Claude Code
-executes the actual MCP tool calls.
+Supports two modes:
+1. Native mode (default): Uses mcp_client to connect directly to MCP servers
+2. Callback mode: Uses a provided callback for Claude Code integration
 """
 
 import re
@@ -17,6 +18,13 @@ from rich.console import Console
 from .mcp_config import MCPEnrichmentConfig
 
 console = Console()
+
+# Try to import native MCP client
+try:
+    from . import mcp_client as native_mcp
+    NATIVE_MCP_AVAILABLE = True
+except ImportError:
+    NATIVE_MCP_AVAILABLE = False
 
 
 class MCPSource(str, Enum):
@@ -80,14 +88,22 @@ class ExtractedTerms:
 class MCPContextEnricher:
     """Enriches conversation context with internal knowledge.
 
-    Uses MCP tools (via callback) to search Glean, Slack, JIRA, and
-    Confluence for relevant context based on user input.
+    Uses MCP tools to search Glean, Slack, JIRA, and Confluence for
+    relevant context based on user input.
 
-    Example usage from Claude Code:
+    Supports two modes:
+    1. Native mode: Uses mcp_client to connect directly to MCP servers
+       (requires Claude Code's settings.json to be present)
+    2. Callback mode: Uses a provided callback (for Claude Code integration)
+
+    Example usage (native mode):
+        enricher = MCPContextEnricher(config)  # Uses native MCP client
+        context = enricher.enrich(user_input, history)
+
+    Example usage (callback mode from Claude Code):
         def mcp_callback(query: MCPQuery) -> Any:
             if query.source == MCPSource.GLEAN:
                 return mcp__glean__glean_read_api_call(...)
-            # etc.
 
         enricher = MCPContextEnricher(config, mcp_callback)
         context = enricher.enrich(user_input, history)
@@ -97,18 +113,24 @@ class MCPContextEnricher:
         self,
         config: MCPEnrichmentConfig,
         mcp_callback: Optional[Callable[[MCPQuery], Any]] = None,
+        use_native: bool = True,
     ):
         """Initialize the enricher.
 
         Args:
             config: Enrichment configuration
-            mcp_callback: Callback function that executes MCP queries.
-                         If None, enrichment is disabled.
+            mcp_callback: Optional callback function that executes MCP queries.
+                         If None and use_native=True, uses native MCP client.
+            use_native: If True (default), use native MCP client when no callback provided.
         """
         self.config = config
         self.mcp_callback = mcp_callback
+        self.use_native = use_native and NATIVE_MCP_AVAILABLE and mcp_callback is None
         self._customer_pattern = self._build_customer_pattern()
         self._concept_pattern = self._build_concept_pattern()
+
+        if self.use_native:
+            console.print("[dim]Using native MCP client for enrichment[/dim]")
 
     def _build_customer_pattern(self) -> re.Pattern:
         """Build regex pattern for customer name detection."""
@@ -304,8 +326,8 @@ class MCPContextEnricher:
         """Enrich context with internal knowledge.
 
         Main entry point for context enrichment. Extracts terms from
-        user input, builds queries, executes them via callback, and
-        formats the results.
+        user input, builds queries, executes them via native MCP client
+        or callback, and formats the results.
 
         Args:
             user_input: The user's current message
@@ -318,8 +340,9 @@ class MCPContextEnricher:
         if not self.config.enabled:
             return ""
 
-        if not self.mcp_callback:
-            console.print("[dim]MCP enrichment enabled but no callback provided[/dim]")
+        # Check if we have a way to execute queries
+        if not self.mcp_callback and not self.use_native:
+            console.print("[dim]MCP enrichment enabled but no MCP access available[/dim]")
             return ""
 
         # Extract search terms
@@ -329,6 +352,95 @@ class MCPContextEnricher:
 
         console.print(f"[dim]Detected terms: {terms.all_terms()}[/dim]")
 
+        # Use native MCP client if available
+        if self.use_native:
+            return self._enrich_native(terms)
+
+        # Fall back to callback mode
+        return self._enrich_callback(terms)
+
+    def _enrich_native(self, terms: ExtractedTerms) -> str:
+        """Enrich context using native MCP client.
+
+        Args:
+            terms: Extracted search terms
+
+        Returns:
+            Formatted enrichment context string
+        """
+        results: list[EnrichmentResult] = []
+
+        # Search Glean for each term
+        if "glean" in self.config.sources:
+            for term in terms.all_terms()[:3]:  # Limit queries
+                console.print(f"[dim]Searching Glean for '{term}'...[/dim]")
+                try:
+                    glean_results = native_mcp.search_glean(
+                        f"{term} Databricks",
+                        page_size=self.config.max_results_per_source,
+                    )
+                    if glean_results:
+                        results.append(EnrichmentResult(
+                            source=MCPSource.GLEAN,
+                            query=f"Search for {term}",
+                            results=glean_results,
+                        ))
+                except Exception as e:
+                    console.print(f"[yellow]Glean search failed: {e}[/yellow]")
+
+        # Search Slack for customer terms
+        if "slack" in self.config.sources:
+            for customer in terms.customers[:2]:
+                console.print(f"[dim]Searching Slack for '{customer}'...[/dim]")
+                try:
+                    slack_results = native_mcp.search_slack(
+                        f"{customer} architecture",
+                        count=self.config.max_results_per_source,
+                    )
+                    if slack_results:
+                        results.append(EnrichmentResult(
+                            source=MCPSource.SLACK,
+                            query=f"Search for {customer}",
+                            results=slack_results,
+                        ))
+                except Exception as e:
+                    console.print(f"[yellow]Slack search failed: {e}[/yellow]")
+
+        # Search Confluence for concepts
+        if "confluence" in self.config.sources:
+            for concept in terms.concepts[:2]:
+                console.print(f"[dim]Searching Confluence for '{concept}'...[/dim]")
+                try:
+                    confluence_results = native_mcp.search_confluence(
+                        f"{concept} best practices",
+                        limit=self.config.max_results_per_source,
+                    )
+                    if confluence_results:
+                        results.append(EnrichmentResult(
+                            source=MCPSource.CONFLUENCE,
+                            query=f"Search for {concept}",
+                            results=confluence_results,
+                        ))
+                except Exception as e:
+                    console.print(f"[yellow]Confluence search failed: {e}[/yellow]")
+
+        # Format results
+        context = self._format_enrichment(results)
+
+        if context:
+            console.print("[green]Context enriched with internal knowledge[/green]")
+
+        return context
+
+    def _enrich_callback(self, terms: ExtractedTerms) -> str:
+        """Enrich context using callback mode (original implementation).
+
+        Args:
+            terms: Extracted search terms
+
+        Returns:
+            Formatted enrichment context string
+        """
         # Build queries
         queries = self.build_queries(terms)
         if not queries:
@@ -464,8 +576,12 @@ class MCPContextEnricher:
         """Summarize a Glean search result."""
         title = item.get("title", item.get("name", ""))
         snippet = item.get("snippet", item.get("description", ""))[:200]
+        url = item.get("url", "")
         if title:
-            return f"{title}: {snippet}" if snippet else title
+            result = f"{title}: {snippet}" if snippet else title
+            if url:
+                result += f" ({url})"
+            return result
         return snippet
 
     def _summarize_slack(self, item: dict[str, Any]) -> str:
