@@ -1,13 +1,14 @@
 # AGL Energy Logo Kit
 
-Logos for AGL Energy customer engagements.
+Logos for AGL Energy customer engagements (technical and business architecture diagrams).
 
 ## Included Logos
 
 | File | Description | Use Case |
 |------|-------------|----------|
-| `AGL_Energy_logo.png` | AGL Energy logo (cyan/teal rays) | Customer branding |
+| `AGL_Energy_logo.png` | AGL Energy logo (cyan/teal rays) | Customer branding (e.g. top-right) |
 | `kaluza_logo_black.png` | Kaluza logo (three black hexagons) | Kaluza platform |
+| `unity-catalog.png` | Unity Catalog (pink squares, yellow triangles, navy hexagon) | Governance zone; use EXACT uploaded image |
 
 ## When to Use This Kit
 
@@ -59,6 +60,14 @@ logo_kit:
 ```
 
 ## Usage
+
+**Chat session (same logo kit for technical and business AGL Zerobus diagrams):**
+
+```bash
+nano-banana chat --prompt-file prompts/agl_zerobus_business_architecture.txt --logo-dir logos/agl --folder agl-zerobus-business
+```
+
+**Generate from spec:**
 
 ```bash
 nano-banana generate \

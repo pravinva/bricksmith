@@ -1,0 +1,84 @@
+# AGL Energy — Data to Decisions: Business Architecture (Executive Overview)
+
+## How to run (chat session, same logos as technical diagram)
+Use the same logo kit as the AGL Zerobus Ignition Gateway technical diagram. Pass the logo directory when starting chat:
+
+  nano-banana chat --prompt-file prompts/agl_zerobus_business_architecture.txt --logo-dir logos/agl --folder agl-zerobus-business
+
+The kit in logos/agl includes: AGL Energy logo, Kaluza logo, and Unity Catalog logo. The CLI will prepend logo constraints and upload these images; use only these logos in the diagram.
+
+## Purpose
+Create a high-level, business-focused architecture diagram for AGL Energy. Audience: senior leadership, enterprise architects, and business stakeholders. Emphasise capability flows and strategic value, not technical implementation. No protocol names, no product internals — only "what flows where" and "who benefits."
+
+## LOGO KIT (same as AGL Zerobus technical diagram — use uploaded images only)
+- **AGL Energy logo**: Use the EXACT uploaded AGL Energy image. Place it in the **TOP-RIGHT corner** of the diagram (~140×50px equivalent). Do NOT recreate or substitute with text.
+- **Unity Catalog logo**: Use the EXACT uploaded image (pink squares, yellow triangles, navy hexagon in center). Place it next to the "Storage & governance" or "Governance" label inside the AGL Cloud Data Platform zone. Do NOT draw a hexagon or substitute.
+- **Kaluza logo** (optional): If the kit includes it, may be used for the edge/gateway area; otherwise omit.
+- Only use logos that are in the uploaded logo kit. No other vendor logos. No filenames in output. Scale logos uniformly.
+
+## DESIGN
+- **Style**: Premium consulting (McKinsey/Deloitte). Clean, authoritative, landscape.
+- **AGL brand colors**: Navy #1B2A4A (headers, borders), Coral #E8563A (accents, badges), White/Light Gray backgrounds, Teal #0D9488 (innovation/real-time path).
+- **Canvas**: Landscape, 1920×1080 equivalent. Title: "AGL Energy — Data to Decisions: Business Architecture".
+- **Subtitle**: "Open Core · AGL-Owned Data · Real-Time to Insights".
+
+## DIAGRAM CONTENT — FIVE ZONES (LEFT TO RIGHT)
+
+### Zone 1: Where Data Comes From (Far Left)
+Single conceptual area: **"Industrial & Operational Data"**.
+- **Industrial controls**: Sensors, PLCs, SCADA (e.g. 2M+ tags across generation assets).
+- **Application events**: HTTP/event streams from business applications.
+- One or two simple shapes; label as "Industrial Data" and "Application Events" if desired.
+- Message: "All operational and event data originates here."
+
+### Zone 2: Edge Gateway (Center-Left)
+One main box: **"Edge Data Gateway"**.
+- **Badge**: "OPEN CORE" (AGL Coral pill).
+- Sub-label: "Single platform: collect, secure, route."
+- **Two outbound paths** (show as two arrows leaving the gateway):
+  - **Legacy path** (muted): "Existing historian integration" — e.g. 5–15 min latency. Optional small label: "Legacy."
+  - **Real-time path** (prominent, teal): "Streaming to cloud" — e.g. ~1 second. Optional label: "Real-time."
+- Do not name specific products (e.g. Zerobus, AVEVA) unless in a tiny footnote; keep it "Legacy" vs "Real-time."
+
+### Zone 3: Network Boundary (Center)
+- Vertical dashed line: **"Network boundary"** (on-premises → cloud).
+- Two arrows crossing: one muted (legacy), one bold teal (real-time). Optional short labels: "Legacy (batch)" and "Real-time (streaming)."
+
+### Zone 4: AGL Cloud Data Platform (Center-Right)
+One large container: **"AGL Cloud Data Platform"**.
+- **Badge**: "AGL-OWNED · OPEN FORMATS".
+- Inside, show only capability-level concepts (no technical terms):
+  - **Ingestion**: "Data landing" (real-time and legacy).
+  - **Storage & governance**: "Secure storage · Access control · Lineage · Quality" (one block or two; use Unity Catalog logo here if desired).
+  - **Data layers**: Optional simple "Raw → Curated → Analytics-ready" (no Bronze/Silver/Gold, no Delta).
+- Message: "Data lives in AGL’s cloud; open formats; one place to govern and discover."
+
+### Zone 5: Analytics & Consumers (Far Right)
+- **Compute / analytics**: One box — "Analytics & AI" or "Analytics Engine" (e.g. dashboards, ML, reporting). No product names.
+- **Consumers**: One area — **"AGL Data Consumers"** with 4 bullets or icons:
+  - Operations (real-time dashboards, alerts)
+  - Data Science & AI/ML (predictive models, optimisation)
+  - Business Analytics (KPIs, reporting)
+  - Downstream systems (APIs, applications, partners)
+- Arrows: "Governed data access" from Analytics to Consumers.
+
+## VALUE PROPOSITION (Bottom banner or callout)
+Use AGL Navy background, white text. Up to four short points:
+1. **Real-time**: "~1s data availability (real-time path) vs 5–15 min (legacy) — 150×–900× faster."
+2. **Single platform**: "One governed data platform for industrial and application data."
+3. **Open core**: "Open platform and open formats — data remains AGL-owned, no lock-in."
+4. **Decoupled**: "Storage and compute scale independently; pay for what you use."
+
+## RULES
+- **Do**: 5–7 major zones/blocks; left-to-right flow; AGL logo top-right; AGL colors; clear "Legacy" vs "Real-time" contrast; executive-friendly language.
+- **Do not**: Name protocols (gRPC, MQTT, Delta Lake, etc.); show medallion layer names; show internal pipeline or buffer details; use more than ~10 component labels total; put product names (e.g. Zerobus, AVEVA, Databricks) in the main diagram unless in a small "Technology" footnote.
+
+## CONNECTIONS (High level)
+1. Industrial Data → Edge Gateway.
+2. Application Events → Edge Gateway.
+3. Edge Gateway → (Legacy path) → Network boundary → Cloud Platform (ingestion).
+4. Edge Gateway → (Real-time path) → Network boundary → Cloud Platform (ingestion).
+5. Ingestion → Storage & Governance → Analytics & AI.
+6. Analytics & AI → AGL Data Consumers.
+
+Keep arrows simple and few; one arrow per conceptual flow is enough.

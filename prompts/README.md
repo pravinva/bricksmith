@@ -146,6 +146,7 @@ VISUAL REQUIREMENTS:
 - `coles_current_fragmented_state.txt`: Coles current architecture
 - `coles_future_unity_catalog.txt`: Coles target architecture
 - `living_intelligence.txt`: Living Intelligence Platform diagram
+- `agl_zerobus_business_architecture.txt`: AGL Zerobus **business/executive** overview (5–7 zones, capability-level; derived from technical chat session)
 
 ### Usage
 

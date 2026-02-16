@@ -1,0 +1,53 @@
+Create a professional architecture diagram showing how Databricks Lakebase unifies analytical and operational data states - the dream realized.
+
+**The Problem (Left Side - "Before"):**
+For decades, enterprises have paid an "architectural tax" keeping operational and analytical data separate:
+- OLTP databases (PostgreSQL, MySQL, SQL Server) for apps - transactions, low-latency, real-time
+- OLAP systems (warehouses, lakehouses) for analytics - complex queries, ML, BI
+- Fragile ETL pipelines copying data between systems
+- Stale analytics (hours/days behind operational reality)
+- Separate security models, duplicate governance overhead
+- Database as bottleneck - queries competing for fixed CPU/memory
+
+**The Solution (Center - "Lakebase"):**
+Databricks Lakebase - fully managed serverless PostgreSQL that runs OLTP directly on the Lakehouse:
+
+Key capabilities to visualize:
+- Serverless autoscaling (scales to demand, scales to zero when idle)
+- Instant database branching (zero-copy clones for safe dev/test)
+- Point-in-time recovery (millisecond-level restore)
+- Compute separated from storage (no resource conflicts)
+- PostgreSQL compatible (use existing tools, frameworks, ORMs)
+
+**The Dream Realized (Right Side - "After"):**
+One unified platform for apps, analytics, and AI:
+
+- **Sync Tables**: Operational data automatically syncs to Delta Lake - no ETL pipelines
+- **Unity Catalog**: Single governance layer spanning OLTP and analytics
+- **Real-time feature serving**: ML models access fresh operational data with low latency
+- **Persistent memory for AI agents**: Agents read/write operational state governed by Unity Catalog
+- **Embedded analytics**: Combine live operational data with historical lakehouse insights
+
+**Data Flow Arrows:**
+1. User apps → Lakebase (low-latency transactions)
+2. Lakebase ⟷ Delta Lake (automatic sync, bidirectional)
+3. Lakehouse → ML training (historical + operational data)
+4. ML models → Lakebase (predictions, enrichments back to apps)
+5. AI Agents ⟷ Lakebase (persistent memory, governed access)
+6. Unity Catalog spans everything (single security model)
+
+**Customer Proof Points (can include as callout boxes):**
+- Hafnia: Reduced app delivery from 2 months to 5 days
+- easyJet: Replaced legacy SQL Server, cut dev cycles from 9 months to 4
+- Warner Music Group: "Analytics and operational workloads work together in real-time"
+
+**Visual Style:**
+- Clean, modern enterprise architecture diagram
+- Show clear "Before/After" or "Old World/New World" contrast
+- Databricks orange/red color palette
+- Emphasize the UNITY - one platform, one governance, one data foundation
+- Show Lakebase as the bridge/nexus connecting operational and analytical worlds
+- Include Unity Catalog as the umbrella/roof spanning both sides
+
+**Key Message:**
+"A new category of database architecture that runs OLTP directly on the cloud object store, enabling a unified, elastic, and AI-ready operational data foundation."

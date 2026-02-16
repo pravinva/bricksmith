@@ -1,0 +1,18 @@
+# Logo hints for AGL kit (Unity Catalog same as default — use EXACT uploaded image)
+unity-catalog:
+  enabled: true
+  warning_level: "CRITICAL"
+  correct_description: |
+    The uploaded Unity Catalog logo file contains MULTIPLE DISTINCT GEOMETRIC SHAPES:
+    - Pink/magenta SQUARES (multiple)
+    - Yellow/gold TRIANGULAR shapes (multiple)
+    - Navy blue HEXAGON (one, in center)
+    These shapes are arranged in a SPECIFIC cluster/constellation pattern - NOT a single shape.
+  wrong_patterns:
+    - "A single hexagon shape"
+    - "A stylized hexagon"
+    - "A multi-colored hexagonal logo"
+    - "Any single geometric shape"
+    - "Any logo you generate/draw yourself"
+  stop_condition: "If you find yourself drawing or generating ANY hexagon shape, STOP - that is wrong. The correct logo is a MULTI-ELEMENT composition that was uploaded as an image file."
+  additional_notes: "You MUST use the EXACT uploaded Unity Catalog image file from the logo kit."

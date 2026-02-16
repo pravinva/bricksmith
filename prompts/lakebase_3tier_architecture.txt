@@ -1,0 +1,110 @@
+Create a professional architecture diagram showing Databricks components in a classic 3-tier application architecture.
+
+**Target Audience**: DevOps engineers, Security Architects, Enterprise Architects - people who think in traditional 3-tier patterns.
+
+**Layout**: Standard 3-tier vertical stack. Show network zones clearly (Public / Private / Database).
+
+---
+
+**TIER 1 - PRESENTATION LAYER (Public Zone)**
+
+Network boundary: Internet-facing, public IPs
+
+Components:
+┌─────────────────────────────────────────────────────────┐
+│  CDN / WAF / Load Balancer                              │
+│                                                         │
+│  Databricks Entry Points:                               │
+│  • Workspace URL (*.cloud.databricks.com)               │
+│  • App URL (*.databricksapps.com)                       │
+│                                                         │
+│  Security: Context-based Ingress Policies               │
+│  (IP allowlists, identity restrictions)                 │
+└─────────────────────────────────────────────────────────┘
+
+---
+
+**TIER 2 - APPLICATION LAYER (Private Zone)**
+
+Network boundary: Private subnet, no direct internet access
+
+Components:
+┌─────────────────────────────────────────────────────────┐
+│  Application Servers / Microservices                    │
+│                                                         │
+│  Databricks Component:                                  │
+│  • Databricks Apps (Serverless All Purpose Compute)     │
+│    - FastAPI, Streamlit, Dash, Gradio                   │
+│    - Runs in Databricks Serverless Compute Plane        │
+│    - Your region, managed by Databricks                 │
+│                                                         │
+│  Egress Security:                                       │
+│  • NCC (Network Connectivity Configuration)             │
+│  • PrivateLink to customer resources                    │
+└─────────────────────────────────────────────────────────┘
+
+---
+
+**TIER 3 - DATA LAYER (Database Zone)**
+
+Network boundary: Most restricted, database subnet
+
+Components:
+┌─────────────────────────────────────────────────────────┐
+│  Databases                                              │
+│                                                         │
+│  Databricks Component:                                  │
+│  • Lakebase (Managed PostgreSQL)                        │
+│    - Standard PostgreSQL protocol                       │
+│    - psycopg2, SQLAlchemy, Prisma, any PG driver        │
+│    - No public endpoint                                 │
+│    - Same Serverless Compute Plane as Apps              │
+│                                                         │
+│  Connection: Internal (Apps → Lakebase in same plane)   │
+└─────────────────────────────────────────────────────────┘
+
+---
+
+**EXTENSION - LAKEHOUSE INTEGRATION (below Tier 3)**
+
+What makes Lakebase different from standalone PostgreSQL:
+
+┌─────────────────────────────────────────────────────────┐
+│  Delta Lake + Unity Catalog                             │
+│                                                         │
+│  • Sync Tables: Auto-replicate from Lakebase            │
+│  • Same governance as Lakehouse (one policy)            │
+│  • Analytics/ML can query operational data              │
+│  • No ETL pipelines to build or maintain                │
+└─────────────────────────────────────────────────────────┘
+
+---
+
+**Security Flow Annotations** (show as arrows with labels):
+
+1. Inbound: Internet → Tier 1
+   Label: "Context-based Ingress (IP + Identity)"
+
+2. Tier 1 → Tier 2:
+   Label: "HTTPS/WSS over Databricks backbone"
+
+3. Tier 2 → Tier 3:
+   Label: "PostgreSQL protocol (internal)"
+
+4. Tier 2 → Customer VPC (if shown):
+   Label: "NCC + PrivateLink"
+
+5. Tier 3 → Lakehouse:
+   Label: "Sync Tables (automatic)"
+
+---
+
+**Visual Style:**
+
+- Horizontal bands for each tier (like AWS/Azure reference architectures)
+- Clear network zone labels on the left (Public / Private / Database)
+- Firewall/security icons at zone boundaries
+- Databricks orange (#FF3621) for Databricks components
+- Gray for network infrastructure
+- Show the Serverless Compute Plane as a dashed boundary containing both Apps and Lakebase
+- Keep it clean - this is for security review, not marketing
