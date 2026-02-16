@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **nano_banana** is an MLflow-tracked prompt engineering system for generating architecture diagrams using Google AI's Gemini models (`gemini-3-pro-image-preview`). It uses DSPy with Databricks model serving for AI-driven prompt refinement, and MLflow on Databricks for experiment tracking.
 
-**Note:** `pyproject.toml` also references `rfp_refiner` scripts, but only `nano_banana` exists in the codebase.
-
 ## Development commands
 
 **This project uses `uv` exclusively. Python 3.11+.**
@@ -15,27 +13,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Setup
 uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
-
-# Run all tests
-uv run pytest
-
-# Run a single test file or test
-uv run pytest tests/test_config.py
-uv run pytest tests/test_config.py::test_function_name -v
+uv pip install -e ".[dev]"       # Core + dev tools
+uv pip install -e ".[dev,web]"   # Include web interface deps
 
 # Code quality
-uv run black src/ tests/        # Format (line-length: 100)
-uv run ruff check src/ tests/   # Lint (line-length: 100)
-uv run mypy src/                # Type check
+uv run black src/           # Format (line-length: 100)
+uv run ruff check src/      # Lint (line-length: 100)
+uv run mypy src/            # Type check
 
 # Makefile shortcuts
-make test        # Run tests
 make format      # Format code
 make lint        # Lint code
 make type-check  # Type check
 make check       # All quality checks (format + lint + type-check)
 ```
+
+**Note**: Tests directory exists in pyproject.toml config but no tests are currently implemented.
 
 ## Environment setup
 
@@ -63,6 +56,7 @@ Entry point: `nano-banana` (defined in `cli.py` via Click). Use `nano-banana <co
 - `evaluate`, `list-runs`, `show-run` - MLflow experiment management
 - `refine`, `refine-prompt` - One-shot prompt refinement from a previous run
 - `validate-logos` - Check logo kit integrity
+- `check-auth` - Verify Google AI and Databricks credentials
 - `web` - Web interface (FastAPI backend + React frontend)
 
 ## Architecture
@@ -101,9 +95,38 @@ All source is in `src/nano_banana/`. The CLI (`cli.py`) orchestrates everything 
 - **Logo pipeline**: `logos.py` (loading, validation, SHA256 hashing) → `prompts.py` (builds the logo constraint section)
 - **Generation**: `gemini_client.py` - Google AI client using `google-genai` SDK. Handles image generation, image analysis, and multi-image comparison. Built-in retry with exponential backoff.
 - **Tracking**: `mlflow_tracker.py` - Wraps MLflow for Databricks experiment tracking
-- **Refinement via DSPy**: `conversation_dspy.py` and `architect_dspy.py` define DSPy `Signature` and `Module` classes. They connect to Databricks model serving endpoints (e.g., `databricks-claude-opus-4-6`) via LiteLLM.
+- **Refinement via DSPy**: `conversation_dspy.py` and `architect_dspy.py` define DSPy `Signature` and `Module` classes. They connect to Databricks model serving endpoints via LiteLLM.
 - **Orchestration**: `conversation.py` (chat loop with LLM Judge evaluation) and `architect.py` (conversational design loop)
 - **Web**: `web/` subpackage - FastAPI backend (`web/main.py`) with React/Vite/Tailwind frontend in `frontend/`
+
+### DSPy model serving
+
+DSPy modules use Databricks model serving endpoints for prompt refinement. Default endpoint: `databricks-claude-opus-4-5`. Override with `--dspy-model`:
+
+```bash
+nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
+```
+
+Requires `DATABRICKS_HOST` and `DATABRICKS_TOKEN` environment variables.
+
+### MCP context enrichment
+
+The `architect` command automatically enriches context by searching internal knowledge sources (Glean, Slack, JIRA, Confluence) for relevant information. This is enabled by default.
+
+```bash
+# Uses MCP enrichment automatically (enabled by default)
+nano-banana architect --problem "Design Unity Catalog governance for AGL"
+
+# Disable if not needed
+nano-banana architect --problem "Simple diagram" --no-mcp-enrich
+
+# Customize sources
+nano-banana architect --problem "Lakebase design" --mcp-sources glean,confluence
+```
+
+The MCP client (`mcp_client.py`) connects directly to Claude Code's MCP servers using the config from `~/.claude/settings.json`. It spawns the server processes (e.g., `glean_mcp_deploy.pex`) and communicates via JSON-RPC over stdio.
+
+**Detected terms**: Customer names (Coles, AGL, ANZ, etc.) and Databricks concepts (Unity Catalog, Delta Lake, Serverless, etc.) trigger automatic searches.
 
 ### Output structure
 
@@ -117,12 +140,14 @@ Each contains: `session.json`, `iteration_N.png`, `iteration_N_prompt.txt`, `pro
 ## Configuration precedence
 
 1. Environment variables (prefix `NANO_BANANA_`, nested with `__`, e.g., `NANO_BANANA_VERTEX__MODEL_ID`)
-2. YAML config file (`configs/default.yaml`)
+2. YAML config file (pass with `--config`, defaults to `configs/default.yaml`)
 3. Code defaults in Pydantic models
+
+Available configs: `default.yaml` (production), `local.yaml`, `local_simple.yaml`, `databricks.yaml`.
 
 ## Evaluation
 
-The LLM Judge (`conversation.py:build_evaluation_prompt()`) scores diagrams on 6 criteria (1-5 each): information hierarchy, technical accuracy, logo fidelity, visual clarity, data flow legibility, text readability. Supports persona overlays: architect (default), executive, developer.
+The LLM Judge (`conversation.py:build_evaluation_prompt()`) scores diagrams on 6 criteria (1-10 each): information hierarchy, technical accuracy, logo fidelity, visual clarity, data flow legibility, text readability. Supports persona overlays: architect (default), executive, developer.
 
 Manual evaluation (`evaluator.py`) uses a simpler 4-dimension rubric: logo fidelity, layout clarity, text legibility, constraint compliance.
 
@@ -130,6 +155,23 @@ Manual evaluation (`evaluator.py`) uses a simpler 4-dimension rubric: logo fidel
 
 - **Documentation location**: All `.md` files go in `docs/`. Exceptions: `README.md`, `CLAUDE.md`, `CHANGELOG.md`, `CONTRIBUTING.md` stay in root. Context-specific READMEs (e.g., `logos/*/README.md`) stay with their directories.
 - **Code style**: Black + Ruff at 100 char line length, target Python 3.11
+
+## Web development
+
+The web interface requires the `web` extra: `uv pip install -e ".[web]"`.
+
+```bash
+# Development mode (runs both backend + frontend with hot reload)
+nano-banana web --dev
+
+# Backend only (production mode with built frontend)
+nano-banana web --port 8080
+
+# Frontend development standalone
+cd frontend && npm install && npm run dev
+```
+
+Backend: FastAPI at `src/nano_banana/web/`. Frontend: React/Vite/Tailwind at `frontend/`.
 
 ## Documentation
 
