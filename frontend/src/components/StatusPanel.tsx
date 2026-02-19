@@ -10,6 +10,8 @@ interface StatusPanelProps {
   sessionStatus: string;
   turnCount: number;
   readyForOutput: boolean;
+  imageProvider: 'gemini' | 'openai';
+  credentialMode: 'environment' | 'custom_key';
 }
 
 export function StatusPanel({
@@ -18,6 +20,8 @@ export function StatusPanel({
   sessionStatus,
   turnCount,
   readyForOutput,
+  imageProvider,
+  credentialMode,
 }: StatusPanelProps) {
   const { components, connections } = architecture;
 
@@ -47,6 +51,20 @@ export function StatusPanel({
             <span className="text-gray-500">Ready for output:</span>
             <span className={readyForOutput ? 'text-green-600' : 'text-gray-400'}>
               {readyForOutput ? 'Yes' : 'Not yet'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-500">Image auth:</span>
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-medium ${
+                credentialMode === 'custom_key'
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {credentialMode === 'custom_key'
+                ? `Custom key (${imageProvider})`
+                : `Environment (${imageProvider})`}
             </span>
           </div>
         </div>

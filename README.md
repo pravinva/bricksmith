@@ -83,7 +83,8 @@ bricksmith chat --prompt-file prompts/my_prompt.txt --reference-image examples/g
 Run locally or deploy as a Databricks App for browser-based use.
 
 ```bash
-bricksmith web              # Run locally
+make app                   # Run backend + frontend dev servers
+bricksmith web             # Run locally (single command)
 # databricks apps deploy    # Deploy to Databricks (when configured)
 ```
 

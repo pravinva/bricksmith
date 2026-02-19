@@ -42,6 +42,9 @@ export interface CreateSessionRequest {
   initial_problem: string;
   custom_context?: string;
   logo_dir?: string;
+  image_provider?: 'gemini' | 'openai';
+  openai_api_key?: string;
+  vertex_api_key?: string;
 }
 
 export interface SendMessageRequest {
@@ -62,6 +65,8 @@ export interface StatusResponse {
   ready_for_output: boolean;
   architecture: ArchitectureState;
   available_logos: string[];
+  image_provider: 'gemini' | 'openai';
+  credential_mode: 'environment' | 'custom_key';
 }
 
 export interface GenerateOutputResponse {

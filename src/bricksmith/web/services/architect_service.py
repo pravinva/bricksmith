@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
 from ...architect import ArchitectChatbot
 from ...config import AppConfig, load_config
@@ -36,6 +36,8 @@ class ArchitectService:
         self._config: Optional[AppConfig] = None
         self._image_generator_instance: Optional[ImageGenerator] = None
         self._chatbots: dict[str, ArchitectChatbot] = {}
+        self._session_image_generators: dict[str, ImageGenerator] = {}
+        self._session_provider_overrides: dict[str, Literal["gemini", "openai"]] = {}
 
     @property
     def config(self) -> AppConfig:
@@ -60,6 +62,9 @@ class ArchitectService:
         initial_problem: str,
         custom_context: Optional[str] = None,
         logo_dir: Optional[str] = None,
+        image_provider: Optional[Literal["gemini", "openai"]] = None,
+        openai_api_key: Optional[str] = None,
+        vertex_api_key: Optional[str] = None,
     ) -> SessionResponse:
         """Create a new architect session.
 
@@ -67,6 +72,9 @@ class ArchitectService:
             initial_problem: Description of the architecture problem
             custom_context: Optional additional context
             logo_dir: Optional path to logo directory
+            image_provider: Optional per-session image provider override
+            openai_api_key: Optional per-session OpenAI key
+            vertex_api_key: Optional per-session Gemini/Vertex key
 
         Returns:
             SessionResponse with new session details
@@ -115,6 +123,23 @@ class ArchitectService:
         # Cache chatbot instance
         self._chatbots[session_id] = chatbot
 
+        # Optional per-session image generator override from user-supplied keys.
+        # Keys are kept in memory only for the current app process.
+        selected_provider = image_provider or self.config.image_provider.provider
+        if image_provider:
+            self._session_provider_overrides[session_id] = image_provider
+        if selected_provider == "openai":
+            if openai_api_key:
+                self._session_image_generators[session_id] = OpenAIImageClient(
+                    api_key=openai_api_key,
+                    model=self.config.image_provider.openai_model,
+                )
+        elif selected_provider == "gemini":
+            if vertex_api_key:
+                self._session_image_generators[session_id] = GeminiClient(
+                    api_key=vertex_api_key,
+                )
+
         return session_response
 
     async def get_session(self, session_id: str) -> Optional[SessionResponse]:
@@ -136,6 +161,10 @@ class ArchitectService:
         # Remove from cache
         if session_id in self._chatbots:
             del self._chatbots[session_id]
+        if session_id in self._session_image_generators:
+            del self._session_image_generators[session_id]
+        if session_id in self._session_provider_overrides:
+            del self._session_provider_overrides[session_id]
 
         store = get_session_store()
         return await store.delete_session(session_id)
@@ -295,6 +324,15 @@ class ArchitectService:
             ready_for_output=ready_for_output,
             architecture=architecture,
             available_logos=session.available_logos or [],
+            image_provider=self._session_provider_overrides.get(
+                session_id,
+                self.config.image_provider.provider,
+            ),
+            credential_mode=(
+                "custom_key"
+                if session_id in self._session_image_generators
+                else "environment"
+            ),
         )
 
     async def generate_output(
@@ -401,8 +439,17 @@ class ArchitectService:
                         # Logo not found, skip it
                         pass
 
-            # Generate image using configured provider (Gemini or OpenAI)
-            image_bytes, response_text, metadata = self._image_generator.generate_image(
+            # Generate image using per-session override when provided, otherwise app default.
+            image_generator = self._session_image_generators.get(session_id)
+            if image_generator is None:
+                provider_override = self._session_provider_overrides.get(session_id)
+                if provider_override == "openai":
+                    image_generator = OpenAIImageClient(model=self.config.image_provider.openai_model)
+                elif provider_override == "gemini":
+                    image_generator = GeminiClient()
+                else:
+                    image_generator = self._image_generator
+            image_bytes, response_text, metadata = image_generator.generate_image(
                 prompt=prompt,
                 logo_parts=logo_parts,
             )

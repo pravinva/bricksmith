@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -62,6 +62,14 @@ def create_app() -> FastAPI:
     async def health_check():
         """Health check endpoint."""
         return {"status": "healthy", "service": "bricksmith-architect"}
+
+    @app.get("/logo.png")
+    async def serve_logo():
+        """Serve the Bricksmith app logo."""
+        logo_path = Path("logo.png")
+        if logo_path.exists():
+            return FileResponse(logo_path)
+        raise HTTPException(status_code=404, detail="Logo not found")
 
     # Serve static files (React build) in production
     frontend_dist = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"

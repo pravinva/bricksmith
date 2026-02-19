@@ -23,6 +23,8 @@ function App() {
     architecture,
     readyForOutput,
     availableLogos,
+    imageProvider,
+    credentialMode,
     diagramImageUrl,
     isGeneratingPreview,
     createSession,
@@ -56,17 +58,38 @@ function App() {
       {/* Header */}
       <header className="bg-white border-b px-6 py-3">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Bricksmith logo"
+              className="w-10 h-10 rounded-lg object-cover border border-gray-200 bg-white"
+            />
+            <div>
             <h1 className="text-xl font-bold text-gray-900">
               Bricksmith Architect
             </h1>
             <p className="text-sm text-gray-500">
               Collaborative architecture diagram design
             </p>
+            </div>
           </div>
           {mode === 'architect' && currentSession && (
-            <div className="text-sm text-gray-600">
-              Session: <span className="font-mono">{currentSession.session_id}</span>
+            <div className="text-sm text-gray-600 flex items-center gap-2">
+              <span>
+                Session: <span className="font-mono">{currentSession.session_id}</span>
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  credentialMode === 'custom_key'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-gray-100 text-gray-700'
+                }`}
+                title="Image generation auth mode for this session"
+              >
+                {credentialMode === 'custom_key'
+                  ? `Custom key (${imageProvider})`
+                  : `Env (${imageProvider})`}
+              </span>
             </div>
           )}
         </div>
@@ -162,6 +185,8 @@ function App() {
                 sessionStatus={currentSession.status}
                 turnCount={currentSession.turn_count}
                 readyForOutput={readyForOutput}
+                imageProvider={imageProvider}
+                credentialMode={credentialMode}
               />
             )}
           </aside>

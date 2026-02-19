@@ -10,7 +10,15 @@ interface SessionListProps {
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
-  onCreateSession: (problem: string, context?: string) => void;
+  onCreateSession: (
+    problem: string,
+    context?: string,
+    authOptions?: {
+      imageProvider?: 'gemini' | 'openai';
+      openaiApiKey?: string;
+      vertexApiKey?: string;
+    }
+  ) => void;
   isLoading: boolean;
 }
 
@@ -25,12 +33,21 @@ export function SessionList({
   const [showNewSession, setShowNewSession] = useState(false);
   const [newProblem, setNewProblem] = useState('');
   const [newContext, setNewContext] = useState('');
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [customApiKey, setCustomApiKey] = useState('');
 
   const handleCreateSession = () => {
     if (!newProblem.trim()) return;
-    onCreateSession(newProblem.trim(), newContext.trim() || undefined);
+    const key = customApiKey.trim() || undefined;
+    onCreateSession(newProblem.trim(), newContext.trim() || undefined, {
+      imageProvider,
+      openaiApiKey: imageProvider === 'openai' ? key : undefined,
+      vertexApiKey: imageProvider === 'gemini' ? key : undefined,
+    });
     setNewProblem('');
     setNewContext('');
+    setCustomApiKey('');
+    setImageProvider('gemini');
     setShowNewSession(false);
   };
 
@@ -89,12 +106,44 @@ export function SessionList({
                 className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Image Provider
+              </label>
+              <select
+                value={imageProvider}
+                onChange={(e) => setImageProvider(e.target.value as 'gemini' | 'openai')}
+                className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="gemini">Gemini / Vertex</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                {imageProvider === 'openai'
+                  ? 'OpenAI API Key (optional)'
+                  : 'Vertex/Gemini API Key (optional)'}
+              </label>
+              <input
+                type="password"
+                value={customApiKey}
+                onChange={(e) => setCustomApiKey(e.target.value)}
+                placeholder={imageProvider === 'openai' ? 'sk-...' : 'AIza...'}
+                className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Used only for this session&apos;s preview generation when provided.
+              </p>
+            </div>
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => {
                   setShowNewSession(false);
                   setNewProblem('');
                   setNewContext('');
+                  setCustomApiKey('');
+                  setImageProvider('gemini');
                 }}
                 className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
               >

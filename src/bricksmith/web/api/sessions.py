@@ -27,6 +27,9 @@ async def create_session(request: CreateSessionRequest) -> SessionResponse:
         initial_problem=request.initial_problem,
         custom_context=request.custom_context,
         logo_dir=request.logo_dir,
+        image_provider=request.image_provider,
+        openai_api_key=request.openai_api_key,
+        vertex_api_key=request.vertex_api_key,
     )
     return session
 

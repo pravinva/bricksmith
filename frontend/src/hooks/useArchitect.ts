@@ -11,6 +11,12 @@ import type {
   MessageResponse,
 } from '../types';
 
+interface SessionAuthOptions {
+  imageProvider?: 'gemini' | 'openai';
+  openaiApiKey?: string;
+  vertexApiKey?: string;
+}
+
 interface UseArchitectReturn {
   // Session state
   sessions: Session[];
@@ -23,6 +29,8 @@ interface UseArchitectReturn {
   architecture: ArchitectureState;
   readyForOutput: boolean;
   availableLogos: string[];
+  imageProvider: 'gemini' | 'openai';
+  credentialMode: 'environment' | 'custom_key';
 
   // Preview state
   diagramImageUrl: string | null;
@@ -30,7 +38,11 @@ interface UseArchitectReturn {
 
   // Actions
   loadSessions: () => Promise<void>;
-  createSession: (problem: string, context?: string) => Promise<void>;
+  createSession: (
+    problem: string,
+    context?: string,
+    authOptions?: SessionAuthOptions
+  ) => Promise<void>;
   selectSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   sendMessage: (message: string) => Promise<MessageResponse | null>;
@@ -56,6 +68,10 @@ export function useArchitect(): UseArchitectReturn {
   const [architecture, setArchitecture] = useState<ArchitectureState>(emptyArchitecture);
   const [readyForOutput, setReadyForOutput] = useState(false);
   const [availableLogos, setAvailableLogos] = useState<string[]>([]);
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [credentialMode, setCredentialMode] = useState<'environment' | 'custom_key'>(
+    'environment'
+  );
 
   // Preview state
   const [diagramImageUrl, setDiagramImageUrl] = useState<string | null>(null);
@@ -80,13 +96,20 @@ export function useArchitect(): UseArchitectReturn {
   /**
    * Create a new session.
    */
-  const createSession = useCallback(async (problem: string, context?: string) => {
+  const createSession = useCallback(async (
+    problem: string,
+    context?: string,
+    authOptions?: SessionAuthOptions
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
       const session = await sessionsApi.create({
         initial_problem: problem,
         custom_context: context,
+        image_provider: authOptions?.imageProvider,
+        openai_api_key: authOptions?.openaiApiKey,
+        vertex_api_key: authOptions?.vertexApiKey,
       });
 
       setSessions(prev => [session, ...prev]);
@@ -99,6 +122,8 @@ export function useArchitect(): UseArchitectReturn {
       // Load status to get available logos
       const status = await chatApi.getStatus(session.session_id);
       setAvailableLogos(status.available_logos);
+      setImageProvider(status.image_provider);
+      setCredentialMode(status.credential_mode);
 
       // Send the initial problem as the first message
       const response = await chatApi.sendMessage(session.session_id, {
@@ -143,6 +168,8 @@ export function useArchitect(): UseArchitectReturn {
       const status = await chatApi.getStatus(sessionId);
       setReadyForOutput(status.ready_for_output);
       setAvailableLogos(status.available_logos);
+      setImageProvider(status.image_provider);
+      setCredentialMode(status.credential_mode);
 
       // Messages would need to be loaded from a separate endpoint
       // For now, just show a placeholder
@@ -176,6 +203,8 @@ export function useArchitect(): UseArchitectReturn {
         setArchitecture(emptyArchitecture);
         setReadyForOutput(false);
         setDiagramImageUrl(null);
+        setImageProvider('gemini');
+        setCredentialMode('environment');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete session');
@@ -324,6 +353,8 @@ export function useArchitect(): UseArchitectReturn {
     architecture,
     readyForOutput,
     availableLogos,
+    imageProvider,
+    credentialMode,
     diagramImageUrl,
     isGeneratingPreview,
     loadSessions,
