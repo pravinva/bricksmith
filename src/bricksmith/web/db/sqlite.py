@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from pydantic import ValidationError
+
 from ..api.schemas import SessionResponse, ArchitectureState
 from ..services.session_store import SessionStore
 
@@ -34,6 +36,20 @@ class SQLiteSessionStore(SessionStore):
             self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
         return self._conn
+
+    def _parse_architecture(self, raw_architecture: Optional[str]) -> Optional[ArchitectureState]:
+        """Parse persisted architecture JSON defensively.
+
+        Older rows or manual edits can contain malformed JSON/schema values.
+        Returning None keeps session listing resilient instead of failing the API request.
+        """
+        if not raw_architecture:
+            return None
+        try:
+            arch_data = json.loads(raw_architecture)
+            return ArchitectureState(**arch_data)
+        except (json.JSONDecodeError, ValidationError, TypeError, ValueError):
+            return None
 
     async def initialize(self) -> None:
         """Create database tables if they don't exist."""
@@ -136,10 +152,7 @@ class SQLiteSessionStore(SessionStore):
         turn_count = cursor.fetchone()["count"]
 
         # Parse architecture
-        architecture = None
-        if row["current_architecture"]:
-            arch_data = json.loads(row["current_architecture"])
-            architecture = ArchitectureState(**arch_data)
+        architecture = self._parse_architecture(row["current_architecture"])
 
         return SessionResponse(
             session_id=row["session_id"],
@@ -178,10 +191,7 @@ class SQLiteSessionStore(SessionStore):
 
         sessions = []
         for row in rows:
-            architecture = None
-            if row["current_architecture"]:
-                arch_data = json.loads(row["current_architecture"])
-                architecture = ArchitectureState(**arch_data)
+            architecture = self._parse_architecture(row["current_architecture"])
 
             sessions.append(
                 SessionResponse(

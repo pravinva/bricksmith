@@ -18,6 +18,7 @@ class _ResultCandidate:
     prompt_path: Optional[Path]
     prompt_text: str
     run_id: Optional[str]
+    run_group: Optional[str]
     score: Optional[float]
     score_source: Optional[str]
     created_at: Optional[str]
@@ -48,6 +49,7 @@ class ResultsService:
                 or needle in c.prompt_text.lower()
                 or (c.notes and needle in c.notes.lower())
                 or (c.run_id and needle in c.run_id.lower())
+                or (c.run_group and needle in c.run_group.lower())
             ]
 
         if min_score is not None:
@@ -106,6 +108,11 @@ class ResultsService:
                 if prompt_path is None and (session_file.parent / "prompt.txt").exists():
                     prompt_path = session_file.parent / "prompt.txt"
 
+                # Some historical chat sessions did not persist prompt_used in turn data.
+                # Fall back to the iteration prompt file so the UI can still show prompt text.
+                if not prompt_text and prompt_path and prompt_path.exists():
+                    prompt_text = self._safe_read_text(prompt_path)
+
                 candidates.append(
                     _ResultCandidate(
                         source="chat",
@@ -114,6 +121,7 @@ class ResultsService:
                         prompt_path=prompt_path,
                         prompt_text=prompt_text,
                         run_id=turn.get("run_id"),
+                        run_group=None,
                         score=score,
                         score_source="chat_score" if score is not None else None,
                         created_at=turn.get("timestamp"),
@@ -133,6 +141,10 @@ class ResultsService:
             output_dir = metadata_file.parent
             run_id = data.get("run_id")
             run_name = data.get("run_name") or output_dir.name
+            run_group = data.get("run_group")
+            if run_group is None and isinstance(data.get("tags"), dict):
+                tags = data.get("tags") or {}
+                run_group = tags.get("run_group") or tags.get("group")
 
             prompt_path = None
             prompt_file_field = data.get("prompt_file")
@@ -167,6 +179,7 @@ class ResultsService:
                     prompt_path=prompt_path,
                     prompt_text=prompt_text,
                     run_id=run_id,
+                    run_group=str(run_group) if run_group else None,
                     score=score,
                     score_source=score_source,
                     created_at=data.get("timestamp"),
@@ -235,6 +248,7 @@ class ResultsService:
             prompt_preview=prompt_preview,
             full_prompt=candidate.prompt_text if include_prompt else None,
             run_id=candidate.run_id,
+            run_group=candidate.run_group,
             score=candidate.score,
             score_source=candidate.score_source,
             created_at=candidate.created_at,

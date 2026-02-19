@@ -56,6 +56,10 @@ outputs/
 !logos/**/*.jpeg
 !examples/**/*.jpg
 !examples/**/*.png
+!logo.png
+!logo-mascot.png
+!docs/bricksmith/logo.png
+!docs/bricksmith/logo-mascot.png
 
 # OS
 .DS_Store

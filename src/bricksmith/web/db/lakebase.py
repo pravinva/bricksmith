@@ -9,6 +9,8 @@ import os
 from datetime import datetime
 from typing import Optional
 
+from pydantic import ValidationError
+
 from ..api.schemas import SessionResponse, ArchitectureState
 from ..services.session_store import SessionStore
 
@@ -49,6 +51,18 @@ class LakebaseSessionStore(SessionStore):
         """Return a connection to the pool."""
         if self._pool is not None:
             self._pool.putconn(conn)
+
+    def _parse_architecture(self, raw_architecture: object) -> Optional[ArchitectureState]:
+        """Parse persisted architecture JSON defensively."""
+        if raw_architecture is None:
+            return None
+        try:
+            arch_data = raw_architecture
+            if isinstance(arch_data, str):
+                arch_data = json.loads(arch_data)
+            return ArchitectureState(**arch_data)
+        except (json.JSONDecodeError, ValidationError, TypeError, ValueError):
+            return None
 
     async def initialize(self) -> None:
         """Create database tables if they don't exist."""
@@ -161,12 +175,7 @@ class LakebaseSessionStore(SessionStore):
             turn_count = cursor.fetchone()[0]
 
             # Parse architecture
-            architecture = None
-            if row_dict["current_architecture"]:
-                arch_data = row_dict["current_architecture"]
-                if isinstance(arch_data, str):
-                    arch_data = json.loads(arch_data)
-                architecture = ArchitectureState(**arch_data)
+            architecture = self._parse_architecture(row_dict["current_architecture"])
 
             return SessionResponse(
                 session_id=row_dict["session_id"],
@@ -211,12 +220,7 @@ class LakebaseSessionStore(SessionStore):
             for row in rows:
                 row_dict = dict(zip(columns, row))
 
-                architecture = None
-                if row_dict["current_architecture"]:
-                    arch_data = row_dict["current_architecture"]
-                    if isinstance(arch_data, str):
-                        arch_data = json.loads(arch_data)
-                    architecture = ArchitectureState(**arch_data)
+                architecture = self._parse_architecture(row_dict["current_architecture"])
 
                 sessions.append(
                     SessionResponse(

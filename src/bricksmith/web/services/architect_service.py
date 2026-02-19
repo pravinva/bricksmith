@@ -94,7 +94,7 @@ class ArchitectService:
 
         # Start session (this loads logos and initializes state)
         # We need to capture logo names before starting the session
-        logo_path = logo_dir or str(self.config.logo_kit.logo_dir)
+        logo_path = Path(logo_dir) if logo_dir else self.config.logo_kit.logo_dir
         logos = chatbot.logo_handler.load_logo_kit(logo_path)
         chatbot.logo_handler.load_logo_hints(logo_path)
         available_logos = [logo.name for logo in logos]
@@ -200,7 +200,7 @@ class ArchitectService:
 
         # Restore session state
         available_logos = session_data.get("available_logos", [])
-        logo_path = str(self.config.logo_kit.logo_dir)
+        logo_path = self.config.logo_kit.logo_dir
 
         logos = chatbot.logo_handler.load_logo_kit(logo_path)
         chatbot.logo_handler.load_logo_hints(logo_path)

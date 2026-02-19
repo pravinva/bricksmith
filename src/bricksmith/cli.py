@@ -24,7 +24,7 @@ from .mlflow_tracker import MLflowTracker
 from .prompts import PromptBuilder
 from .prompt_refiner import PromptRefiner
 from .conversation import ConversationChatbot
-from .models import ConversationConfig, ArchitectConfig, EvaluationPersona
+from .models import ConversationConfig, ArchitectConfig
 
 
 console = Console()
@@ -388,6 +388,7 @@ def generate_raw(
                 tags[key] = value
             else:
                 console.print(f"[yellow]Warning: Ignoring invalid tag '{tag_str}'[/yellow]")
+        run_group = tags.get("run_group") or tags.get("group")
 
         # Initialize MLflow (use default experiment name from config)
         console.print("[bold]Initializing MLflow...[/bold]")
@@ -640,6 +641,8 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
                 run_metadata = {
                     "run_id": run_id,
                     "run_name": run_name_final,
+                    "run_group": run_group,
+                    "tags": tags,
                     "timestamp": now.isoformat(),
                     "iteration": i + 1,
                     "generation_time_seconds": generation_time,
@@ -1786,6 +1789,8 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
         - Live architecture visualization (Mermaid diagrams)
         - Output generation when design is complete
     """
+    import os
+    import socket
     import subprocess
 
     try:
@@ -1795,11 +1800,37 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
         console.print("Install web dependencies with: uv pip install -e '.[web]'")
         raise SystemExit(1)
 
+    def _port_in_use(check_port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            return sock.connect_ex(("127.0.0.1", check_port)) == 0
+
+    def _find_available_port(preferred: int, max_tries: int = 100) -> int:
+        if not _port_in_use(preferred):
+            return preferred
+        for candidate in range(preferred + 1, preferred + max_tries + 1):
+            if not _port_in_use(candidate):
+                return candidate
+        raise click.ClickException(
+            f"No available port found near {preferred} (checked {max_tries} ports)."
+        )
+
     if dev:
+        backend_port = _find_available_port(port)
+        frontend_port = _find_available_port(5173)
+        if backend_port != port:
+            console.print(
+                f"[yellow]Port {port} is in use; using backend port {backend_port} instead.[/yellow]"
+            )
+        if frontend_port != 5173:
+            console.print(
+                f"[yellow]Port 5173 is in use; using frontend port {frontend_port} instead.[/yellow]"
+            )
+
         # Development mode: start both backend and frontend
         console.print("[bold]Starting development servers...[/bold]")
-        console.print(f"  Backend: http://localhost:{port}")
-        console.print("  Frontend: http://localhost:5173")
+        console.print(f"  Backend: http://localhost:{backend_port}")
+        console.print(f"  Frontend: http://localhost:{frontend_port}")
         console.print("\n[dim]Press Ctrl+C to stop both servers[/dim]\n")
 
         from pathlib import Path
@@ -1815,10 +1846,13 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
             console.print("[yellow]Installing frontend dependencies...[/yellow]")
             subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
 
-        # Start frontend dev server in background
+        # Start frontend dev server in background, pointing proxy at chosen backend.
+        frontend_env = os.environ.copy()
+        frontend_env["VITE_BACKEND_URL"] = f"http://localhost:{backend_port}"
         frontend_process = subprocess.Popen(
-            ["npm", "run", "dev"],
+            ["npm", "run", "dev", "--", "--port", str(frontend_port)],
             cwd=frontend_dir,
+            env=frontend_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
@@ -1828,7 +1862,7 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
             uvicorn.run(
                 "bricksmith.web.main:app",
                 host=host,
-                port=port,
+                port=backend_port,
                 reload=True,
             )
         finally:

@@ -71,6 +71,14 @@ def create_app() -> FastAPI:
             return FileResponse(logo_path)
         raise HTTPException(status_code=404, detail="Logo not found")
 
+    @app.get("/logo-mascot.png")
+    async def serve_logo_mascot():
+        """Serve the mascot-only Bricksmith logo."""
+        logo_path = Path("logo-mascot.png")
+        if logo_path.exists():
+            return FileResponse(logo_path)
+        raise HTTPException(status_code=404, detail="Mascot logo not found")
+
     # Serve static files (React build) in production
     frontend_dist = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"
     if frontend_dist.exists():
