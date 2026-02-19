@@ -36,6 +36,14 @@ class ArchitectureState(BaseModel):
     subtitle: Optional[str] = None
 
 
+# MCP enrichment options for session creation
+class MCPEnrichmentOptions(BaseModel):
+    """MCP enrichment configuration for a session."""
+
+    enabled: bool = False
+    sources: list[str] = Field(default_factory=lambda: ["glean", "confluence"])
+
+
 # Session schemas
 class CreateSessionRequest(BaseModel):
     """Request to create a new architect session."""
@@ -43,9 +51,7 @@ class CreateSessionRequest(BaseModel):
     initial_problem: str = Field(
         ..., description="Description of the architecture problem to solve"
     )
-    custom_context: Optional[str] = Field(
-        None, description="Additional context or requirements"
-    )
+    custom_context: Optional[str] = Field(None, description="Additional context or requirements")
     logo_dir: Optional[str] = Field(
         None, description="Path to logo directory (defaults to logos/default)"
     )
@@ -60,6 +66,15 @@ class CreateSessionRequest(BaseModel):
     vertex_api_key: Optional[str] = Field(
         None,
         description="Optional Gemini/Vertex API key for this session",
+    )
+    reference_prompt: Optional[str] = Field(
+        None, description="Existing prompt text to use as reference"
+    )
+    reference_prompt_path: Optional[str] = Field(
+        None, description="Path to a prompt file to load as reference"
+    )
+    mcp_enrichment: Optional[MCPEnrichmentOptions] = Field(
+        None, description="MCP enrichment configuration"
     )
 
 
@@ -256,4 +271,22 @@ class BestResultsResponse(BaseModel):
     """Response containing ranked architecture results."""
 
     results: list[BestResultItem]
+    total: int
+
+
+# Prompt file browser schemas
+class PromptFileItem(BaseModel):
+    """A prompt file discovered in the outputs directory."""
+
+    path: str
+    relative_path: str
+    preview: str = Field(default="", description="First 300 chars of the file")
+    size: int = 0
+    modified_at: Optional[str] = None
+
+
+class PromptFilesResponse(BaseModel):
+    """Response containing discovered prompt files."""
+
+    files: list[PromptFileItem]
     total: int

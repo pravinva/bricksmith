@@ -1,5 +1,6 @@
 """Service layer wrapping ArchitectChatbot for web use."""
 
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -9,12 +10,15 @@ from ...architect import ArchitectChatbot
 from ...config import AppConfig, load_config
 from ...gemini_client import GeminiClient
 from ...image_generator import ImageGenerator
+from ...mcp_config import MCPEnrichmentConfig
+from ...mcp_context_enricher import MCPContextEnricher
 from ...models import ArchitectConfig, ArchitectSession, ArchitectTurn, ConversationStatus
 from ...openai_image_client import OpenAIImageClient
 from ..api.schemas import (
     ArchitectureState,
     ComponentSchema,
     ConnectionSchema,
+    MCPEnrichmentOptions,
     MessageResponse,
     SessionResponse,
     StatusResponse,
@@ -22,6 +26,8 @@ from ..api.schemas import (
     GeneratePreviewResponse,
 )
 from .session_store import get_session_store
+
+logger = logging.getLogger(__name__)
 
 
 class ArchitectService:
@@ -38,6 +44,7 @@ class ArchitectService:
         self._chatbots: dict[str, ArchitectChatbot] = {}
         self._session_image_generators: dict[str, ImageGenerator] = {}
         self._session_provider_overrides: dict[str, Literal["gemini", "openai"]] = {}
+        self._session_mcp_config: dict[str, MCPEnrichmentOptions] = {}
 
     @property
     def config(self) -> AppConfig:
@@ -65,6 +72,9 @@ class ArchitectService:
         image_provider: Optional[Literal["gemini", "openai"]] = None,
         openai_api_key: Optional[str] = None,
         vertex_api_key: Optional[str] = None,
+        reference_prompt: Optional[str] = None,
+        reference_prompt_path: Optional[str] = None,
+        mcp_enrichment: Optional[MCPEnrichmentOptions] = None,
     ) -> SessionResponse:
         """Create a new architect session.
 
@@ -75,6 +85,9 @@ class ArchitectService:
             image_provider: Optional per-session image provider override
             openai_api_key: Optional per-session OpenAI key
             vertex_api_key: Optional per-session Gemini/Vertex key
+            reference_prompt: Optional existing prompt text as reference
+            reference_prompt_path: Optional path to prompt file to load as reference
+            mcp_enrichment: Optional MCP enrichment configuration
 
         Returns:
             SessionResponse with new session details
@@ -99,6 +112,15 @@ class ArchitectService:
         chatbot.logo_handler.load_logo_hints(logo_path)
         available_logos = [logo.name for logo in logos]
 
+        # Resolve reference prompt: explicit text takes priority, then load from path
+        resolved_reference_prompt = reference_prompt or ""
+        if not resolved_reference_prompt and reference_prompt_path:
+            ref_path = Path(reference_prompt_path)
+            if ref_path.exists():
+                resolved_reference_prompt = ref_path.read_text()
+            else:
+                logger.warning("Reference prompt path not found: %s", reference_prompt_path)
+
         # Store in session store
         store = get_session_store()
         session_response = await store.create_session(
@@ -106,6 +128,7 @@ class ArchitectService:
             initial_problem=initial_problem,
             custom_context=custom_context,
             available_logos=available_logos,
+            reference_prompt=resolved_reference_prompt or None,
         )
 
         # Start the chatbot session
@@ -119,6 +142,23 @@ class ArchitectService:
         chatbot._logos = logos
         chatbot._logo_names = available_logos
         chatbot._custom_context = custom_context or ""
+        chatbot._reference_prompt = resolved_reference_prompt
+
+        # Set up MCP enrichment if requested
+        if mcp_enrichment and mcp_enrichment.enabled:
+            self._session_mcp_config[session_id] = mcp_enrichment
+            try:
+                mcp_config = MCPEnrichmentConfig(
+                    enabled=True,
+                    sources=mcp_enrichment.sources,
+                )
+                chatbot._mcp_enricher = MCPContextEnricher(
+                    config=mcp_config,
+                    use_native=True,
+                )
+                logger.info("MCP enrichment enabled for session %s", session_id)
+            except Exception as e:
+                logger.warning("Failed to initialize MCP enricher: %s", e)
 
         # Cache chatbot instance
         self._chatbots[session_id] = chatbot
@@ -165,6 +205,8 @@ class ArchitectService:
             del self._session_image_generators[session_id]
         if session_id in self._session_provider_overrides:
             del self._session_provider_overrides[session_id]
+        if session_id in self._session_mcp_config:
+            del self._session_mcp_config[session_id]
 
         store = get_session_store()
         return await store.delete_session(session_id)
@@ -207,6 +249,22 @@ class ArchitectService:
         chatbot._logos = logos
         chatbot._logo_names = [logo.name for logo in logos]
         chatbot._custom_context = session_data.get("custom_context") or ""
+        chatbot._reference_prompt = session_data.get("reference_prompt") or ""
+
+        # Restore MCP enricher from stored config
+        if session_id in self._session_mcp_config:
+            mcp_opts = self._session_mcp_config[session_id]
+            try:
+                mcp_config = MCPEnrichmentConfig(
+                    enabled=True,
+                    sources=mcp_opts.sources,
+                )
+                chatbot._mcp_enricher = MCPContextEnricher(
+                    config=mcp_config,
+                    use_native=True,
+                )
+            except Exception as e:
+                logger.warning("Failed to restore MCP enricher: %s", e)
 
         # Restore session
         chatbot._session = ArchitectSession(
@@ -329,9 +387,7 @@ class ArchitectService:
                 self.config.image_provider.provider,
             ),
             credential_mode=(
-                "custom_key"
-                if session_id in self._session_image_generators
-                else "environment"
+                "custom_key" if session_id in self._session_image_generators else "environment"
             ),
         )
 
@@ -444,7 +500,9 @@ class ArchitectService:
             if image_generator is None:
                 provider_override = self._session_provider_overrides.get(session_id)
                 if provider_override == "openai":
-                    image_generator = OpenAIImageClient(model=self.config.image_provider.openai_model)
+                    image_generator = OpenAIImageClient(
+                        model=self.config.image_provider.openai_model
+                    )
                 elif provider_override == "gemini":
                     image_generator = GeminiClient()
                 else:

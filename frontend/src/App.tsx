@@ -46,12 +46,13 @@ function App() {
       `Source: ${result.source}`,
       result.run_id ? `Run ID: ${result.run_id}` : null,
       result.prompt_path ? `Prompt file: ${result.prompt_path}` : null,
-      result.full_prompt
-        ? `Existing prompt:\n${result.full_prompt}`
-        : `Prompt preview:\n${result.prompt_preview}`,
     ].filter(Boolean);
 
-    await createSession(problem, contextParts.join('\n\n'));
+    const refPrompt = result.full_prompt || result.prompt_preview || '';
+
+    await createSession(problem, contextParts.join('\n\n'), {
+      referencePrompt: refPrompt || undefined,
+    });
     setMode('architect');
   };
 

@@ -4,10 +4,21 @@ from typing import Optional
 
 from fastapi import APIRouter
 
-from .schemas import BestResultsResponse
+from .schemas import BestResultsResponse, PromptFilesResponse
 from ..services.results_service import get_results_service
 
 router = APIRouter()
+
+
+@router.get("/prompt-files", response_model=PromptFilesResponse)
+async def list_prompt_files(
+    query: Optional[str] = None,
+    limit: int = 100,
+) -> PromptFilesResponse:
+    """Return prompt files from the outputs directory."""
+    service = get_results_service()
+    files = service.list_prompt_files(query=query, limit=limit)
+    return PromptFilesResponse(files=files, total=len(files))
 
 
 @router.get("/best", response_model=BestResultsResponse)

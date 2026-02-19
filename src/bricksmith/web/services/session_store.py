@@ -27,6 +27,7 @@ class SessionStore(ABC):
         initial_problem: str,
         custom_context: Optional[str] = None,
         available_logos: Optional[list[str]] = None,
+        reference_prompt: Optional[str] = None,
     ) -> SessionResponse:
         """Create a new session."""
         pass

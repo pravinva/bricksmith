@@ -16,6 +16,7 @@ import type {
   StartCliJobRequest,
   StartCliJobResponse,
   BestResultsResponse,
+  PromptFilesResponse,
   TurnsResponse,
 } from '../types';
 
@@ -171,5 +172,15 @@ export const resultsApi = {
     if (query) params.set('query', query);
     if (minScore !== undefined) params.set('min_score', String(minScore));
     return fetchApi(`/results/best?${params.toString()}`);
+  },
+
+  listPromptFiles: (
+    query?: string,
+    limit = 100
+  ): Promise<PromptFilesResponse> => {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (query) params.set('query', query);
+    return fetchApi(`/results/prompt-files?${params.toString()}`);
   },
 };

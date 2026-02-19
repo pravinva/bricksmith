@@ -2,10 +2,11 @@
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ..api.schemas import BestResultItem
+from ..api.schemas import BestResultItem, PromptFileItem
 
 
 @dataclass
@@ -30,6 +31,60 @@ class ResultsService:
     """Builds ranked list of generated architecture outputs."""
 
     OUTPUTS_DIR = Path("outputs")
+
+    def list_prompt_files(
+        self,
+        query: Optional[str] = None,
+        limit: int = 100,
+    ) -> list[PromptFileItem]:
+        """List prompt files from the outputs directory.
+
+        Args:
+            query: Optional search filter on filename or content preview
+            limit: Maximum number of results
+
+        Returns:
+            List of PromptFileItem sorted by modification time descending
+        """
+        if not self.OUTPUTS_DIR.exists():
+            return []
+
+        candidates: list[PromptFileItem] = []
+        for path in self.OUTPUTS_DIR.rglob("*prompt*.txt"):
+            if not path.is_file():
+                continue
+
+            try:
+                relative = path.relative_to(self.OUTPUTS_DIR).as_posix()
+            except ValueError:
+                relative = path.as_posix()
+
+            preview = self._safe_read_text(path)[:300]
+            stat = path.stat()
+
+            candidates.append(
+                PromptFileItem(
+                    path=str(path),
+                    relative_path=relative,
+                    preview=preview.strip().replace("\n", " "),
+                    size=stat.st_size,
+                    modified_at=datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                )
+            )
+
+        # Filter by query
+        if query:
+            needle = query.lower().strip()
+            candidates = [
+                c
+                for c in candidates
+                if needle in c.relative_path.lower() or needle in c.preview.lower()
+            ]
+
+        # Sort by modified_at descending
+        candidates.sort(key=lambda c: c.modified_at or "", reverse=True)
+
+        return candidates[:limit]
 
     def list_best_results(
         self,
@@ -164,7 +219,9 @@ class ResultsService:
 
             score = None
             score_source = None
-            feedback_score, feedback_source = self._resolve_feedback_score(metadata_file, output_dir)
+            feedback_score, feedback_source = self._resolve_feedback_score(
+                metadata_file, output_dir
+            )
             if feedback_score is not None:
                 score = feedback_score
                 score_source = feedback_source
@@ -240,7 +297,11 @@ class ResultsService:
 
         return BestResultItem(
             result_id=result_id,
-            source=candidate.source if candidate.source in {"chat", "generate_raw", "refine"} else "unknown",
+            source=(
+                candidate.source
+                if candidate.source in {"chat", "generate_raw", "refine"}
+                else "unknown"
+            ),
             title=candidate.title,
             image_path=image_path_str,
             image_url=image_url,

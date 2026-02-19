@@ -30,6 +30,9 @@ async def create_session(request: CreateSessionRequest) -> SessionResponse:
         image_provider=request.image_provider,
         openai_api_key=request.openai_api_key,
         vertex_api_key=request.vertex_api_key,
+        reference_prompt=request.reference_prompt,
+        reference_prompt_path=request.reference_prompt_path,
+        mcp_enrichment=request.mcp_enrichment,
     )
     return session
 

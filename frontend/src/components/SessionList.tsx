@@ -3,7 +3,8 @@
  */
 
 import { useState } from 'react';
-import type { Session } from '../types';
+import type { Session, MCPEnrichmentOptions } from '../types';
+import { ContextSeeder } from './ContextSeeder';
 
 interface SessionListProps {
   sessions: Session[];
@@ -17,6 +18,9 @@ interface SessionListProps {
       imageProvider?: 'gemini' | 'openai';
       openaiApiKey?: string;
       vertexApiKey?: string;
+      referencePrompt?: string;
+      referencePromptPath?: string;
+      mcpEnrichment?: MCPEnrichmentOptions;
     }
   ) => void;
   isLoading: boolean;
@@ -35,6 +39,12 @@ export function SessionList({
   const [newContext, setNewContext] = useState('');
   const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
   const [customApiKey, setCustomApiKey] = useState('');
+  const [referencePrompt, setReferencePrompt] = useState('');
+  const [referencePromptPath, setReferencePromptPath] = useState('');
+  const [mcpEnrichment, setMcpEnrichment] = useState<MCPEnrichmentOptions>({
+    enabled: false,
+    sources: ['glean', 'confluence'],
+  });
 
   const handleCreateSession = () => {
     if (!newProblem.trim()) return;
@@ -43,11 +53,17 @@ export function SessionList({
       imageProvider,
       openaiApiKey: imageProvider === 'openai' ? key : undefined,
       vertexApiKey: imageProvider === 'gemini' ? key : undefined,
+      referencePrompt: referencePrompt || undefined,
+      referencePromptPath: referencePromptPath || undefined,
+      mcpEnrichment: mcpEnrichment.enabled ? mcpEnrichment : undefined,
     });
     setNewProblem('');
     setNewContext('');
     setCustomApiKey('');
     setImageProvider('gemini');
+    setReferencePrompt('');
+    setReferencePromptPath('');
+    setMcpEnrichment({ enabled: false, sources: ['glean', 'confluence'] });
     setShowNewSession(false);
   };
 
@@ -94,18 +110,16 @@ export function SessionList({
                 className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Additional Context (optional)
-              </label>
-              <textarea
-                value={newContext}
-                onChange={(e) => setNewContext(e.target.value)}
-                placeholder="Any additional context or requirements..."
-                rows={2}
-                className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
+            <ContextSeeder
+              customContext={newContext}
+              referencePrompt={referencePrompt}
+              referencePromptPath={referencePromptPath}
+              mcpEnrichment={mcpEnrichment}
+              onCustomContextChange={setNewContext}
+              onReferencePromptChange={setReferencePrompt}
+              onReferencePromptPathChange={setReferencePromptPath}
+              onMCPEnrichmentChange={setMcpEnrichment}
+            />
             <div>
               <label className="block text-sm text-gray-600 mb-1">
                 Image Provider
@@ -144,6 +158,9 @@ export function SessionList({
                   setNewContext('');
                   setCustomApiKey('');
                   setImageProvider('gemini');
+                  setReferencePrompt('');
+                  setReferencePromptPath('');
+                  setMcpEnrichment({ enabled: false, sources: ['glean', 'confluence'] });
                 }}
                 className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
               >

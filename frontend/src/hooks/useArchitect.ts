@@ -9,12 +9,16 @@ import type {
   ArchitectureState,
   ChatMessage,
   MessageResponse,
+  MCPEnrichmentOptions,
 } from '../types';
 
 interface SessionAuthOptions {
   imageProvider?: 'gemini' | 'openai';
   openaiApiKey?: string;
   vertexApiKey?: string;
+  referencePrompt?: string;
+  referencePromptPath?: string;
+  mcpEnrichment?: MCPEnrichmentOptions;
 }
 
 interface UseArchitectReturn {
@@ -114,6 +118,9 @@ export function useArchitect(): UseArchitectReturn {
         image_provider: authOptions?.imageProvider,
         openai_api_key: authOptions?.openaiApiKey,
         vertex_api_key: authOptions?.vertexApiKey,
+        reference_prompt: authOptions?.referencePrompt,
+        reference_prompt_path: authOptions?.referencePromptPath,
+        mcp_enrichment: authOptions?.mcpEnrichment,
       });
 
       setSessions(prev => [session, ...prev]);

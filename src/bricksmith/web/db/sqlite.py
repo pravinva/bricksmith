@@ -90,6 +90,12 @@ class SQLiteSessionStore(SessionStore):
             CREATE INDEX IF NOT EXISTS idx_turns_session_id ON turns(session_id)
         """)
 
+        # Migration: add reference_prompt column if missing
+        try:
+            cursor.execute("ALTER TABLE sessions ADD COLUMN reference_prompt TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
         conn.commit()
 
     async def close(self) -> None:
@@ -104,6 +110,7 @@ class SQLiteSessionStore(SessionStore):
         initial_problem: str,
         custom_context: Optional[str] = None,
         available_logos: Optional[list[str]] = None,
+        reference_prompt: Optional[str] = None,
     ) -> SessionResponse:
         """Create a new session."""
         conn = self._get_connection()
@@ -114,10 +121,10 @@ class SQLiteSessionStore(SessionStore):
 
         cursor.execute(
             """
-            INSERT INTO sessions (session_id, initial_problem, custom_context, available_logos, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO sessions (session_id, initial_problem, custom_context, available_logos, reference_prompt, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (session_id, initial_problem, custom_context, logos_json, now, now),
+            (session_id, initial_problem, custom_context, logos_json, reference_prompt, now, now),
         )
         conn.commit()
 
@@ -342,12 +349,19 @@ class SQLiteSessionStore(SessionStore):
         if row["available_logos"]:
             available_logos = json.loads(row["available_logos"])
 
+        # Safely access reference_prompt (may not exist in old databases)
+        try:
+            ref_prompt = row["reference_prompt"]
+        except (IndexError, KeyError):
+            ref_prompt = None
+
         return {
             "session_id": row["session_id"],
             "initial_problem": row["initial_problem"],
             "current_architecture": architecture,
             "available_logos": available_logos,
             "custom_context": row["custom_context"],
+            "reference_prompt": ref_prompt,
             "status": row["status"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],

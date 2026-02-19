@@ -38,6 +38,11 @@ export interface SessionListResponse {
   total: number;
 }
 
+export interface MCPEnrichmentOptions {
+  enabled: boolean;
+  sources: string[];
+}
+
 export interface CreateSessionRequest {
   initial_problem: string;
   custom_context?: string;
@@ -45,6 +50,9 @@ export interface CreateSessionRequest {
   image_provider?: 'gemini' | 'openai';
   openai_api_key?: string;
   vertex_api_key?: string;
+  reference_prompt?: string;
+  reference_prompt_path?: string;
+  mcp_enrichment?: MCPEnrichmentOptions;
 }
 
 export interface SendMessageRequest {
@@ -166,5 +174,18 @@ export interface BestResultItem {
 
 export interface BestResultsResponse {
   results: BestResultItem[];
+  total: number;
+}
+
+export interface PromptFileItem {
+  path: string;
+  relative_path: string;
+  preview: string;
+  size: number;
+  modified_at?: string;
+}
+
+export interface PromptFilesResponse {
+  files: PromptFileItem[];
   total: number;
 }

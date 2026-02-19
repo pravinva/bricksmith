@@ -103,6 +103,13 @@ class LakebaseSessionStore(SessionStore):
                 CREATE INDEX IF NOT EXISTS idx_turns_session_id ON turns(session_id)
             """)
 
+            # Migration: add reference_prompt column if missing
+            try:
+                cursor.execute("ALTER TABLE sessions ADD COLUMN reference_prompt TEXT")
+                conn.commit()
+            except Exception:
+                conn.rollback()  # Column already exists
+
             conn.commit()
         finally:
             self._put_connection(conn)
@@ -119,6 +126,7 @@ class LakebaseSessionStore(SessionStore):
         initial_problem: str,
         custom_context: Optional[str] = None,
         available_logos: Optional[list[str]] = None,
+        reference_prompt: Optional[str] = None,
     ) -> SessionResponse:
         """Create a new session."""
         conn = self._get_connection()
@@ -130,10 +138,18 @@ class LakebaseSessionStore(SessionStore):
 
             cursor.execute(
                 """
-                INSERT INTO sessions (session_id, initial_problem, custom_context, available_logos, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO sessions (session_id, initial_problem, custom_context, available_logos, reference_prompt, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
-                (session_id, initial_problem, custom_context, logos_json, now, now),
+                (
+                    session_id,
+                    initial_problem,
+                    custom_context,
+                    logos_json,
+                    reference_prompt,
+                    now,
+                    now,
+                ),
             )
             conn.commit()
 
@@ -227,7 +243,9 @@ class LakebaseSessionStore(SessionStore):
                         session_id=row_dict["session_id"],
                         initial_problem=row_dict["initial_problem"],
                         status=row_dict["status"],
-                        created_at=row_dict["created_at"].isoformat() if row_dict["created_at"] else "",
+                        created_at=(
+                            row_dict["created_at"].isoformat() if row_dict["created_at"] else ""
+                        ),
                         turn_count=row_dict["turn_count"],
                         current_architecture=architecture,
                     )
@@ -352,7 +370,9 @@ class LakebaseSessionStore(SessionStore):
                         "user_input": row_dict["user_input"],
                         "architect_response": row_dict["architect_response"],
                         "architecture_snapshot": snapshot,
-                        "created_at": row_dict["created_at"].isoformat() if row_dict["created_at"] else "",
+                        "created_at": (
+                            row_dict["created_at"].isoformat() if row_dict["created_at"] else ""
+                        ),
                     }
                 )
 
@@ -395,6 +415,7 @@ class LakebaseSessionStore(SessionStore):
                 "current_architecture": architecture,
                 "available_logos": available_logos,
                 "custom_context": row_dict["custom_context"],
+                "reference_prompt": row_dict.get("reference_prompt"),
                 "status": row_dict["status"],
                 "created_at": row_dict["created_at"].isoformat() if row_dict["created_at"] else "",
                 "updated_at": row_dict["updated_at"].isoformat() if row_dict["updated_at"] else "",
