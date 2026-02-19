@@ -30,7 +30,7 @@ cp ~/Downloads/uc-logo.jpg logos/default/
 ls -lh logos/default/*.jpg
 
 # Validate with tool
-nano-banana validate-logos --logo-dir logos/default
+bricksmith validate-logos --logo-dir logos/default
 ```
 
 ## Logo Naming Convention
@@ -56,7 +56,7 @@ Once logos are added:
 
 ```bash
 # Generate diagram using default kit
-nano-banana generate \
+bricksmith generate \
     --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template baseline
 
@@ -70,4 +70,4 @@ components:
 ## Need Help?
 
 - See [logos/README.md](../README.md) for complete documentation
-- See [docs/nano_banana/LOGO_SETUP.md](../../docs/nano_banana/LOGO_SETUP.md) for detailed setup
+- See [docs/bricksmith/LOGO_SETUP.md](../../docs/bricksmith/LOGO_SETUP.md) for detailed setup

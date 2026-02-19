@@ -1,4 +1,4 @@
-"""Logo kit handling for Nano Banana Pro."""
+"""Logo kit handling for Bricksmith."""
 
 import hashlib
 import mimetypes

@@ -1,7 +1,7 @@
-# AGL DATABRICKS RFP – Complete Nano Banana Prompt Suite (v5 – AGL Annual Report Context)
+# AGL DATABRICKS RFP – Complete Bricksmithmpt Suite (v5 – AGL Annual Report Context)
 ## Six Standalone Prompts – Dual‑Cloud (AWS + Azure), AIBI, Agent Bricks, DBSQL, Metric Views + AGL Context
 
-All prompts follow Nano Banana Pro best practices and are now enriched with context from AGL Energy Limited FY25 Annual Report:
+All prompts follow Bricksmith best practices and are now enriched with context from AGL Energy Limited FY25 Annual Report:
 - ✅ Logo Kit embedded at the top of each prompt
 - ✅ AWS and Azure logos as explicit cloud markers
 - ✅ No filenames shown in diagrams
@@ -1038,7 +1038,7 @@ green success markers, AWS/Azure logos clearly positioned.
 
 ## Summary
 
-Six complete, production‑ready, AGL-contextualized prompts for Nano Banana Pro:
+Six complete, production‑ready, AGL-contextualized prompts for Bricksmith:
 
 1. ✅ **Prompt 1** – Vertical Platform Stack (5 layers, AWS/Databricks/Azure columns, AGL domains)
 2. ✅ **Prompt 2** – Horizontal Data Journey (5 phases, 3 swim lanes, AGL data flows)

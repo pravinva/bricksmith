@@ -6,7 +6,7 @@ The logo hints system allows you to automatically inject detailed, logo-specific
 
 ## How It Works
 
-1. **Automatic Detection**: When you load a logo kit, nano_banana checks for a `logo_hints.yaml` file in the same directory
+1. **Automatic Detection**: When you load a logo kit, bricksmith checks for a `logo_hints.yaml` file in the same directory
 2. **Smart Matching**: If any loaded logos match entries in `logo_hints.yaml`, their hints are automatically retrieved
 3. **Prompt Injection**: The hints are automatically injected at the top of the generated prompt, before any other content
 4. **Zero Configuration**: Once configured, hints are applied automatically to all commands (generate, chat, refine, etc.)
@@ -50,10 +50,10 @@ To verify logo hints are loading:
 
 ```bash
 # Check hints are loaded
-nano-banana validate-logos --logo-dir logos/default
+bricksmith validate-logos --logo-dir logos/default
 
 # Generate with hints (automatic)
-nano-banana generate-raw --prompt-file my_prompt.txt --logo-dir logos/default
+bricksmith generate-raw --prompt-file my_prompt.txt --logo-dir logos/default
 ```
 
 You should see console output like:

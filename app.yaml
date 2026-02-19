@@ -1,7 +1,7 @@
-# Databricks Apps configuration for Nano Banana Architect
+# Databricks Apps configuration for Bricksmith Architect
 # Deploy with: databricks apps deploy
 
-name: nano-banana-architect
+name: bricksmith-architect
 description: Web interface for collaborative architecture diagram design
 
 # Application entrypoint
@@ -9,7 +9,7 @@ command:
   - python
   - -m
   - uvicorn
-  - nano_banana.web.main:app
+  - bricksmith.web.main:app
   - --host
   - "0.0.0.0"
   - --port

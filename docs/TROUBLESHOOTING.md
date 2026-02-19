@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues and their solutions when working with nano_banana.
+Common issues and their solutions when working with bricksmith.
 
 ## Authentication Issues
 
@@ -70,14 +70,14 @@ The model is overloaded. Please try again later.
 
 1. **Wait and retry:**
 ```bash
-sleep 30 && uv run nano-banana generate [your-options]
+sleep 30 && uv run bricksmith generate [your-options]
 ```
 
 2. **Reduce request frequency:**
 Add delays between batch generations:
 ```bash
 for prompt in prompts/*.txt; do
-    uv run nano-banana generate-raw --prompt-file "$prompt" --logo-dir logos/default
+    uv run bricksmith generate-raw --prompt-file "$prompt" --logo-dir logos/default
     sleep 60  # Wait between requests
 done
 ```
@@ -156,7 +156,7 @@ Ensure your prompt references logo names that exist in the logo directory.
 
 3. **Validate logos:**
 ```bash
-uv run nano-banana validate-logos --logo-dir logos/default/
+uv run bricksmith validate-logos --logo-dir logos/default/
 ```
 
 ### Issue: Logo filenames appearing in diagram
@@ -171,7 +171,7 @@ uv run nano-banana validate-logos --logo-dir logos/default/
 Ensure logo constraints are included. Prompts should use descriptions, not filenames.
 
 2. **Check logos.py mappings:**
-Verify logo descriptions are properly defined in `src/nano_banana/logos.py`.
+Verify logo descriptions are properly defined in `src/bricksmith/logos.py`.
 
 3. **Use guaranteed constraints:**
 The system should auto-inject logo constraints. If not, update prompts.
@@ -263,7 +263,7 @@ Show fewer components or split into multiple diagrams.
 
 2. **Use branding files:**
 ```bash
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file prompts/my_prompt.txt \
     --branding prompts/branding/databricks.txt  # If feature exists
 ```
@@ -286,7 +286,7 @@ Error: Experiment not found
 Verify in `configs/default.yaml`:
 ```yaml
 mlflow:
-  experiment_name: "/Users/your.email@databricks.com/nano-banana"
+  experiment_name: "/Users/your.email@databricks.com/bricksmith"
 ```
 
 2. **Create experiment manually:**
@@ -336,7 +336,7 @@ ls prompts/
 
 2. **Use absolute paths:**
 ```bash
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file /full/path/to/prompt.txt
 ```
 
@@ -370,24 +370,24 @@ May need to adjust file ownership or run in different directory.
 
 ## Installation and Environment Issues
 
-### Issue: "Command not found: nano-banana"
+### Issue: "Command not found: bricksmith"
 
 **Symptoms:**
 ```bash
-nano-banana: command not found
+bricksmith: command not found
 ```
 
 **Solutions:**
 
 1. **Use uv run:**
 ```bash
-uv run nano-banana [command]
+uv run bricksmith [command]
 ```
 
 2. **Activate virtual environment:**
 ```bash
 source .venv/bin/activate
-nano-banana [command]
+bricksmith [command]
 ```
 
 3. **Reinstall package:**
@@ -468,7 +468,7 @@ python -c "import yaml; yaml.safe_load(open('configs/default.yaml'))"
 
 3. **Use explicit config:**
 ```bash
-uv run nano-banana generate-raw --config configs/local.yaml --prompt-file prompts/my_prompt.txt
+uv run bricksmith generate-raw --config configs/local.yaml --prompt-file prompts/my_prompt.txt
 ```
 
 ### Issue: Environment variables not working
@@ -551,28 +551,28 @@ Track API usage in MLflow and Google Cloud Console.
 ### Check Logs
 ```bash
 # View recent MLflow runs
-uv run nano-banana list-runs
+uv run bricksmith list-runs
 
 # Check specific run details
-uv run nano-banana show-run <run-id>
+uv run bricksmith show-run <run-id>
 ```
 
 ### Enable Debug Mode
 ```bash
 export LOG_LEVEL=DEBUG
-uv run nano-banana [command]
+uv run bricksmith [command]
 ```
 
 ### Common Debug Commands
 ```bash
 # Validate logos
-uv run nano-banana validate-logos --logo-dir logos/default/
+uv run bricksmith validate-logos --logo-dir logos/default/
 
 # List prompt files
 ls prompts/
 
 # Check CLI works
-uv run nano-banana generate-raw --help
+uv run bricksmith generate-raw --help
 ```
 
 ### Report Issues

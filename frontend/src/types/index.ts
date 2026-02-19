@@ -1,5 +1,5 @@
 /**
- * TypeScript types for the Nano Banana Architect frontend.
+ * TypeScript types for the Bricksmith Architect frontend.
  * These mirror the Pydantic schemas from the backend API.
  */
 

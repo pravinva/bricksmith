@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the nano_banana project will be documented in this file.
+All notable changes to the bricksmith project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -198,7 +198,7 @@ See `EXAMPLES_TO_PROMPTS_MIGRATION.md` for detailed migration instructions.
 
 ## Contributors
 
-Thank you to everyone who has contributed to nano_banana!
+Thank you to everyone who has contributed to bricksmith!
 
 For contribution guidelines, see `CONTRIBUTING.md`.
 

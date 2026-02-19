@@ -32,7 +32,7 @@ Use this kit for:
    ```
 4. **Verify:**
    ```bash
-   nano-banana validate-logos --logo-dir logos/default
+   bricksmith validate-logos --logo-dir logos/default
    ```
 
 ## Logo Descriptions

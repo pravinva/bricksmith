@@ -47,7 +47,7 @@ It performs:
 
 ```bash
 databricks apps list
-databricks apps get nano-banana-architect
+databricks apps get bricksmith-architect
 ```
 
 ## Notes

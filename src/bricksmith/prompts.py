@@ -1,4 +1,4 @@
-"""Prompt building for Nano Banana Pro."""
+"""Prompt building for Bricksmith."""
 
 from typing import Optional
 

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Quick start script for nano_banana
+# Quick start script for bricksmith
 # Run this script to set up and generate your first diagram
 
 set -e  # Exit on error
 
-echo "🍌 nano_banana Quick Start"
+echo "🍌 bricksmith Quick Start"
 echo "=========================="
 echo ""
 
@@ -26,7 +26,7 @@ echo "🔧 Activating virtual environment..."
 source .venv/bin/activate
 
 # Install package
-echo "📥 Installing nano_banana..."
+echo "📥 Installing bricksmith..."
 uv pip install -e .
 
 # Check for .env file
@@ -51,7 +51,7 @@ source .env
 
 # Verify setup
 echo "✅ Verifying setup..."
-uv run nano-banana verify-setup
+uv run bricksmith verify-setup
 
 # Ask user if they want to generate an example
 echo ""
@@ -64,7 +64,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "   This may take 30-60 seconds..."
     echo ""
     
-    uv run nano-banana generate \
+    uv run bricksmith generate \
         --diagram-spec prompts/diagram_specs/example_basic.yaml \
         --template baseline \
         --run-name "quickstart-example"
@@ -81,9 +81,9 @@ echo ""
 echo "Next steps:"
 echo "  1. View your diagram in outputs/"
 echo "  2. Try generating custom diagrams:"
-echo "     uv run nano-banana generate --diagram-spec prompts/diagram_specs/example_basic.yaml --template baseline"
+echo "     uv run bricksmith generate --diagram-spec prompts/diagram_specs/example_basic.yaml --template baseline"
 echo "  3. Read the documentation: docs/WORKFLOWS.md"
 echo "  4. Explore example prompts in prompts/"
 echo ""
-echo "For help, run: uv run nano-banana --help"
+echo "For help, run: uv run bricksmith --help"
 echo ""

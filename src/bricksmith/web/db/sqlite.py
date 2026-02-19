@@ -18,10 +18,10 @@ class SQLiteSessionStore(SessionStore):
 
         Args:
             db_path: Path to the SQLite database file.
-                     Defaults to ~/.nano_banana/sessions.db
+                     Defaults to ~/.bricksmith/sessions.db
         """
         if db_path is None:
-            db_dir = Path.home() / ".nano_banana"
+            db_dir = Path.home() / ".bricksmith"
             db_dir.mkdir(parents=True, exist_ok=True)
             db_path = str(db_dir / "sessions.db")
 

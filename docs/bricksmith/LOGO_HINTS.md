@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Logo hints automatically inject detailed instructions for logos that AI models commonly misinterpret. Just add a `logo_hints.yaml` file to your logo directory, and nano_banana handles the rest.
+Logo hints automatically inject detailed instructions for logos that AI models commonly misinterpret. Just add a `logo_hints.yaml` file to your logo directory, and bricksmith handles the rest.
 
 ## The Problem
 
@@ -34,7 +34,7 @@ unity-catalog:
 ## How It Works
 
 1. **Place `logo_hints.yaml`** in your logo directory (e.g., `logos/default/`)
-2. **Run any nano-banana command** as usual (generate, chat, refine)
+2. **Run any bricksmith command** as usual (generate, chat, refine)
 3. **Hints automatically inject** when the logo is detected
 4. **Improved logo fidelity** without changing your workflow
 
@@ -42,10 +42,10 @@ unity-catalog:
 
 ```bash
 # No changes needed! Just works automatically:
-nano-banana generate-raw --prompt-file prompt.txt --logo-dir logos/default
+bricksmith generate-raw --prompt-file prompt.txt --logo-dir logos/default
 # Console: "Loaded 7 logos with 3 hints"
 
-nano-banana chat --prompt-file prompt.txt --logo-dir logos/default
+bricksmith chat --prompt-file prompt.txt --logo-dir logos/default
 # Unity Catalog hints automatically injected on every iteration
 ```
 
@@ -103,10 +103,10 @@ The uploaded Unity Catalog logo file contains MULTIPLE DISTINCT GEOMETRIC SHAPES
 
 Logo hints work automatically with:
 
-- `nano-banana generate-raw` - Raw prompt generation
-- `nano-banana chat` - Interactive refinement (every iteration!)
-- `nano-banana refine` - Feedback-based refinement
-- `nano-banana architect` - Conversational design
+- `bricksmith generate-raw` - Raw prompt generation
+- `bricksmith chat` - Interactive refinement (every iteration!)
+- `bricksmith refine` - Feedback-based refinement
+- `bricksmith architect` - Conversational design
 - All web API endpoints
 
 ## Configuration Files
@@ -137,7 +137,7 @@ your-logo-name:
 
 ```
 ┌─────────────────┐
-│  nano-banana    │
+│  bricksmith    │
 │  command        │
 └────────┬────────┘
          │
@@ -199,5 +199,5 @@ A: Check console output: "Loaded X logos with Y hints"
 ---
 
 **Status**: ✅ Production Ready  
-**Version**: Added in nano_banana 0.2.0+  
+**Version**: Added in bricksmith 0.2.0+  
 **Default Logo Kits with Hints**: `logos/default/`

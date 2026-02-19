@@ -8,7 +8,9 @@ from typing import Optional
 from ...architect import ArchitectChatbot
 from ...config import AppConfig, load_config
 from ...gemini_client import GeminiClient
+from ...image_generator import ImageGenerator
 from ...models import ArchitectConfig, ArchitectSession, ArchitectTurn, ConversationStatus
+from ...openai_image_client import OpenAIImageClient
 from ..api.schemas import (
     ArchitectureState,
     ComponentSchema,
@@ -32,6 +34,7 @@ class ArchitectService:
     def __init__(self):
         """Initialize the architect service."""
         self._config: Optional[AppConfig] = None
+        self._image_generator_instance: Optional[ImageGenerator] = None
         self._chatbots: dict[str, ArchitectChatbot] = {}
 
     @property
@@ -40,6 +43,17 @@ class ArchitectService:
         if self._config is None:
             self._config = load_config()
         return self._config
+
+    @property
+    def _image_generator(self) -> ImageGenerator:
+        """Image generator from config (Gemini or OpenAI), cached per service."""
+        if self._image_generator_instance is None:
+            prov = self.config.image_provider
+            if prov.provider == "openai":
+                self._image_generator_instance = OpenAIImageClient(model=prov.openai_model)
+            else:
+                self._image_generator_instance = GeminiClient()
+        return self._image_generator_instance
 
     async def create_session(
         self,
@@ -387,9 +401,8 @@ class ArchitectService:
                         # Logo not found, skip it
                         pass
 
-            # Generate image using GeminiClient
-            gemini_client = GeminiClient()
-            image_bytes, response_text, metadata = gemini_client.generate_image(
+            # Generate image using configured provider (Gemini or OpenAI)
+            image_bytes, response_text, metadata = self._image_generator.generate_image(
                 prompt=prompt,
                 logo_parts=logo_parts,
             )

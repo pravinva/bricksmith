@@ -1,13 +1,13 @@
 # Workflows
 
-Three ways to generate architecture diagrams with nano_banana.
+Three ways to generate architecture diagrams with bricksmith.
 
 ## 1. Generate from a raw prompt
 
 Write a prompt file describing your architecture, then generate directly.
 
 ```bash
-nano-banana generate-raw \
+bricksmith generate-raw \
     --prompt-file prompts/my_prompt.txt \
     --logo-dir logos/default \
     --run-name "lakehouse-v1"
@@ -42,15 +42,15 @@ Describe your problem and discuss architecture through natural dialogue. The AI 
 
 ```bash
 # Start with a problem description
-nano-banana architect --problem "Build a real-time analytics pipeline for IoT data"
+bricksmith architect --problem "Build a real-time analytics pipeline for IoT data"
 
 # With customer context
-nano-banana architect \
+bricksmith architect \
     --problem "Migrate from Snowflake to Databricks" \
     --context prompts/context/customer_background.md
 
 # Use an existing prompt as reference
-nano-banana architect \
+bricksmith architect \
     --problem "Similar diagram for ANZ Bank" \
     --reference-prompt prompts/coles_semantic_fragmentation.md
 ```
@@ -72,7 +72,7 @@ Output files saved to `outputs/<date>/architect-<session>/`:
 After a session, generate the diagram:
 
 ```bash
-nano-banana generate-raw --prompt-file outputs/<date>/architect-<session>/prompt.txt
+bricksmith generate-raw --prompt-file outputs/<date>/architect-<session>/prompt.txt
 ```
 
 ## 3. Chat - iterative refinement
@@ -81,13 +81,13 @@ Interactive loop: generate a diagram, review it, provide feedback, and let DSPy 
 
 ```bash
 # Interactive mode
-nano-banana chat --prompt-file prompts/my_prompt.txt
+bricksmith chat --prompt-file prompts/my_prompt.txt
 
 # Auto-refine (fully autonomous)
-nano-banana chat --prompt-file prompts/my_prompt.txt --auto-refine --target-score 4
+bricksmith chat --prompt-file prompts/my_prompt.txt --auto-refine --target-score 4
 
 # Match a reference image's style
-nano-banana chat --prompt-file prompts/my_prompt.txt --reference-image examples/good_diagram.png
+bricksmith chat --prompt-file prompts/my_prompt.txt --reference-image examples/good_diagram.png
 ```
 
 The loop:
@@ -131,16 +131,16 @@ Useful commands:
 
 ```bash
 # List recent runs
-nano-banana list-runs
+bricksmith list-runs
 
 # Filter by score
-nano-banana list-runs --filter "metrics.overall_score > 4.0"
+bricksmith list-runs --filter "metrics.overall_score > 4.0"
 
 # Show run details
-nano-banana show-run <run-id>
+bricksmith show-run <run-id>
 
 # Score a diagram interactively
-nano-banana evaluate <run-id>
+bricksmith evaluate <run-id>
 ```
 
 ## Web interface
@@ -149,7 +149,7 @@ For collaborative, browser-based diagram design:
 
 ```bash
 # Run locally
-nano-banana web
+bricksmith web
 
 # Or deploy to Databricks Apps
 databricks apps deploy

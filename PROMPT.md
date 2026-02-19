@@ -2,19 +2,19 @@
 
 ## Objective
 
-Clean up the bricksmith/nano_banana codebase by removing the broken YAML spec workflow, consolidating 32+ documentation files into a clear structure, and ensuring the three primary workflows (generate-raw, architect, chat) work correctly with proper documentation.
+Clean up the bricksmith/bricksmith codebase by removing the broken YAML spec workflow, consolidating 32+ documentation files into a clear structure, and ensuring the three primary workflows (generate-raw, architect, chat) work correctly with proper documentation.
 
 ## Context
 
 Read these files to understand the current state:
-- `src/nano_banana/cli.py` - Main CLI entry point with all commands
-- `src/nano_banana/models.py` - Data models including DiagramSpec (to be removed)
-- `src/nano_banana/prompts.py` - Prompt building (has DiagramSpec dependencies)
-- `src/nano_banana/runner.py` - Diagram runner (DiagramSpec heavy)
+- `src/bricksmith/cli.py` - Main CLI entry point with all commands
+- `src/bricksmith/models.py` - Data models including DiagramSpec (to be removed)
+- `src/bricksmith/prompts.py` - Prompt building (has DiagramSpec dependencies)
+- `src/bricksmith/runner.py` - Diagram runner (DiagramSpec heavy)
 - `README.md` - Current documentation (needs simplification)
 - `CLAUDE.md` - Project guide (needs updating after refactor)
-- `docs/nano_banana/AUTHENTICATION.md` - Auth setup (keep)
-- `docs/nano_banana/CLI_REFERENCE.md` - CLI docs (needs trimming)
+- `docs/bricksmith/AUTHENTICATION.md` - Auth setup (keep)
+- `docs/bricksmith/CLI_REFERENCE.md` - CLI docs (needs trimming)
 
 Check recent changes:
 ```bash
@@ -65,15 +65,15 @@ git log --oneline -10
    - One quickstart guide (consolidate from multiple)
 
 2. **Delete these docs** (obsolete or redundant):
-   - docs/nano_banana/SCENARIO_TO_DIAGRAM.md (feature removed)
+   - docs/bricksmith/SCENARIO_TO_DIAGRAM.md (feature removed)
    - docs/SCENARIO_GENERATION_FEATURE.md (feature removed)
-   - docs/nano_banana/PROMPT_DEVELOPMENT_GUIDE.md (YAML spec related)
-   - docs/nano_banana/LOGO_KITS.md (redundant with LOGO_SETUP)
-   - docs/nano_banana/LOGO_QUICK_START.md (redundant)
-   - docs/nano_banana/API_KEY_SETUP_SUMMARY.md (redundant with AUTH)
-   - docs/nano_banana/GUARANTEED_CONSTRAINTS.md (internal)
-   - docs/nano_banana/SAFETY_GUARANTEE.md (internal)
-   - docs/nano_banana/SPELLING_CORRECTION_SUMMARY.md (internal)
+   - docs/bricksmith/PROMPT_DEVELOPMENT_GUIDE.md (YAML spec related)
+   - docs/bricksmith/LOGO_KITS.md (redundant with LOGO_SETUP)
+   - docs/bricksmith/LOGO_QUICK_START.md (redundant)
+   - docs/bricksmith/API_KEY_SETUP_SUMMARY.md (redundant with AUTH)
+   - docs/bricksmith/GUARANTEED_CONSTRAINTS.md (internal)
+   - docs/bricksmith/SAFETY_GUARANTEE.md (internal)
+   - docs/bricksmith/SPELLING_CORRECTION_SUMMARY.md (internal)
    - docs/EXAMPLES_TO_PROMPTS_MIGRATION.md (obsolete)
    - docs/LOGO_UPDATE_SUMMARY.md (obsolete)
    - docs/PRD.md (move to archive or delete)
@@ -98,9 +98,9 @@ Create a new simplified README with:
 
 ### Phase 5: Verify everything works
 
-1. Test generate-raw: `nano-banana generate-raw --help`
-2. Test architect: `nano-banana architect --help`
-3. Test chat: `nano-banana chat --help`
+1. Test generate-raw: `bricksmith generate-raw --help`
+2. Test architect: `bricksmith architect --help`
+3. Test chat: `bricksmith chat --help`
 4. Run full test suite
 5. Verify MLflow tracking still works
 
@@ -115,9 +115,9 @@ The task is COMPLETE when ALL of these are true:
 - [ ] Docs reduced from 32+ files to ~5 essential files
 - [ ] README.md simplified to <200 lines
 - [ ] CLAUDE.md updated to reflect new structure
-- [ ] `nano-banana generate-raw --help` works
-- [ ] `nano-banana architect --help` works
-- [ ] `nano-banana chat --help` works
+- [ ] `bricksmith generate-raw --help` works
+- [ ] `bricksmith architect --help` works
+- [ ] `bricksmith chat --help` works
 - [ ] All tests pass: `uv run pytest`
 - [ ] No linting errors: `uv run ruff check src/`
 

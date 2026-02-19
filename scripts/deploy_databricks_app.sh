@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and deploy Nano Banana as a Databricks App.
+# Build and deploy Bricksmith as a Databricks App.
 # Usage:
 #   scripts/deploy_databricks_app.sh
 #
@@ -41,4 +41,4 @@ echo "Deploying Databricks App..."
 databricks apps deploy
 
 echo "Deployment command submitted."
-echo "Tip: use 'databricks apps list' and 'databricks apps get nano-banana-architect' to monitor status."
+echo "Tip: use 'databricks apps list' and 'databricks apps get bricksmith-architect' to monitor status."

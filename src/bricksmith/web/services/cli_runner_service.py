@@ -1,4 +1,4 @@
-"""Service for running nano-banana CLI commands from the web app."""
+"""Service for running bricksmith CLI commands from the web app."""
 
 import asyncio
 import uuid
@@ -180,7 +180,7 @@ class CliRunnerService:
             return
 
         job.status = "running"
-        cmd = ["uv", "run", "nano-banana", job.command, *job.args]
+        cmd = ["uv", "run", "bricksmith", job.command, *job.args]
 
         try:
             process = await asyncio.create_subprocess_exec(

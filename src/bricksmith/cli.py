@@ -1,4 +1,4 @@
-"""Command-line interface for Nano Banana Pro."""
+"""Command-line interface for Bricksmith."""
 
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +17,9 @@ load_dotenv()
 from .config import AppConfig
 from .evaluator import Evaluator
 from .gemini_client import GeminiClient
+from .image_generator import ImageGenerator
 from .logos import LogoKitHandler
+from .openai_image_client import OpenAIImageClient
 from .mlflow_tracker import MLflowTracker
 from .prompts import PromptBuilder
 from .prompt_refiner import PromptRefiner
@@ -40,7 +42,8 @@ class Context:
         self.config = AppConfig.load(config_path)
         self.logo_handler = LogoKitHandler(self.config.logo_kit)
         self.prompt_builder = PromptBuilder(logo_handler=self.logo_handler)
-        self.gemini_client = GeminiClient()  # Uses API key from environment
+        self.gemini_client = GeminiClient()  # For analysis (evaluate, refine, judge)
+        self._image_generator: ImageGenerator | None = None
         self.mlflow_tracker = MLflowTracker(self.config.mlflow)
         self.evaluator = Evaluator(self.mlflow_tracker)
         self.prompt_refiner = PromptRefiner(
@@ -49,21 +52,50 @@ class Context:
             self.prompt_builder,
         )
 
+    @property
+    def image_generator(self) -> ImageGenerator:
+        """Lazy-initialized image generator (Gemini or OpenAI) from config."""
+        if self._image_generator is None:
+            prov = self.config.image_provider
+            if prov.provider == "openai":
+                self._image_generator = OpenAIImageClient(model=prov.openai_model)
+            else:
+                self._image_generator = self.gemini_client
+        return self._image_generator
+
+    def set_image_provider(self, provider: str) -> None:
+        """Override image provider for this context (e.g. from CLI --image-provider)."""
+        if provider == "openai":
+            self._image_generator = OpenAIImageClient(
+                model=self.config.image_provider.openai_model
+            )
+        else:
+            self._image_generator = self.gemini_client
+
 
 @click.group()
-@click.version_option(version=__version__, prog_name="nano-banana")
+@click.version_option(version=__version__, prog_name="bricksmith")
 @click.option(
     "--config",
     type=click.Path(exists=True, path_type=Path),
     help="Path to config file (default: configs/default.yaml)",
 )
+@click.option(
+    "--image-provider",
+    type=click.Choice(["gemini", "openai"]),
+    default=None,
+    help="Image generation backend: gemini (default) or openai (gpt-image-1.5). Overrides config.",
+)
 @click.pass_context
-def main(ctx: click.Context, config: Optional[Path]):
-    """Nano Banana Pro - MLflow-tracked prompt engineering for architecture diagrams.
+def main(ctx: click.Context, config: Optional[Path], image_provider: Optional[str]):
+    """Bricksmith - MLflow-tracked prompt engineering for architecture diagrams.
 
     Generate, track, and evaluate architecture diagrams using Vertex AI.
     """
-    ctx.obj = Context(config)
+    obj = Context(config)
+    if image_provider is not None:
+        obj.set_image_provider(image_provider)
+    ctx.obj = obj
 
 
 @main.command()
@@ -81,7 +113,7 @@ def evaluate(ctx: Context, run_id: str, eval_file: Optional[Path]):
 
     Example:
 
-        nano-banana evaluate abc123def456
+        bricksmith evaluate abc123def456
     """
     try:
         # Initialize MLflow
@@ -117,8 +149,8 @@ def list_runs(ctx: Context, filter_string: Optional[str], max_results: int):
 
     Example:
 
-        nano-banana list-runs --max-results 20
-        nano-banana list-runs --filter "metrics.overall_score > 4.0"
+        bricksmith list-runs --max-results 20
+        bricksmith list-runs --filter "metrics.overall_score > 4.0"
     """
     try:
         # Initialize MLflow
@@ -155,7 +187,7 @@ def list_runs(ctx: Context, filter_string: Optional[str], max_results: int):
             table.add_row(run_id, run_name, status, template, score_str, time_str)
 
         console.print(table)
-        console.print("\nTo view details: nano-banana show-run <run_id>")
+        console.print("\nTo view details: bricksmith show-run <run_id>")
 
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
@@ -170,7 +202,7 @@ def show_run(ctx: Context, run_id: str):
 
     Example:
 
-        nano-banana show-run abc123def456
+        bricksmith show-run abc123def456
     """
     try:
         # Initialize MLflow
@@ -335,13 +367,13 @@ def generate_raw(
     Examples:
 
         # Load all logos from directory
-        nano-banana generate-raw \\
+        bricksmith generate-raw \\
             --prompt-file prompts/diagram_specs/agl_data_architecture.txt \\
             --logo-dir logos/default \\
             --run-name "agl-arch-v1"
 
         # Use specific logos only
-        nano-banana generate-raw \\
+        bricksmith generate-raw \\
             --prompt-file prompts/diagram_specs/agl_data_architecture.txt \\
             --logo logos/default/databricks-logo.png \\
             --logo logos/default/azure-logo.png \\
@@ -577,7 +609,7 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
                 # Generate image
                 start_time = time.time()
 
-                image_bytes, response_text, metadata = ctx.gemini_client.generate_image(
+                image_bytes, response_text, metadata = ctx.image_generator.generate_image(
                     prompt=final_prompt,
                     logo_parts=logo_parts,
                     temperature=temperature,
@@ -701,7 +733,7 @@ def validate_logos(ctx: Context, logo_dir: Path):
 
     Example:
 
-        nano-banana validate-logos --logo-dir logos/default
+        bricksmith validate-logos --logo-dir logos/default
     """
     try:
         console.print(f"[bold]Validating logos in {logo_dir}...[/bold]\n")
@@ -796,8 +828,8 @@ def refine(
 
     Example:
 
-        nano-banana refine abc123 --feedback "logos not used, text is blurry"
-        nano-banana refine abc123 --feedback "need more spacing between layers" --count 3
+        bricksmith refine abc123 --feedback "logos not used, text is blurry"
+        bricksmith refine abc123 --feedback "need more spacing between layers" --count 3
     """
     import time
 
@@ -913,7 +945,7 @@ Please regenerate addressing ALL of the above feedback.
 
                 # Generate
                 start_time = time.time()
-                image_bytes, response_text, metadata = ctx.gemini_client.generate_image(
+                image_bytes, response_text, metadata = ctx.image_generator.generate_image(
                     prompt=refined_prompt,
                     logo_parts=logo_parts,
                     temperature=temperature,
@@ -1012,10 +1044,10 @@ def refine_prompt(
 
     Examples:
         # Analyze a previous run
-        nano-banana refine-prompt --run-id abc123 --feedback "logos too small"
+        bricksmith refine-prompt --run-id abc123 --feedback "logos too small"
 
         # Analyze any image
-        nano-banana refine-prompt \\
+        bricksmith refine-prompt \\
             --reference-image path/to/diagram.png \\
             --original-prompt path/to/prompt.txt \\
             --feedback "need more spacing"
@@ -1228,43 +1260,43 @@ def chat(
     Examples:
 
         # Start with a prompt file
-        nano-banana chat --prompt-file prompts/my_prompt.txt
+        bricksmith chat --prompt-file prompts/my_prompt.txt
 
         # Name the output folder (runs go to outputs/YYYY-MM-DD/chat-my-architecture)
-        nano-banana chat --prompt-file prompt.txt --folder my-architecture
+        bricksmith chat --prompt-file prompt.txt --folder my-architecture
 
         # Customize iteration settings
-        nano-banana chat --prompt-file prompt.txt --max-iterations 5 --target-score 4
+        bricksmith chat --prompt-file prompt.txt --max-iterations 5 --target-score 4
 
         # Auto-refine based on design principles (fully autonomous)
-        nano-banana chat --prompt-file prompt.txt --auto-refine --target-score 4
+        bricksmith chat --prompt-file prompt.txt --auto-refine --target-score 4
 
         # Match style from a reference image
-        nano-banana chat --prompt-file prompt.txt --reference-image examples/good_diagram.png
+        bricksmith chat --prompt-file prompt.txt --reference-image examples/good_diagram.png
 
         # Use executive/CTO persona for evaluation (strategic, cost-focused feedback)
-        nano-banana chat --prompt-file prompt.txt --auto-refine --persona executive
+        bricksmith chat --prompt-file prompt.txt --auto-refine --persona executive
 
         # Use developer persona for evaluation (implementation-focused feedback)
-        nano-banana chat --prompt-file prompt.txt --auto-refine --persona developer
+        bricksmith chat --prompt-file prompt.txt --auto-refine --persona developer
 
         # Generate 3 variants per iteration to pick the best (handles non-determinism)
-        nano-banana chat --prompt-file prompt.txt --num-variants 3
+        bricksmith chat --prompt-file prompt.txt --num-variants 3
 
         # Use 4K resolution with 1:1 aspect ratio
-        nano-banana chat --prompt-file prompt.txt --size 4K --aspect-ratio 1:1
+        bricksmith chat --prompt-file prompt.txt --size 4K --aspect-ratio 1:1
 
         # Use a specific Databricks model for refinement
-        nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
+        bricksmith chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
 
         # List available sessions to resume
-        nano-banana chat --list-sessions
+        bricksmith chat --list-sessions
 
         # Resume a crashed or interrupted session
-        nano-banana chat --resume outputs/2026-02-11/chat-my-session
+        bricksmith chat --resume outputs/2026-02-11/chat-my-session
 
         # Resume and use a different logo kit (e.g. AGL logos)
-        nano-banana chat --resume outputs/2026-02-14/chat-prompt-455771 --logo-dir logos/agl
+        bricksmith chat --resume outputs/2026-02-14/chat-prompt-455771 --logo-dir logos/agl
 
     During the conversation, type 'help' or '?' to see all commands. Quick reference:
 
@@ -1313,7 +1345,7 @@ def chat(
 
             console.print(table)
             console.print("\n[bold]To resume a session:[/bold]")
-            console.print("  nano-banana chat --resume <path>")
+            console.print("  bricksmith chat --resume <path>")
             raise SystemExit(0)
 
         # Handle --resume option
@@ -1341,7 +1373,7 @@ def chat(
                 console.print(f"  Best score: {best.score}")
                 console.print(f"  Best image: {best.image_path}")
                 console.print("\n[bold]To evaluate the best run:[/bold]")
-                console.print(f"  nano-banana evaluate {best.run_id}")
+                console.print(f"  bricksmith evaluate {best.run_id}")
 
             return
 
@@ -1388,6 +1420,8 @@ def chat(
             config=ctx.config,
             conv_config=conv_config,
             dspy_model=dspy_model,
+            image_generator=ctx.image_generator,
+            gemini_client=ctx.gemini_client,
         )
 
         # Analyze reference image if provided
@@ -1416,7 +1450,7 @@ def chat(
             console.print(f"  Best score: {best.score}")
             console.print(f"  Best image: {best.image_path}")
             console.print("\n[bold]To evaluate the best run:[/bold]")
-            console.print(f"  nano-banana evaluate {best.run_id}")
+            console.print(f"  bricksmith evaluate {best.run_id}")
 
     except KeyboardInterrupt:
         # run_conversation() handles interrupts inside the loop.
@@ -1537,38 +1571,38 @@ def architect(
     Examples:
 
         # Start interactively
-        nano-banana architect
+        bricksmith architect
 
         # Start with a problem description
-        nano-banana architect --problem "Coles needs to migrate from Snowflake..."
+        bricksmith architect --problem "Coles needs to migrate from Snowflake..."
 
         # With custom context file
-        nano-banana architect \\
+        bricksmith architect \\
             --problem "Real-time analytics pipeline" \\
             --context prompts/context/customer_background.md
 
         # Use an existing prompt as reference for style/structure
-        nano-banana architect \\
+        bricksmith architect \\
             --problem "Similar diagram for ANZ Bank" \\
             --reference-prompt prompts/coles_semantic_fragmentation.md
 
         # Specify logo directory and session name
-        nano-banana architect \\
+        bricksmith architect \\
             --problem "Data lakehouse on Azure" \\
             --logo-dir logos/azure \\
             --name azure-lakehouse
 
         # Enable MCP enrichment (when invoked from Claude Code)
-        nano-banana architect \\
+        bricksmith architect \\
             --problem "Coles Unity Catalog governance" \\
             --mcp-enrich \\
             --mcp-sources glean,slack,confluence
 
         # List available sessions to resume
-        nano-banana architect --list-sessions
+        bricksmith architect --list-sessions
 
         # Resume a crashed or interrupted session
-        nano-banana architect --resume outputs/2026-02-05/architect-my-session
+        bricksmith architect --resume outputs/2026-02-05/architect-my-session
 
     During the conversation, you can use these commands:
 
@@ -1613,7 +1647,7 @@ def architect(
 
             console.print(table)
             console.print("\n[bold]To resume a session:[/bold]")
-            console.print("  nano-banana architect --resume <path>")
+            console.print("  bricksmith architect --resume <path>")
             raise SystemExit(0)
 
         # Handle --resume option
@@ -1690,9 +1724,9 @@ def architect(
         if (output_dir / "prompt.txt").exists():
             console.print("\n[bold]Next steps:[/bold]")
             console.print("  # Use the generated prompt")
-            console.print(f"  nano-banana generate-raw --prompt-file {output_dir}/prompt.txt --logo-dir logos/default")
+            console.print(f"  bricksmith generate-raw --prompt-file {output_dir}/prompt.txt --logo-dir logos/default")
             console.print("\n  # Or continue refining with chat")
-            console.print(f"  nano-banana chat --prompt-file {output_dir}/prompt.txt")
+            console.print(f"  bricksmith chat --prompt-file {output_dir}/prompt.txt")
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Session interrupted.[/yellow]")
@@ -1734,16 +1768,16 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
     Examples:
 
         # Start the web server
-        nano-banana web
+        bricksmith web
 
         # Start with auto-reload for development
-        nano-banana web --reload
+        bricksmith web --reload
 
         # Run on a different port
-        nano-banana web --port 3000
+        bricksmith web --port 3000
 
         # Development mode (starts both backend and frontend)
-        nano-banana web --dev
+        bricksmith web --dev
 
     The web interface provides:
 
@@ -1792,7 +1826,7 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
         try:
             # Start backend with reload
             uvicorn.run(
-                "nano_banana.web.main:app",
+                "bricksmith.web.main:app",
                 host=host,
                 port=port,
                 reload=True,
@@ -1804,12 +1838,12 @@ def web(ctx: Context, host: str, port: int, reload: bool, dev: bool):
 
     else:
         # Production mode: serve built frontend from FastAPI
-        console.print("[bold]Starting Nano Banana Architect web server...[/bold]")
+        console.print("[bold]Starting Bricksmith Architect web server...[/bold]")
         console.print(f"  URL: http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
         console.print("\n[dim]Press Ctrl+C to stop[/dim]\n")
 
         uvicorn.run(
-            "nano_banana.web.main:app",
+            "bricksmith.web.main:app",
             host=host,
             port=port,
             reload=reload,

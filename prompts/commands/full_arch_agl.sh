@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generate Full AGL Architecture diagram
 
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
   --prompt-file prompts/prompt_templates/full_arch_agl.md \
   --logo-dir logos/default \
   --aspect-ratio 16:9 \

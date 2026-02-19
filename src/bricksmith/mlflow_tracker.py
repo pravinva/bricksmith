@@ -1,4 +1,4 @@
-"""MLflow tracking integration for Nano Banana Pro."""
+"""MLflow tracking integration for Bricksmith."""
 
 import os
 import json

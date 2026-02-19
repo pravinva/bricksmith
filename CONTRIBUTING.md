@@ -1,6 +1,6 @@
-# Contributing to nano_banana
+# Contributing to bricksmith
 
-Thank you for your interest in contributing to nano_banana! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to bricksmith! This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 
@@ -58,7 +58,7 @@ This project follows professional standards of conduct:
 
 4. **Verify setup**:
    ```bash
-   uv run nano-banana verify-setup
+   uv run bricksmith verify-setup
    ```
 
 ## Development Setup
@@ -108,14 +108,14 @@ GCP_PROJECT_ID=your-project-id
 
 # Optional
 LOG_LEVEL=DEBUG  # For detailed logging
-NANO_BANANA_MLFLOW__EXPERIMENT_NAME=/Users/your.email/dev-experiments
+BRICKSMITH_MLFLOW__EXPERIMENT_NAME=/Users/your.email/dev-experiments
 ```
 
 ## Project Structure
 
 ```
 bricksmith/
-├── src/nano_banana/      # Main package
+├── src/bricksmith/      # Main package
 │   ├── cli.py           # Command-line interface
 │   ├── models.py        # Data models
 │   ├── config.py        # Configuration management
@@ -199,10 +199,10 @@ Before submitting:
 1. **Manual testing**:
    ```bash
    # Test basic generation
-   uv run nano-banana generate --diagram-spec prompts/diagram_specs/example_basic.yaml --template baseline
+   uv run bricksmith generate --diagram-spec prompts/diagram_specs/example_basic.yaml --template baseline
    
    # Test with custom prompt
-   uv run nano-banana generate-raw --prompt-file prompts/test_prompt.txt --logo logos/default/databricks-full.png
+   uv run bricksmith generate-raw --prompt-file prompts/test_prompt.txt --logo logos/default/databricks-full.png
    ```
 
 2. **Regression testing**:
@@ -224,7 +224,7 @@ Place tests in `tests/` directory:
 ```python
 # tests/test_prompts.py
 import pytest
-from nano_banana.prompts import PromptBuilder
+from bricksmith.prompts import PromptBuilder
 
 def test_prompt_builder_basic():
     """Test basic prompt building functionality."""
@@ -261,7 +261,7 @@ uv run pytest
 uv run pytest tests/test_prompts.py
 
 # With coverage
-uv run pytest --cov=nano_banana --cov-report=html
+uv run pytest --cov=bricksmith --cov-report=html
 
 # Verbose output
 uv run pytest -v
@@ -463,8 +463,8 @@ import yaml
 from pydantic import BaseModel
 
 # Local
-from nano_banana.config import Config
-from nano_banana.models import DiagramSpec
+from bricksmith.config import Config
+from bricksmith.models import DiagramSpec
 ```
 
 **File Structure**:
@@ -517,4 +517,4 @@ mlflow:
 - Open a discussion or issue
 - Reach out to maintainers
 
-Thank you for contributing to nano_banana!
+Thank you for contributing to bricksmith!

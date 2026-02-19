@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-**nano_banana** is an MLflow-tracked prompt engineering system for generating architecture diagrams using Google AI's Gemini models (`gemini-3-pro-image-preview`). It uses DSPy with Databricks model serving for AI-driven prompt refinement, and MLflow on Databricks for experiment tracking.
+**bricksmith** is an MLflow-tracked prompt engineering system for generating architecture diagrams using Google AI's Gemini models (`gemini-3-pro-image-preview`). It uses DSPy with Databricks model serving for AI-driven prompt refinement, and MLflow on Databricks for experiment tracking.
 
 ## Development commands
 
@@ -38,14 +38,19 @@ source .env            # Load environment
 ```
 
 **Required environment variables:**
-- `GEMINI_API_KEY` - Google AI Studio API key (for image generation)
+- `GEMINI_API_KEY` - Google AI Studio API key (for image generation and analysis)
 - `DATABRICKS_HOST` - Databricks workspace URL (for MLflow + DSPy model serving)
 - `DATABRICKS_TOKEN` - Databricks access token
 - `DATABRICKS_USER` - Databricks username/email
 
+**Optional (for OpenAI image generation):**
+- `OPENAI_API_KEY` - When using `--image-provider openai` or config `image_provider.provider: openai`
+
 ## CLI overview
 
-Entry point: `nano-banana` (defined in `cli.py` via Click). Use `nano-banana <command> --help` for full options.
+Entry point: `bricksmith` (defined in `cli.py` via Click). Use `bricksmith <command> --help` for full options.
+
+**Image generation backends:** Default is Gemini (`gemini-3-pro-image-preview`). Use `--image-provider openai` for gpt-image-1.5 (requires `OPENAI_API_KEY`). Config: `image_provider.provider` and `image_provider.openai_model` in YAML or env.
 
 **Primary workflows:**
 - `generate-raw` - Generate diagram from a prompt file with logos attached
@@ -89,7 +94,7 @@ Generated image → LLM Judge evaluation (via GeminiClient)
 
 ### Module relationships
 
-All source is in `src/nano_banana/`. The CLI (`cli.py`) orchestrates everything through a `Context` object that initializes the core components:
+All source is in `src/bricksmith/`. The CLI (`cli.py`) orchestrates everything through a `Context` object that initializes the core components:
 
 - **Config layer**: `config.py` (Pydantic `AppConfig` loaded from `configs/default.yaml` + env vars) and `models.py` (data models for sessions, turns, evaluation)
 - **Logo pipeline**: `logos.py` (loading, validation, SHA256 hashing) → `prompts.py` (builds the logo constraint section)
@@ -104,7 +109,7 @@ All source is in `src/nano_banana/`. The CLI (`cli.py`) orchestrates everything 
 DSPy modules use Databricks model serving endpoints for prompt refinement. Default endpoint: `databricks-claude-opus-4-5`. Override with `--dspy-model`:
 
 ```bash
-nano-banana chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
+bricksmith chat --prompt-file prompt.txt --dspy-model databricks-claude-sonnet-4
 ```
 
 Requires `DATABRICKS_HOST` and `DATABRICKS_TOKEN` environment variables.
@@ -115,13 +120,13 @@ The `architect` command automatically enriches context by searching internal kno
 
 ```bash
 # Uses MCP enrichment automatically (enabled by default)
-nano-banana architect --problem "Design Unity Catalog governance for AGL"
+bricksmith architect --problem "Design Unity Catalog governance for AGL"
 
 # Disable if not needed
-nano-banana architect --problem "Simple diagram" --no-mcp-enrich
+bricksmith architect --problem "Simple diagram" --no-mcp-enrich
 
 # Customize sources
-nano-banana architect --problem "Lakebase design" --mcp-sources glean,confluence
+bricksmith architect --problem "Lakebase design" --mcp-sources glean,confluence
 ```
 
 The MCP client (`mcp_client.py`) connects directly to Claude Code's MCP servers using the config from `~/.claude/settings.json`. It spawns the server processes (e.g., `glean_mcp_deploy.pex`) and communicates via JSON-RPC over stdio.
@@ -139,7 +144,7 @@ Each contains: `session.json`, `iteration_N.png`, `iteration_N_prompt.txt`, `pro
 
 ## Configuration precedence
 
-1. Environment variables (prefix `NANO_BANANA_`, nested with `__`, e.g., `NANO_BANANA_VERTEX__MODEL_ID`)
+1. Environment variables (prefix BRICKSMITH_, nested with __, e.g. BRICKSMITH_VERTEX__MODEL_ID)
 2. YAML config file (pass with `--config`, defaults to `configs/default.yaml`)
 3. Code defaults in Pydantic models
 
@@ -162,16 +167,16 @@ The web interface requires the `web` extra: `uv pip install -e ".[web]"`.
 
 ```bash
 # Development mode (runs both backend + frontend with hot reload)
-nano-banana web --dev
+bricksmith web --dev
 
 # Backend only (production mode with built frontend)
-nano-banana web --port 8080
+bricksmith web --port 8080
 
 # Frontend development standalone
 cd frontend && npm install && npm run dev
 ```
 
-Backend: FastAPI at `src/nano_banana/web/`. Frontend: React/Vite/Tailwind at `frontend/`.
+Backend: FastAPI at src/bricksmith/web/. Frontend: React/Vite/Tailwind at `frontend/`.
 
 ## Documentation
 
@@ -179,4 +184,4 @@ Backend: FastAPI at `src/nano_banana/web/`. Frontend: React/Vite/Tailwind at `fr
 - `docs/WORKFLOWS.md` - All three workflows (generate-raw, architect, chat)
 - `docs/TROUBLESHOOTING.md` - Common issues and solutions
 - `docs/WEB_INTERFACE.md` - Web interface deployment
-- `docs/nano_banana/LOGO_HINTS.md` - Automatic logo-specific instructions
+- `docs/bricksmith/LOGO_HINTS.md` - Automatic logo-specific instructions

@@ -1,6 +1,6 @@
 # Prompts Directory
 
-This directory contains all prompt-related resources for nano_banana diagram generation.
+This directory contains all prompt-related resources for bricksmith diagram generation.
 
 ## Directory Structure
 
@@ -58,7 +58,7 @@ constraints:
 ### Usage
 
 ```bash
-uv run nano-banana generate \
+uv run bricksmith generate \
     --diagram-spec prompts/diagram_specs/example_basic.yaml \
     --template baseline \
     --run-name "my-diagram"
@@ -108,12 +108,12 @@ Style Requirements:
 
 ```bash
 # Use with diagram spec
-uv run nano-banana generate \
+uv run bricksmith generate \
     --diagram-spec prompts/diagram_specs/my_spec.yaml \
     --template baseline
 
 # Use directly with raw generation
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file prompts/prompt_templates/minimal.txt \
     --logo logos/default/databricks-full.png
 ```
@@ -151,7 +151,7 @@ VISUAL REQUIREMENTS:
 ### Usage
 
 ```bash
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file prompts/coles_current_fragmented_state.txt \
     --logo logos/default/databricks-full.png \
     --logo logos/default/delta.png \
@@ -209,7 +209,7 @@ Prompts specifically for migration and transformation diagrams.
 These prompts show before/after states and migration paths:
 
 ```bash
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file prompts/migration/agl_synapse_simple_v2.md \
     --logo logos/azure/Microsoft_Azure.png \
     --logo logos/default/databricks-full.png
@@ -236,7 +236,7 @@ Reference these documents when creating customer-facing diagrams:
 
 ```bash
 # Generate architecture for proposal
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file prompts/rfp_response/proposed_architecture.md
 ```
 
@@ -276,7 +276,7 @@ uv run nano-banana generate-raw \
 ### Example 1: Generate from Spec
 
 ```bash
-uv run nano-banana generate \
+uv run bricksmith generate \
     --diagram-spec prompts/diagram_specs/coles-future-unity-catalog.yaml \
     --template baseline \
     --run-name "coles-unity-future"
@@ -285,7 +285,7 @@ uv run nano-banana generate \
 ### Example 2: Raw Generation with Custom Prompt
 
 ```bash
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
     --prompt-file prompts/coles_current_fragmented_state.txt \
     --logo logos/default/databricks-full.png \
     --logo logos/default/delta.png \
@@ -296,7 +296,7 @@ uv run nano-banana generate-raw \
 ### Example 3: Use Template with Branding
 
 ```bash
-uv run nano-banana generate \
+uv run bricksmith generate \
     --diagram-spec prompts/diagram_specs/my_spec.yaml \
     --template prompts/prompt_templates/minimal.txt \
     --branding prompts/branding/minimal.txt \
@@ -320,5 +320,5 @@ See `CONTRIBUTING.md` for detailed guidelines.
 - [Main README](../README.md)
 - [Workflows Guide](../docs/WORKFLOWS.md)
 - [Best Practices](../docs/BEST_PRACTICES.md)
-- [Prompt Engineering Guide](../docs/nano_banana/PROMPT_ENGINEERING.md)
+- [Prompt Engineering Guide](../docs/bricksmith/PROMPT_ENGINEERING.md)
 - [Logo Setup](../logos/README.md)

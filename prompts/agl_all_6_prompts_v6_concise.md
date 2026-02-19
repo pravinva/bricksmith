@@ -1,4 +1,4 @@
-# AGL DATABRICKS RFP – Nano Banana Prompt Suite (v6 – Concise)
+# AGL DATABRICKS RFP – Bricksmith Prompt Suite (v6 – Concise)
 ## Six Prompts – Dual‑Cloud (AWS + Azure), AIBI, Agent Bricks, Metric Views + AGL Context (Less Verbose)
 
 Simplified, cleaner prompts that produce less text on diagrams while maintaining strategic intent.
@@ -523,7 +523,7 @@ RFP-grade transformation narrative.
 
 ## Summary
 
-Six streamlined, less-verbose prompts for Nano Banana Pro:
+Six streamlined, less-verbose prompts for Bricksmith Pro:
 
 | Prompt | Focus | Key Feature |
 |--------|-------|---|

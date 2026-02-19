@@ -1,7 +1,7 @@
 [project]
-name = "nano-banana"
+name = "bricksmith"
 version = "0.1.0"
-description = "MLflow-tracked prompt engineering for architecture diagrams + RFP response refinement"
+description = "POV: deck due tomorrow. You describe, AI draws, judge roasts, DSPy fixes. No more 2am Lucid."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -9,6 +9,7 @@ authors = [
 ]
 dependencies = [
     "mlflow>=3.8.1",
+    "openai>=1.0.0",
     "google-genai>=0.4.0",
     "google-auth>=2.27.0",
     "google-cloud-aiplatform>=1.40.0",
@@ -44,7 +45,7 @@ web = [
 ]
 
 [project.scripts]
-nano-banana = "nano_banana.cli:main"
+bricksmith = "bricksmith.cli:main"
 rfp-refiner = "rfp_refiner.cli:main"
 rfp-store = "rfp_refiner.output_store:main"
 
@@ -53,12 +54,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/nano_banana", "src/rfp_refiner"]
+packages = ["src/bricksmith", "src/rfp_refiner"]
 
 [tool.pytest.ini_options]
 pythonpath = "src"
 testpaths = ["tests"]
-addopts = "--cov=nano_banana --cov-report=html --cov-report=term-missing"
+addopts = "--cov=bricksmith --cov-report=html --cov-report=term-missing"
 
 [tool.black]
 line-length = 100
@@ -69,7 +70,7 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint.per-file-ignores]
-"src/nano_banana/cli.py" = ["E402"]
+"src/bricksmith/cli.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"

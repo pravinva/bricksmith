@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generate AGL Simplified Unified Data Intelligence Platform diagram
 
-uv run nano-banana generate-raw \
+uv run bricksmith generate-raw \
   --prompt-file prompts/diagram_specs/agl_simplfied.txt \
   --logo-dir logos/default \
   --aspect-ratio 16:9 \

@@ -1,5 +1,5 @@
 /**
- * Main application component for Nano Banana Architect.
+ * Main application component for Bricksmith Architect.
  */
 
 import { useArchitect } from './hooks/useArchitect';
@@ -58,7 +58,7 @@ function App() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              Nano Banana Architect
+              Bricksmith Architect
             </h1>
             <p className="text-sm text-gray-500">
               Collaborative architecture diagram design

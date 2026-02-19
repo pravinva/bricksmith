@@ -1,4 +1,4 @@
-"""FastAPI application entry point for nano-banana web interface."""
+"""FastAPI application entry point for Bricksmith web interface."""
 
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
-        title="Nano Banana Architect",
+        title="Bricksmith Architect",
         description="Web interface for collaborative architecture diagram design",
         version="0.1.0",
         lifespan=lifespan,
@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health_check():
         """Health check endpoint."""
-        return {"status": "healthy", "service": "nano-banana-architect"}
+        return {"status": "healthy", "service": "bricksmith-architect"}
 
     # Serve static files (React build) in production
     frontend_dist = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"

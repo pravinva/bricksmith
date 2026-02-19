@@ -1,8 +1,8 @@
-"""Configuration management for Nano Banana Pro."""
+"""Configuration management for Bricksmith."""
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import yaml
 from pydantic import BaseModel, Field
@@ -33,11 +33,24 @@ class MLflowConfig(BaseModel):
         default="file:./mlruns", description="MLflow tracking server URI"
     )
     experiment_name: str = Field(
-        default="vertexai-nanobanana-arch-diagrams",
+        default="bricksmith-arch-diagrams",
         description="MLflow experiment name",
     )
     artifact_location: Optional[str] = Field(
         default=None, description="Custom artifact storage location"
+    )
+
+
+class ImageProviderConfig(BaseModel):
+    """Image generation provider (Gemini or OpenAI gpt-image)."""
+
+    provider: Literal["gemini", "openai"] = Field(
+        default="gemini",
+        description="Backend for diagram image generation: gemini or openai (gpt-image-1.5)",
+    )
+    openai_model: str = Field(
+        default="gpt-image-1.5",
+        description="OpenAI model when provider is openai (e.g. gpt-image-1.5, gpt-image-1)",
     )
 
 
@@ -58,18 +71,22 @@ class AppConfig(BaseSettings):
 
     Can be loaded from:
     1. YAML file (configs/default.yaml by default)
-    2. Environment variables with NANO_BANANA_ prefix
+    2. Environment variables with BRICKSMITH_ prefix
     3. Direct initialization
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="NANO_BANANA_",
+        env_prefix="BRICKSMITH_",
         env_nested_delimiter="__",
         case_sensitive=False,
     )
 
     vertex: VertexAIConfig = Field(default_factory=VertexAIConfig)
     mlflow: MLflowConfig = Field(default_factory=MLflowConfig)
+    image_provider: ImageProviderConfig = Field(
+        default_factory=ImageProviderConfig,
+        description="Image generation backend (gemini or openai)",
+    )
     logo_kit: LogoKitConfig = Field(default_factory=LogoKitConfig)
 
     @classmethod
@@ -98,6 +115,8 @@ class AppConfig(BaseSettings):
             config_dict["vertex"] = VertexAIConfig(**data["vertex"])
         if "mlflow" in data:
             config_dict["mlflow"] = MLflowConfig(**data["mlflow"])
+        if "image_provider" in data:
+            config_dict["image_provider"] = ImageProviderConfig(**data["image_provider"])
         if "logo_kit" in data:
             # Convert logo_dir string to Path
             logo_data = data["logo_kit"].copy()

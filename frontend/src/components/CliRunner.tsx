@@ -110,7 +110,7 @@ export function CliRunner() {
       <header className="bg-white border-b px-6 py-3">
         <h2 className="text-lg font-semibold text-gray-900">CLI Runner</h2>
         <p className="text-sm text-gray-500">
-          Run `nano-banana` commands directly from the web app.
+          Run `bricksmith` commands directly from the web app.
         </p>
       </header>
 
@@ -251,7 +251,7 @@ export function CliRunner() {
                 <p>
                   <span className="text-gray-500">Command:</span>{' '}
                   <span className="font-mono">
-                    nano-banana {selectedJob.command} {selectedJob.args.join(' ')}
+                    bricksmith {selectedJob.command} {selectedJob.args.join(' ')}
                   </span>
                 </p>
                 <p>

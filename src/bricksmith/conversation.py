@@ -20,6 +20,7 @@ from rich.table import Table
 from .config import AppConfig
 from .conversation_dspy import ConversationalRefiner
 from .gemini_client import GeminiClient
+from .image_generator import ImageGenerator
 from .logos import LogoKitHandler
 from .mlflow_tracker import MLflowTracker
 from .models import (
@@ -57,13 +58,13 @@ except ImportError:
     _readline = None
 
 # Global history file for chat feedback (persists across sessions)
-_CHAT_HISTORY_PATH = Path.home() / ".config" / "nano_banana" / "chat_history"
+_CHAT_HISTORY_PATH = Path.home() / ".config" / "bricksmith" / "chat_history"
 
 
 def _prompt_with_history(prompt_label: str, default: str = "") -> str:
     """Prompt for input with readline history (UP/DOWN) when available.
 
-    Uses ~/.config/nano_banana/chat_history. Falls back to Rich Prompt.ask
+    Uses ~/.config/bricksmith/chat_history. Falls back to Rich Prompt.ask
     when readline is not available (e.g. Windows).
 
     Args:
@@ -445,6 +446,8 @@ class ConversationChatbot:
         config: AppConfig,
         conv_config: Optional[ConversationConfig] = None,
         dspy_model: Optional[str] = None,
+        image_generator: Optional[ImageGenerator] = None,
+        gemini_client: Optional[GeminiClient] = None,
     ):
         """Initialize the chatbot.
 
@@ -452,6 +455,8 @@ class ConversationChatbot:
             config: Application configuration
             conv_config: Conversation configuration (uses defaults if not provided)
             dspy_model: Optional Databricks model endpoint for DSPy refinement
+            image_generator: Image generation backend (Gemini or OpenAI). If None, uses Gemini.
+            gemini_client: Client for image analysis / LLM Judge. If None, creates one.
         """
         self.config = config
         self.conv_config = conv_config or ConversationConfig()
@@ -459,7 +464,8 @@ class ConversationChatbot:
         # Initialize components
         self.logo_handler = LogoKitHandler(config.logo_kit)
         self.prompt_builder = PromptBuilder(logo_handler=self.logo_handler)
-        self.gemini_client = GeminiClient()
+        self.gemini_client = gemini_client or GeminiClient()
+        self._image_generator: ImageGenerator = image_generator or self.gemini_client
         self.mlflow_tracker = MLflowTracker(config.mlflow)
 
         # Initialize DSPy refiner (deferred to allow for lazy loading)
@@ -680,7 +686,7 @@ class ConversationChatbot:
                 if num_variants > 1:
                     console.print(f"  [dim]Generating variant {v + 1}/{num_variants}...[/dim]")
 
-                image_bytes, response_text, metadata = self.gemini_client.generate_image(
+                image_bytes, response_text, metadata = self._image_generator.generate_image(
                     prompt=prompt,
                     logo_parts=self._logo_parts,
                     temperature=gen_settings.temperature,
@@ -1713,7 +1719,7 @@ class ConversationChatbot:
             else "No scored iterations yet"
         )
 
-        resume_cmd = f"nano-banana chat --resume {session_file.parent}"
+        resume_cmd = f"bricksmith chat --resume {session_file.parent}"
 
         console.print()
         console.print(Panel(

@@ -1,4 +1,4 @@
-# Nano Banana Architect Web Interface
+# Bricksmith Architect Web Interface
 
 Collaborative web interface for architecture diagram design powered by AI. Deploy as a Databricks App for team-wide access.
 
@@ -69,7 +69,7 @@ Collaborative web interface for architecture diagram design powered by AI. Deplo
 
 4. **Access the app**:
    ```bash
-   databricks apps open nano-banana-architect
+   databricks apps open bricksmith-architect
    ```
 
 ### Local Development
@@ -79,7 +79,7 @@ Run locally for testing:
 ```bash
 # Start backend
 cd /path/to/bricksmith
-uv run python -m uvicorn nano_banana.web.main:app --reload
+uv run python -m uvicorn bricksmith.web.main:app --reload
 
 # In another terminal, start frontend
 cd frontend
@@ -114,7 +114,7 @@ resourceReferences:
 
 **SQLite (Development)**:
 Automatically used when `DATABRICKS_LAKEBASE_URL` not set.
-Database file: `~/.nano_banana/sessions.db`
+Database file: `~/.bricksmith/sessions.db`
 
 ## API Endpoints
 
@@ -360,7 +360,7 @@ Response: 200 OK
 View application logs:
 
 ```bash
-databricks apps logs nano-banana-architect --tail
+databricks apps logs bricksmith-architect --tail
 ```
 
 ### Metrics
@@ -392,7 +392,7 @@ Monitor via Databricks Apps dashboard:
 
 3. Check logs:
    ```bash
-   databricks apps logs nano-banana-architect --tail
+   databricks apps logs bricksmith-architect --tail
    ```
 
 ### Frontend Not Loading
@@ -546,7 +546,7 @@ Planned enhancements:
 
 - **Documentation**: See [docs/](../docs/)
 - **Issues**: Report bugs via project issue tracker
-- **Chat**: Use #nano-banana Slack channel
+- **Chat**: Use #bricksmith Slack channel
 - **Email**: Contact maintainers for urgent issues
 
 ## Contributing

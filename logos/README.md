@@ -28,7 +28,7 @@ logo_kit:
 ### Via CLI (when supported)
 
 ```bash
-nano-banana generate \
+bricksmith generate \
     --diagram-spec spec.yaml \
     --template baseline \
     --logo-kit aws  # Use logos/aws/ directory
@@ -37,8 +37,8 @@ nano-banana generate \
 ### Via Environment Variable
 
 ```bash
-export NANO_BANANA_LOGO_KIT=./logos/azure
-nano-banana generate --diagram-spec spec.yaml --template baseline
+export BRICKSMITH_LOGO_KIT=./logos/azure
+bricksmith generate --diagram-spec spec.yaml --template baseline
 ```
 
 ## Creating a New Logo Kit
@@ -223,8 +223,8 @@ convert large-logo.jpg -resize 2000x2000 -quality 85 resized-logo.jpg
 
 ## Related Documentation
 
-- [LOGO_SETUP.md](../docs/nano_banana/LOGO_SETUP.md) - Detailed logo configuration
-- [AUTHENTICATION.md](../docs/nano_banana/AUTHENTICATION.md) - Setup guide
+- [LOGO_SETUP.md](../docs/bricksmith/LOGO_SETUP.md) - Detailed logo configuration
+- [AUTHENTICATION.md](../docs/bricksmith/AUTHENTICATION.md) - Setup guide
 - [README.md](../README.md) - Main project documentation
 
 ---

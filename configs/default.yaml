@@ -10,7 +10,7 @@ vertex:
 
 mlflow:
   tracking_uri: "databricks"  # Use Databricks MLflow
-  experiment_name: "/Users/${DATABRICKS_USER}/vertexai-nanobanana-arch-diagrams"
+  experiment_name: "/Users/${DATABRICKS_USER}/bricksmith-arch-diagrams"
   artifact_location: null  # Databricks manages artifacts
 
 logo_kit:

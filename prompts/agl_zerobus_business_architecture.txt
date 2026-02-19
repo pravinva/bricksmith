@@ -3,7 +3,7 @@
 ## How to run (chat session, same logos as technical diagram)
 Use the same logo kit as the AGL Zerobus Ignition Gateway technical diagram. Pass the logo directory when starting chat:
 
-  nano-banana chat --prompt-file prompts/agl_zerobus_business_architecture.txt --logo-dir logos/agl --folder agl-zerobus-business
+  bricksmith chat --prompt-file prompts/agl_zerobus_business_architecture.txt --logo-dir logos/agl --folder agl-zerobus-business
 
 The kit in logos/agl includes: AGL Energy logo, Kaluza logo, and Unity Catalog logo. The CLI will prepend logo constraints and upload these images; use only these logos in the diagram.
 

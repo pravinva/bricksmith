@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "nano_banana Development Commands"
+	@echo "bricksmith Development Commands"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install       Install package"
@@ -38,7 +38,7 @@ test:
 	uv run pytest
 
 test-cov:
-	uv run pytest --cov=nano_banana --cov-report=html --cov-report=term
+	uv run pytest --cov=bricksmith --cov-report=html --cov-report=term
 
 # Code Quality
 format:
@@ -66,12 +66,12 @@ clean:
 
 # Verification
 verify:
-	uv run nano-banana verify-setup
+	uv run bricksmith verify-setup
 
 # Run example
 run-example:
 	@echo "Generating example diagram..."
-	uv run nano-banana generate \
+	uv run bricksmith generate \
 		--diagram-spec prompts/diagram_specs/example_basic.yaml \
 		--template baseline \
 		--run-name "makefile-example"
@@ -79,7 +79,7 @@ run-example:
 # Run with custom prompt
 run-custom:
 	@echo "Generating custom diagram..."
-	uv run nano-banana generate-raw \
+	uv run bricksmith generate-raw \
 		--prompt-file prompts/coles_current_fragmented_state.txt \
 		--logo logos/default/databricks-full.png \
 		--logo logos/default/delta.png \
@@ -88,7 +88,7 @@ run-custom:
 
 # List recent runs
 list-runs:
-	uv run nano-banana list-runs
+	uv run bricksmith list-runs
 
 # Documentation (placeholder - add sphinx or mkdocs if needed)
 docs:

@@ -1,6 +1,6 @@
 # Setup guide
 
-Complete setup for nano_banana - architecture diagram generation with AI.
+Complete setup for Bricksmith — architecture diagram generation with AI. New users should start with [Onboarding](ONBOARDING.md).
 
 ## Prerequisites
 
@@ -61,7 +61,7 @@ Logos live in `logos/default/` (or other kit directories). The system maps filen
 
 ```bash
 # Validate your logo kit
-nano-banana validate-logos --logo-dir logos/default
+bricksmith validate-logos --logo-dir logos/default
 ```
 
 Key concepts:
@@ -71,7 +71,7 @@ Key concepts:
 
 ### Logo hints
 
-For logos that AI commonly misinterprets (e.g., Unity Catalog), add hints in `logos/default/logo_hints.yaml`. See [docs/nano_banana/LOGO_HINTS.md](nano_banana/LOGO_HINTS.md) for details.
+For logos that AI commonly misinterprets (e.g., Unity Catalog), add hints in `logos/default/logo_hints.yaml`. See [LOGO_HINTS.md](bricksmith/LOGO_HINTS.md) for details.
 
 ### Multiple logo kits
 
@@ -90,7 +90,7 @@ Use `--logo-dir` to select a kit, or set `logo_kit.logo_dir` in config.
 
 The system uses layered configuration:
 
-1. **Environment variables** (highest priority): e.g., `NANO_BANANA_VERTEX__MODEL_ID`
+1. **Environment variables** (highest priority): e.g., `BRICKSMITH_VERTEX__MODEL_ID`
 2. **YAML config**: `configs/default.yaml`
 3. **Code defaults** (lowest priority)
 
@@ -113,8 +113,9 @@ logo_kit:
 
 ```bash
 source .env
-nano-banana validate-logos --logo-dir logos/default
-nano-banana generate-raw --help  # Check CLI works
+bricksmith validate-logos --logo-dir logos/default
+bricksmith check-auth          # Verify credentials
+bricksmith generate-raw --help # Check CLI works
 ```
 
 ## Development

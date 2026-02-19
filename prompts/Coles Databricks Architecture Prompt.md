@@ -1,8 +1,8 @@
-# Nano Banana Pro Prompt — Coles Group x Databricks Architecture Diagram
+# Bricksmith Prompt — Coles Group x Databricks Architecture Diagram
 
 ## Context & Briefing
 
-Below is a ready-to-use **Nano Banana Pro** prompt for generating a professional architecture diagram. It is designed to be presented to **Mike Sackman** (CTO, Coles Group — joined March 2025 from John Lewis/Waitrose/Argos)  and **Caroline O'Brien** (GM Data & Intelligence, Coles Group — joined February 2025 from Afiniti where she was CDO/Head of Product).[^1][^2][^3]
+Below is a ready-to-use **Bricksmith** prompt for generating a professional architecture diagram. It is designed to be presented to **Mike Sackman** (CTO, Coles Group — joined March 2025 from John Lewis/Waitrose/Argos)  and **Caroline O'Brien** (GM Data & Intelligence, Coles Group — joined February 2025 from Afiniti where she was CDO/Head of Product).[^1][^2][^3]
 
 > **Note on CTO**: Coles' current CTO is **Mike Sackman**, not John Cox. Cox departed in early 2025. You may want to confirm the CTO you're meeting with, as the user's original query referenced a "CTO of Coles" generically.[^4]
 
@@ -10,7 +10,7 @@ Below is a ready-to-use **Nano Banana Pro** prompt for generating a professional
 
 ## The Prompt
 
-Copy and paste the following into Nano Banana Pro (Google AI Studio / Gemini API):
+Copy and paste the following into Bricksmith (Google AI Studio / Gemini API):
 
 ***
 

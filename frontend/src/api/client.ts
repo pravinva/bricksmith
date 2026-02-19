@@ -1,5 +1,5 @@
 /**
- * API client for communicating with the Nano Banana Architect backend.
+ * API client for communicating with the Bricksmith Architect backend.
  */
 
 import type {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides **7 optimized Nano Banana Pro prompts** for generating professional solution design architecture diagrams for Databricks deployed on both AWS and Azure. These prompts are specifically designed for Lead Data Engineers and Data Architects, balancing detail and clarity.
+This document provides **7 optimized Bricksmith prompts** for generating professional solution design architecture diagrams for Databricks deployed on both AWS and Azure. These prompts are specifically designed for Lead Data Engineers and Data Architects, balancing detail and clarity.
 
 ---
 
@@ -249,7 +249,7 @@ Use color coding: red (#DC3545) for security boundaries and firewalls, green (#2
 
 ## Usage Instructions
 
-### For Nano Banana Pro Image Generation:
+### For Bricksmith Image Generation:
 
 1. Copy the prompt text exactly as written (including all technical details)
 2. Use the suggested file name for consistency

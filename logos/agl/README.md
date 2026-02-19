@@ -64,13 +64,13 @@ logo_kit:
 **Chat session (same logo kit for technical and business AGL Zerobus diagrams):**
 
 ```bash
-nano-banana chat --prompt-file prompts/agl_zerobus_business_architecture.txt --logo-dir logos/agl --folder agl-zerobus-business
+bricksmith chat --prompt-file prompts/agl_zerobus_business_architecture.txt --logo-dir logos/agl --folder agl-zerobus-business
 ```
 
 **Generate from spec:**
 
 ```bash
-nano-banana generate \
+bricksmith generate \
     --config configs/agl.yaml \
     --diagram-spec prompts/diagram_specs/agl-architecture.yaml \
     --template baseline

@@ -1,4 +1,4 @@
-# Nano Banana Architect - Frontend
+# Bricksmith Architect - Frontend
 
 React + TypeScript frontend for collaborative architecture diagram design.
 
@@ -75,7 +75,7 @@ VITE_API_URL=http://localhost:8000/api  # For local backend
 1. Start backend in another terminal:
    ```bash
    cd ..
-   uv run python -m uvicorn nano_banana.web.main:app --reload
+   uv run python -m uvicorn bricksmith.web.main:app --reload
    ```
 
 2. Start frontend:
@@ -89,7 +89,7 @@ VITE_API_URL=http://localhost:8000/api  # For local backend
 
 ```bash
 # Point to deployed Databricks App
-export VITE_API_URL=https://your-workspace.databricks.com/apps/nano-banana-architect/api
+export VITE_API_URL=https://your-workspace.databricks.com/apps/bricksmith-architect/api
 npm run dev
 ```
 

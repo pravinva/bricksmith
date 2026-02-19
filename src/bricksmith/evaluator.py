@@ -1,4 +1,4 @@
-"""Manual evaluation interface for Nano Banana Pro."""
+"""Manual evaluation interface for Bricksmith."""
 
 import json
 import subprocess

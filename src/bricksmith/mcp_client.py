@@ -1,7 +1,7 @@
-"""Native MCP client for nano-banana.
+"""Native MCP client for Bricksmith.
 
 Connects to the same MCP servers configured in Claude Code's settings.json,
-enabling nano-banana to query Glean, Slack, JIRA, and Confluence directly.
+enabling Bricksmith to query Glean, Slack, JIRA, and Confluence directly.
 
 Uses subprocess with JSON-RPC over stdio for reliability.
 """
@@ -114,7 +114,7 @@ class MCPSubprocessClient:
                 "params": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {},
-                    "clientInfo": {"name": "nano-banana", "version": "1.0"},
+                    "clientInfo": {"name": "bricksmith", "version": "1.0"},
                 },
                 "id": self._next_id(),
             }),

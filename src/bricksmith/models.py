@@ -1,4 +1,4 @@
-"""Data models for Nano Banana Pro."""
+"""Data models for Bricksmith."""
 
 from enum import Enum
 from pathlib import Path

@@ -1,4 +1,4 @@
-# Nano Banana Pro Prompt — Coles Group x Databricks
+# Bricksmith Prompt — Coles Group x Databricks
 ## Board-Ready Strategic Value Diagram (Not a Tech Architecture)
 
 ***
@@ -17,7 +17,7 @@ The prompt below creates a **strategy-on-a-page** that maps Databricks capabilit
 
 ## The Prompt
 
-Copy and paste the following into **Nano Banana Pro** (Google AI Studio / Gemini):
+Copy and paste the following into **Bricksmith** (Google AI Studio / Gemini):
 
 ***
 

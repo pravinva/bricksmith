@@ -84,7 +84,7 @@ logo_kit:
 ## Usage
 
 ```bash
-nano-banana generate \
+bricksmith generate \
     --config configs/ai-tools.yaml \
     --diagram-spec prompts/diagram_specs/ai-pipeline.yaml \
     --template baseline
