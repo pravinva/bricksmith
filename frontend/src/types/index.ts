@@ -84,6 +84,18 @@ export interface ChatMessage {
   architecture?: ArchitectureState;
 }
 
+export interface TurnSchema {
+  turn_number: number;
+  user_input: string;
+  architect_response: string;
+  architecture_snapshot?: Record<string, unknown> | null;
+  created_at?: string;
+}
+
+export interface TurnsResponse {
+  turns: TurnSchema[];
+}
+
 export interface GeneratePreviewResponse {
   success: boolean;
   image_url?: string;
@@ -144,6 +156,7 @@ export interface BestResultItem {
   prompt_preview: string;
   full_prompt?: string;
   run_id?: string;
+  run_group?: string;
   score?: number;
   score_source?: string;
   created_at?: string;

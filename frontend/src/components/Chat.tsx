@@ -9,6 +9,7 @@ import type { ChatMessage } from '../types';
 interface ChatProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => Promise<unknown>;
+  isSending: boolean;
   isLoading: boolean;
   readyForOutput: boolean;
   onGenerateOutput: () => Promise<void>;
@@ -18,6 +19,7 @@ interface ChatProps {
 export function Chat({
   messages,
   onSendMessage,
+  isSending,
   isLoading,
   readyForOutput,
   onGenerateOutput,
@@ -39,7 +41,7 @@ export function Chat({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || disabled) return;
+    if (!input.trim() || isSending || disabled) return;
 
     const message = input.trim();
     setInput('');
@@ -79,7 +81,7 @@ export function Chat({
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
-                <div className="prose prose-sm max-w-none">
+                <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-invert' : ''}`}>
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
                 <div
@@ -94,14 +96,14 @@ export function Chat({
           ))
         )}
 
-        {isLoading && (
+        {isSending && (
           <div className="flex justify-start">
             <div className="bg-gray-100 rounded-lg px-4 py-3">
               <div className="flex items-center space-x-2">
-                <div className="animate-pulse flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animation-delay-200"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animation-delay-400"></div>
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce animation-delay-200"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce animation-delay-400"></div>
                 </div>
                 <span className="text-gray-500 text-sm">Thinking...</span>
               </div>
@@ -126,7 +128,7 @@ export function Chat({
             </div>
             <button
               onClick={onGenerateOutput}
-              disabled={isLoading}
+              disabled={isSending || isLoading}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
             >
               Generate Output
@@ -144,13 +146,13 @@ export function Chat({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={disabled ? 'Select or create a session to start' : 'Type your message...'}
-            disabled={disabled || isLoading}
+            disabled={disabled || isSending}
             rows={2}
             className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={!input.trim() || isLoading || disabled}
+            disabled={!input.trim() || isSending || disabled}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send

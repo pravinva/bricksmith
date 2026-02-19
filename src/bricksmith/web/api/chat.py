@@ -9,8 +9,11 @@ from .schemas import (
     GenerateOutputRequest,
     GenerateOutputResponse,
     GeneratePreviewResponse,
+    TurnSchema,
+    TurnsResponse,
 )
 from ..services.architect_service import get_architect_service
+from ..services.session_store import get_session_store
 
 router = APIRouter()
 
@@ -64,6 +67,29 @@ async def get_status(session_id: str) -> StatusResponse:
         raise HTTPException(status_code=404, detail="Session not found")
 
     return status
+
+
+@router.get("/{session_id}/turns", response_model=TurnsResponse)
+async def get_turns(session_id: str) -> TurnsResponse:
+    """Get all conversation turns for a session.
+
+    Args:
+        session_id: Session ID
+
+    Returns:
+        List of conversation turns
+
+    Raises:
+        HTTPException: If session not found
+    """
+    store = get_session_store()
+    session = await store.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    turns_data = await store.get_turns(session_id)
+    turns = [TurnSchema(**turn) for turn in turns_data]
+    return TurnsResponse(turns=turns)
 
 
 @router.post("/{session_id}/output", response_model=GenerateOutputResponse)

@@ -30,6 +30,7 @@ export function BestResults({
   const [logoFilesText, setLogoFilesText] = useState<string>('');
   const [brandingFile, setBrandingFile] = useState<string>('prompts/branding/minimal.txt');
   const [runName, setRunName] = useState<string>('');
+  const [runGroup, setRunGroup] = useState<string>('');
   const [tagsText, setTagsText] = useState<string>('');
   const [temperature, setTemperature] = useState<string>('0.8');
   const [topP, setTopP] = useState<string>('0.95');
@@ -43,11 +44,26 @@ export function BestResults({
   const [avoid, setAvoid] = useState<string>('');
   const [feedbackEnabled, setFeedbackEnabled] = useState<boolean>(false);
   const [databricksStyle, setDatabricksStyle] = useState<boolean>(false);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState<boolean>(false);
 
   const selected = useMemo(
     () => results.find((result) => result.result_id === selectedId) || null,
     [results, selectedId]
   );
+
+  const groupedResults = useMemo(() => {
+    const groups = new Map<string, BestResultItem[]>();
+    for (const result of results) {
+      const key = (result.run_group && result.run_group.trim()) || 'Ungrouped';
+      const existing = groups.get(key);
+      if (existing) {
+        existing.push(result);
+      } else {
+        groups.set(key, [result]);
+      }
+    }
+    return Array.from(groups.entries());
+  }, [results]);
 
   const loadResults = async (includePrompt: boolean) => {
     setIsLoading(true);
@@ -81,6 +97,19 @@ export function BestResults({
   useEffect(() => {
     void loadResults(false);
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreenOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsFullscreenOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isFullscreenOpen]);
 
   const refreshWithPrompt = async (result: BestResultItem) => {
     if (result.full_prompt) return;
@@ -133,8 +162,11 @@ export function BestResults({
       return;
     }
 
-    const resolvedRunName =
-      runName.trim() || selected.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
+    const normalizedRunGroup = runGroup.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+    const baseRunName = selected.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
+    const resolvedRunName = runName.trim() || (
+      normalizedRunGroup ? `${normalizedRunGroup}-${baseRunName}` : baseRunName
+    );
 
     const parsedTemperature = Number.parseFloat(temperature);
     const parsedTopP = Number.parseFloat(topP);
@@ -174,6 +206,10 @@ export function BestResults({
     }
 
     args.push('--run-name', resolvedRunName);
+
+    if (normalizedRunGroup) {
+      args.push('--tag', `run_group=${normalizedRunGroup}`);
+    }
 
     const tags = tagsText
       .split('\n')
@@ -288,42 +324,51 @@ export function BestResults({
           {results.length === 0 ? (
             <p className="text-sm text-gray-500">No ranked results found.</p>
           ) : (
-            <ul className="space-y-2">
-              {results.map((result) => (
-                <li
-                  key={result.result_id}
-                  onClick={() => setSelectedId(result.result_id)}
-                  className={`border rounded p-3 cursor-pointer ${
-                    selectedId === result.result_id
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-gray-900 truncate">
-                      {result.title}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 text-xs rounded ${sourceClass(
-                        result.source
-                      )}`}
-                    >
-                      {result.source}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">
-                    Score:{' '}
-                    <span className="font-semibold">
-                      {result.score !== undefined ? result.score : 'N/A'}
-                    </span>
-                    {result.score_source ? ` (${result.score_source})` : ''}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                    {result.prompt_preview}
+            <div className="space-y-3">
+              {groupedResults.map(([groupName, groupItems]) => (
+                <div key={groupName} className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {groupName} ({groupItems.length})
                   </p>
-                </li>
+                  <ul className="space-y-2">
+                    {groupItems.map((result) => (
+                      <li
+                        key={result.result_id}
+                        onClick={() => setSelectedId(result.result_id)}
+                        className={`border rounded p-3 cursor-pointer ${
+                          selectedId === result.result_id
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {result.title}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 text-xs rounded ${sourceClass(
+                              result.source
+                            )}`}
+                          >
+                            {result.source}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-xs text-gray-600">
+                          Score:{' '}
+                          <span className="font-semibold">
+                            {result.score !== undefined ? result.score : 'N/A'}
+                          </span>
+                          {result.score_source ? ` (${result.score_source})` : ''}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                          {result.prompt_preview}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
@@ -349,16 +394,28 @@ export function BestResults({
                         {selected.score !== undefined ? selected.score : 'N/A'}
                       </span>
                     </p>
+                    <p className="text-gray-500">{selected.run_group || 'Ungrouped'}</p>
                     <p className="text-gray-500">{selected.run_id || 'No run id'}</p>
                   </div>
                 </div>
 
                 {selected.image_url ? (
-                  <img
-                    src={selected.image_url}
-                    alt={selected.title}
-                    className="mt-4 border rounded w-full h-auto"
-                  />
+                  <div className="mt-4">
+                    <div className="flex justify-end mb-2">
+                      <button
+                        onClick={() => setIsFullscreenOpen(true)}
+                        className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                      >
+                        Fullscreen
+                      </button>
+                    </div>
+                    <img
+                      src={selected.image_url}
+                      alt={selected.title}
+                      className="border rounded w-full h-auto cursor-zoom-in hover:opacity-95 transition-opacity"
+                      onClick={() => setIsFullscreenOpen(true)}
+                    />
+                  </div>
                 ) : (
                   <p className="mt-4 text-sm text-gray-500">No image found for this result.</p>
                 )}
@@ -403,11 +460,20 @@ export function BestResults({
                       />
                     </div>
                     <div>
+                      <label className="block text-xs text-gray-600 mb-1">Run group</label>
+                      <input
+                        value={runGroup}
+                        onChange={(e) => setRunGroup(e.target.value)}
+                        placeholder="e.g. customer-a-discovery"
+                        className="w-full border rounded px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-xs text-gray-600 mb-1">Run name</label>
                       <input
                         value={runName}
                         onChange={(e) => setRunName(e.target.value)}
-                        placeholder="optional, auto-derived if empty"
+                        placeholder="optional, auto-derived from title/group"
                         className="w-full border rounded px-2 py-1.5 text-sm"
                       />
                     </div>
@@ -591,14 +657,40 @@ export function BestResults({
                 <p className="text-xs text-gray-500 mb-2">
                   {selected.prompt_path || 'Prompt path unavailable'}
                 </p>
-                <pre className="bg-gray-900 text-gray-100 rounded p-3 text-xs overflow-auto max-h-96 whitespace-pre-wrap">
-                  {selected.full_prompt || selected.prompt_preview || '(no prompt text)'}
-                </pre>
+                <pre className="bg-gray-900 text-gray-100 rounded p-3 text-xs overflow-auto max-h-96 whitespace-pre-wrap">{selected.full_prompt || selected.prompt_preview || '(no prompt text)'}</pre>
               </div>
             </div>
           )}
         </section>
       </div>
+
+      {isFullscreenOpen && selected?.image_url && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setIsFullscreenOpen(false)}
+        >
+          <button
+            onClick={() => setIsFullscreenOpen(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300"
+            title="Close fullscreen"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <img
+            src={selected.image_url}
+            alt={selected.title}
+            className="max-w-full max-h-full object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

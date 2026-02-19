@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { cliApi } from '../api/client';
 import type { CLICommandSpec, CliJob } from '../types';
@@ -60,14 +60,17 @@ export function CliRunner() {
     loadJobs();
   }, []);
 
+  const hasActiveJob = useRef(false);
   useEffect(() => {
-    const activeJob = jobs.some((job) => job.status === 'queued' || job.status === 'running');
-    if (!activeJob) return;
-    const timer = window.setInterval(() => {
-      void loadJobs();
-    }, 1500);
-    return () => window.clearInterval(timer);
+    hasActiveJob.current = jobs.some((j) => j.status === 'queued' || j.status === 'running');
   }, [jobs]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (hasActiveJob.current) void loadJobs();
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const handleRun = async () => {
     if (!selectedCommand) return;
@@ -262,16 +265,12 @@ export function CliRunner() {
 
               <div>
                 <p className="text-xs font-medium text-gray-600 mb-1">STDOUT</p>
-                <pre className="bg-gray-900 text-gray-100 rounded p-3 text-xs overflow-auto max-h-64 whitespace-pre-wrap">
-                  {selectedJob.stdout || '(empty)'}
-                </pre>
+                <pre className="bg-gray-900 text-gray-100 rounded p-3 text-xs overflow-auto max-h-64 whitespace-pre-wrap">{selectedJob.stdout || '(empty)'}</pre>
               </div>
 
               <div>
                 <p className="text-xs font-medium text-gray-600 mb-1">STDERR</p>
-                <pre className="bg-gray-900 text-gray-100 rounded p-3 text-xs overflow-auto max-h-64 whitespace-pre-wrap">
-                  {selectedJob.stderr || '(empty)'}
-                </pre>
+                <pre className="bg-gray-900 text-gray-100 rounded p-3 text-xs overflow-auto max-h-64 whitespace-pre-wrap">{selectedJob.stderr || '(empty)'}</pre>
               </div>
             </div>
           )}

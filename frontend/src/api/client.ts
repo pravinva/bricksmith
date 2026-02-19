@@ -16,6 +16,7 @@ import type {
   StartCliJobRequest,
   StartCliJobResponse,
   BestResultsResponse,
+  TurnsResponse,
 } from '../types';
 
 const API_BASE = '/api';
@@ -81,6 +82,12 @@ export const sessionsApi = {
  * Chat API endpoints.
  */
 export const chatApi = {
+  /**
+   * Get all conversation turns for a session.
+   */
+  getTurns: (sessionId: string): Promise<TurnsResponse> =>
+    fetchApi(`/sessions/${sessionId}/turns`),
+
   /**
    * Send a message and get a response.
    */

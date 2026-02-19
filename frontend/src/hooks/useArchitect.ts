@@ -22,6 +22,8 @@ interface UseArchitectReturn {
   sessions: Session[];
   currentSession: Session | null;
   isLoading: boolean;
+  isSessionLoading: boolean;
+  isSending: boolean;
   error: string | null;
 
   // Chat state
@@ -60,7 +62,8 @@ export function useArchitect(): UseArchitectReturn {
   // Session state
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Chat state
@@ -81,7 +84,7 @@ export function useArchitect(): UseArchitectReturn {
    * Load all sessions from the API.
    */
   const loadSessions = useCallback(async () => {
-    setIsLoading(true);
+    setIsSessionLoading(true);
     setError(null);
     try {
       const response = await sessionsApi.list();
@@ -89,7 +92,7 @@ export function useArchitect(): UseArchitectReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sessions');
     } finally {
-      setIsLoading(false);
+      setIsSessionLoading(false);
     }
   }, []);
 
@@ -101,7 +104,8 @@ export function useArchitect(): UseArchitectReturn {
     context?: string,
     authOptions?: SessionAuthOptions
   ) => {
-    setIsLoading(true);
+    setIsSessionLoading(true);
+    setIsSending(true);
     setError(null);
     try {
       const session = await sessionsApi.create({
@@ -118,6 +122,7 @@ export function useArchitect(): UseArchitectReturn {
       setArchitecture(session.current_architecture || emptyArchitecture);
       setReadyForOutput(false);
       setDiagramImageUrl(null);
+      setIsSessionLoading(false);
 
       // Load status to get available logos
       const status = await chatApi.getStatus(session.session_id);
@@ -148,7 +153,8 @@ export function useArchitect(): UseArchitectReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create session');
     } finally {
-      setIsLoading(false);
+      setIsSessionLoading(false);
+      setIsSending(false);
     }
   }, []);
 
@@ -156,7 +162,7 @@ export function useArchitect(): UseArchitectReturn {
    * Select and load an existing session.
    */
   const selectSession = useCallback(async (sessionId: string) => {
-    setIsLoading(true);
+    setIsSessionLoading(true);
     setError(null);
     try {
       const session = await sessionsApi.get(sessionId);
@@ -171,19 +177,37 @@ export function useArchitect(): UseArchitectReturn {
       setImageProvider(status.image_provider);
       setCredentialMode(status.credential_mode);
 
-      // Messages would need to be loaded from a separate endpoint
-      // For now, just show a placeholder
-      setMessages([
-        {
+      // Load full chat history from turns endpoint
+      const turnsResponse = await chatApi.getTurns(sessionId);
+      const loadedMessages: ChatMessage[] = [];
+      for (const turn of turnsResponse.turns) {
+        const ts = turn.created_at || new Date().toISOString();
+        loadedMessages.push({
+          role: 'user',
+          content: turn.user_input,
+          timestamp: ts,
+        });
+        loadedMessages.push({
+          role: 'assistant',
+          content: turn.architect_response,
+          timestamp: ts,
+        });
+      }
+
+      // If no turns found, show the initial problem as a placeholder
+      if (loadedMessages.length === 0) {
+        loadedMessages.push({
           role: 'user',
           content: session.initial_problem,
           timestamp: session.created_at,
-        },
-      ]);
+        });
+      }
+
+      setMessages(loadedMessages);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load session');
     } finally {
-      setIsLoading(false);
+      setIsSessionLoading(false);
     }
   }, []);
 
@@ -191,7 +215,7 @@ export function useArchitect(): UseArchitectReturn {
    * Delete a session.
    */
   const deleteSession = useCallback(async (sessionId: string) => {
-    setIsLoading(true);
+    setIsSessionLoading(true);
     setError(null);
     try {
       await sessionsApi.delete(sessionId);
@@ -209,7 +233,7 @@ export function useArchitect(): UseArchitectReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete session');
     } finally {
-      setIsLoading(false);
+      setIsSessionLoading(false);
     }
   }, [currentSession]);
 
@@ -222,7 +246,7 @@ export function useArchitect(): UseArchitectReturn {
       return null;
     }
 
-    setIsLoading(true);
+    setIsSending(true);
     setError(null);
     try {
       // Add user message immediately
@@ -256,7 +280,7 @@ export function useArchitect(): UseArchitectReturn {
       setError(err instanceof Error ? err.message : 'Failed to send message');
       return null;
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   }, [currentSession]);
 
@@ -269,7 +293,7 @@ export function useArchitect(): UseArchitectReturn {
       return;
     }
 
-    setIsLoading(true);
+    setIsSending(true);
     setError(null);
     try {
       const response = await chatApi.generateOutput(currentSession.session_id);
@@ -294,7 +318,7 @@ export function useArchitect(): UseArchitectReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate output');
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   }, [currentSession]);
 
@@ -344,10 +368,14 @@ export function useArchitect(): UseArchitectReturn {
     loadSessions();
   }, [loadSessions]);
 
+  const isLoading = isSessionLoading || isSending;
+
   return {
     sessions,
     currentSession,
     isLoading,
+    isSessionLoading,
+    isSending,
     error,
     messages,
     architecture,

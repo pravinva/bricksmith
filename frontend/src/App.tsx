@@ -18,6 +18,8 @@ function App() {
     sessions,
     currentSession,
     isLoading,
+    isSessionLoading,
+    isSending,
     error,
     messages,
     architecture,
@@ -60,8 +62,8 @@ function App() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src="/logo.png"
-              alt="Bricksmith logo"
+              src="/logo-mascot.png"
+              alt="Bricksmith mascot logo"
               className="w-10 h-10 rounded-lg object-cover border border-gray-200 bg-white"
             />
             <div>
@@ -154,7 +156,7 @@ function App() {
               onSelectSession={selectSession}
               onDeleteSession={deleteSession}
               onCreateSession={createSession}
-              isLoading={isLoading}
+              isLoading={isSessionLoading}
             />
           </aside>
 
@@ -163,6 +165,7 @@ function App() {
             <Chat
               messages={messages}
               onSendMessage={sendMessage}
+              isSending={isSending}
               isLoading={isLoading}
               readyForOutput={readyForOutput}
               onGenerateOutput={generateOutput}

@@ -149,6 +149,23 @@ class GeneratePreviewResponse(BaseModel):
     error: Optional[str] = None
 
 
+# Turn history schemas
+class TurnSchema(BaseModel):
+    """A single conversation turn."""
+
+    turn_number: int
+    user_input: str
+    architect_response: str
+    architecture_snapshot: Optional[dict] = None
+    created_at: Optional[str] = None
+
+
+class TurnsResponse(BaseModel):
+    """Response containing conversation turns for a session."""
+
+    turns: list[TurnSchema]
+
+
 # Error response
 class ErrorResponse(BaseModel):
     """Standard error response."""
@@ -227,6 +244,7 @@ class BestResultItem(BaseModel):
     prompt_preview: str = ""
     full_prompt: Optional[str] = None
     run_id: Optional[str] = None
+    run_group: Optional[str] = None
     score: Optional[float] = None
     score_source: Optional[str] = None
     created_at: Optional[str] = None
