@@ -1,0 +1,31 @@
+Design a data quality architecture for NAB Group's Financial Crime (FinCrime) domain on Databricks.
+
+Context:
+- NAB Group is one of Australia's Big Four banks
+- FinCrime data ingestion from core banking, payments, and customer systems
+- Need to validate ingested data against source manifests before downstream processing
+
+Requirements:
+- Compare three data quality frameworks: DQX (Databricks Labs), Soda, and Great Expectations
+- Focus on classic batch data ingestion validation patterns
+
+Data quality checks to show:
+1. Manifest reconciliation - row counts, file counts, expected vs actual
+2. Column-level validation - nullability, data types, allowed values, format patterns
+3. Size checks - file size, record count thresholds, anomaly detection on volume
+4. Completeness - required columns present, no unexpected schema drift
+5. Referential integrity - foreign key validation across datasets
+
+Architecture layers:
+- Landing zone: raw files from source with manifest files
+- Validation layer: compare ingested data against manifest, run column checks
+- Quarantine: failed records isolated for investigation
+- Bronze: validated raw data ready for transformation
+
+Key questions to address:
+1. How does each framework handle manifest-based reconciliation?
+2. Which framework has the best column validation DSL?
+3. How to track validation metrics over time (row counts, failure rates)?
+4. Integration with Unity Catalog for data quality lineage?
+
+Output: Architecture diagram showing data flow from source landing through manifest validation, column checks, and quarantine handling into bronze tables.
