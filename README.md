@@ -1,5 +1,9 @@
 # Bricksmith
 
+<p align="center">
+  <img src="docs/bricksmith/logo.png" alt="Bricksmith logo" width="220" />
+</p>
+
 **POV:** It's 11pm, the deck is due tomorrow, and someone asked for "just a quick architecture diagram."
 
 **Bricksmith:** You describe the architecture in words → Gemini draws it → an LLM judge scores it → DSPy can refine the prompt → repeat until it looks right. Logos stay logos (the AI never sees filenames). MLflow logs every run so you have a full history. Use the **architect** flow to design in conversation, then generate; or deploy as a Databricks App and skip the .vsdx forever.

@@ -21,15 +21,25 @@ except ImportError:
 from bricksmith.gemini_client import GeminiClient
 
 
-PROMPT = """Create a single, clean logo image for "Bricksmith" – a tool that turns text prompts into architecture diagrams using AI (Gemini). The logo should:
-- Be simple and recognizable at small sizes (e.g. GitHub avatar).
-- Suggest building/crafting (e.g. bricks, blueprint, or diagram elements) and AI/automation.
-- Use a professional, modern style: flat or subtle depth, clear shapes, no photorealism.
-- Work on light backgrounds (white or light grey).
-- Square composition, no text unless it is the word "Bricksmith" integrated as a wordmark.
-- Avoid clutter; one strong concept is enough."""
+PROMPT = """Create a funny, meme-ish logo image for "Bricksmith" for a Databricks field engineering org repo.
 
-SYSTEM_INSTRUCTION = """You are generating a single logo or icon image. Output only the image. Keep it simple, iconic, and suitable for a software project avatar."""
+Vibe:
+- Smart chaos, "ship it by Friday", caffeinated architecture wizard energy.
+- Playful and slightly absurd, but still sharp enough to use as a GitHub repo logo.
+
+Visual concept ideas:
+- A smiling brick with engineer goggles and a tiny blueprint.
+- A dramatic "architect brick" wearing a hard hat while dropping perfect data-flow arrows.
+- Subtle AI cue (spark/glow/circuit accent), but do not make it overly futuristic.
+
+Constraints:
+- Square composition, optimized for small size (GitHub avatar).
+- Strong silhouette, high contrast, minimal clutter.
+- Flat or subtle depth style; no photorealism.
+- No tiny unreadable text. If text appears, only "Bricksmith" and keep it optional.
+- Light or transparent-friendly background."""
+
+SYSTEM_INSTRUCTION = """You are generating one logo/icon image for a software repository. Make it humorous and meme-friendly while still polished and legible as a GitHub avatar. Output only the image."""
 
 
 def main() -> None:
