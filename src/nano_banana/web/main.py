@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .api import sessions_router, chat_router
+from .api import sessions_router, chat_router, cli_router, results_router
 from .services.session_store import get_session_store
 
 
@@ -49,6 +49,8 @@ def create_app() -> FastAPI:
     # Register API routers
     app.include_router(sessions_router, prefix="/api/sessions", tags=["sessions"])
     app.include_router(chat_router, prefix="/api/sessions", tags=["chat"])
+    app.include_router(cli_router, prefix="/api/cli", tags=["cli"])
+    app.include_router(results_router, prefix="/api/results", tags=["results"])
 
     # Serve generated images from outputs directory
     outputs_dir = Path("outputs")

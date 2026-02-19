@@ -85,3 +85,68 @@ export interface GeneratePreviewResponse {
   run_id?: string;
   error?: string;
 }
+
+export interface CLICommandSpec {
+  name: string;
+  description: string;
+  examples: string[];
+  supports_stdin: boolean;
+}
+
+export interface CLICommandsResponse {
+  commands: CLICommandSpec[];
+}
+
+export type CliJobStatus =
+  | 'queued'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled'
+  | 'timeout';
+
+export interface CliJob {
+  job_id: string;
+  status: CliJobStatus;
+  command: string;
+  args: string[];
+  started_at: string;
+  ended_at?: string;
+  exit_code?: number;
+  stdout: string;
+  stderr: string;
+  timeout_seconds: number;
+}
+
+export interface StartCliJobRequest {
+  command: string;
+  args: string[];
+  stdin_text?: string;
+  timeout_seconds?: number;
+}
+
+export interface StartCliJobResponse {
+  job: CliJob;
+}
+
+export interface BestResultItem {
+  result_id: string;
+  source: 'chat' | 'generate_raw' | 'refine' | 'unknown';
+  title: string;
+  image_path?: string;
+  image_url?: string;
+  prompt_path?: string;
+  prompt_preview: string;
+  full_prompt?: string;
+  run_id?: string;
+  score?: number;
+  score_source?: string;
+  created_at?: string;
+  relative_output_dir: string;
+  notes?: string;
+}
+
+export interface BestResultsResponse {
+  results: BestResultItem[];
+  total: number;
+}

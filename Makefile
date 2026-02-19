@@ -1,4 +1,4 @@
-.PHONY: help install dev-install test test-cov format lint type-check clean verify run-example docs
+.PHONY: help install dev-install test test-cov format lint type-check clean verify run-example docs web-dev web-prod app-deploy
 
 # Default target
 help:
@@ -20,6 +20,11 @@ help:
 	@echo "  make verify        Verify complete setup"
 	@echo "  make run-example   Run example diagram generation"
 	@echo "  make docs          Generate documentation"
+	@echo ""
+	@echo "Web App:"
+	@echo "  make web-dev       Run backend + frontend dev servers"
+	@echo "  make web-prod      Run backend serving built frontend"
+	@echo "  make app-deploy    Build frontend and deploy Databricks App"
 
 # Installation
 install:
@@ -89,6 +94,16 @@ list-runs:
 docs:
 	@echo "Documentation generation not yet configured"
 	@echo "See docs/ directory for existing documentation"
+
+# Web app local run and deploy
+web-dev:
+	bash scripts/run_web_local.sh
+
+web-prod:
+	bash scripts/run_web_local.sh --no-dev
+
+app-deploy:
+	bash scripts/deploy_databricks_app.sh
 
 # Development workflow
 dev-workflow: clean dev-install format lint type-check test

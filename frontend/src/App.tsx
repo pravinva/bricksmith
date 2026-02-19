@@ -7,8 +7,13 @@ import { Chat } from './components/Chat';
 import { ArchitectureViz } from './components/ArchitectureViz';
 import { SessionList } from './components/SessionList';
 import { StatusPanel } from './components/StatusPanel';
+import { CliRunner } from './components/CliRunner';
+import { BestResults } from './components/BestResults';
+import { useState } from 'react';
+import type { BestResultItem } from './types';
 
 function App() {
+  const [mode, setMode] = useState<'architect' | 'cli' | 'best'>('architect');
   const {
     sessions,
     currentSession,
@@ -29,6 +34,23 @@ function App() {
     clearError,
   } = useArchitect();
 
+  const handleCreateArchitectSessionFromResult = async (
+    result: BestResultItem
+  ) => {
+    const problem = `Refine architecture based on: ${result.title}`;
+    const contextParts = [
+      `Source: ${result.source}`,
+      result.run_id ? `Run ID: ${result.run_id}` : null,
+      result.prompt_path ? `Prompt file: ${result.prompt_path}` : null,
+      result.full_prompt
+        ? `Existing prompt:\n${result.full_prompt}`
+        : `Prompt preview:\n${result.prompt_preview}`,
+    ].filter(Boolean);
+
+    await createSession(problem, contextParts.join('\n\n'));
+    setMode('architect');
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
@@ -42,11 +64,43 @@ function App() {
               Collaborative architecture diagram design
             </p>
           </div>
-          {currentSession && (
+          {mode === 'architect' && currentSession && (
             <div className="text-sm text-gray-600">
               Session: <span className="font-mono">{currentSession.session_id}</span>
             </div>
           )}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => setMode('architect')}
+            className={`px-3 py-1.5 text-sm rounded ${
+              mode === 'architect'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Architect Studio
+          </button>
+          <button
+            onClick={() => setMode('cli')}
+            className={`px-3 py-1.5 text-sm rounded ${
+              mode === 'cli'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            CLI Mirror
+          </button>
+          <button
+            onClick={() => setMode('best')}
+            className={`px-3 py-1.5 text-sm rounded ${
+              mode === 'best'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Best Results
+          </button>
         </div>
       </header>
 
@@ -67,51 +121,65 @@ function App() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar - Session list */}
-        <aside className="w-72 border-r bg-white flex-shrink-0">
-          <SessionList
-            sessions={sessions}
-            currentSessionId={currentSession?.session_id}
-            onSelectSession={selectSession}
-            onDeleteSession={deleteSession}
-            onCreateSession={createSession}
-            isLoading={isLoading}
-          />
-        </aside>
-
-        {/* Main area - Chat */}
-        <main className="flex-1 flex flex-col min-w-0 bg-white">
-          <Chat
-            messages={messages}
-            onSendMessage={sendMessage}
-            isLoading={isLoading}
-            readyForOutput={readyForOutput}
-            onGenerateOutput={generateOutput}
-            disabled={!currentSession}
-          />
-        </main>
-
-        {/* Right sidebar - Architecture visualization and status */}
-        <aside className="w-96 border-l bg-gray-50 flex-shrink-0 overflow-y-auto p-4 space-y-4">
-          <ArchitectureViz
-            imageUrl={diagramImageUrl ?? undefined}
-            isGenerating={isGeneratingPreview}
-            onRequestGenerate={currentSession ? generatePreview : undefined}
-          />
-
-          {currentSession && (
-            <StatusPanel
-              architecture={architecture}
-              availableLogos={availableLogos}
-              sessionStatus={currentSession.status}
-              turnCount={currentSession.turn_count}
-              readyForOutput={readyForOutput}
+      {mode === 'architect' ? (
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left sidebar - Session list */}
+          <aside className="w-72 border-r bg-white flex-shrink-0">
+            <SessionList
+              sessions={sessions}
+              currentSessionId={currentSession?.session_id}
+              onSelectSession={selectSession}
+              onDeleteSession={deleteSession}
+              onCreateSession={createSession}
+              isLoading={isLoading}
             />
-          )}
-        </aside>
-      </div>
+          </aside>
+
+          {/* Main area - Chat */}
+          <main className="flex-1 flex flex-col min-w-0 bg-white">
+            <Chat
+              messages={messages}
+              onSendMessage={sendMessage}
+              isLoading={isLoading}
+              readyForOutput={readyForOutput}
+              onGenerateOutput={generateOutput}
+              disabled={!currentSession}
+            />
+          </main>
+
+          {/* Right sidebar - Architecture visualization and status */}
+          <aside className="w-96 border-l bg-gray-50 flex-shrink-0 overflow-y-auto p-4 space-y-4">
+            <ArchitectureViz
+              imageUrl={diagramImageUrl ?? undefined}
+              isGenerating={isGeneratingPreview}
+              onRequestGenerate={currentSession ? generatePreview : undefined}
+            />
+
+            {currentSession && (
+              <StatusPanel
+                architecture={architecture}
+                availableLogos={availableLogos}
+                sessionStatus={currentSession.status}
+                turnCount={currentSession.turn_count}
+                readyForOutput={readyForOutput}
+              />
+            )}
+          </aside>
+        </div>
+      ) : mode === 'cli' ? (
+        <div className="flex-1 min-h-0">
+          <CliRunner />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0">
+          <BestResults
+            onCreateArchitectSessionFromResult={
+              handleCreateArchitectSessionFromResult
+            }
+            onOpenCliMirror={() => setMode('cli')}
+          />
+        </div>
+      )}
     </div>
   );
 }

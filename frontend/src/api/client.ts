@@ -11,6 +11,11 @@ import type {
   StatusResponse,
   GenerateOutputResponse,
   GeneratePreviewResponse,
+  CLICommandsResponse,
+  CliJob,
+  StartCliJobRequest,
+  StartCliJobResponse,
+  BestResultsResponse,
 } from '../types';
 
 const API_BASE = '/api';
@@ -121,4 +126,43 @@ export const chatApi = {
 export const healthApi = {
   check: (): Promise<{ status: string; service: string }> =>
     fetchApi('/health'),
+};
+
+/**
+ * CLI mirror API endpoints.
+ */
+export const cliApi = {
+  listCommands: (): Promise<CLICommandsResponse> =>
+    fetchApi('/cli/commands'),
+
+  startJob: (request: StartCliJobRequest): Promise<StartCliJobResponse> =>
+    fetchApi('/cli/jobs', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  listJobs: (): Promise<CliJob[]> =>
+    fetchApi('/cli/jobs'),
+
+  getJob: (jobId: string): Promise<CliJob> =>
+    fetchApi(`/cli/jobs/${jobId}`),
+
+  cancelJob: (jobId: string): Promise<CliJob> =>
+    fetchApi(`/cli/jobs/${jobId}`, { method: 'DELETE' }),
+};
+
+export const resultsApi = {
+  listBest: (
+    limit = 30,
+    query?: string,
+    minScore?: number,
+    includePrompt = false
+  ): Promise<BestResultsResponse> => {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    params.set('include_prompt', String(includePrompt));
+    if (query) params.set('query', query);
+    if (minScore !== undefined) params.set('min_score', String(minScore));
+    return fetchApi(`/results/best?${params.toString()}`);
+  },
 };

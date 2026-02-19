@@ -9,7 +9,6 @@ import type {
   ArchitectureState,
   ChatMessage,
   MessageResponse,
-  StatusResponse,
 } from '../types';
 
 interface UseArchitectReturn {

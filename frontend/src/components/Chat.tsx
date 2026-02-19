@@ -8,7 +8,7 @@ import type { ChatMessage } from '../types';
 
 interface ChatProps {
   messages: ChatMessage[];
-  onSendMessage: (message: string) => Promise<void>;
+  onSendMessage: (message: string) => Promise<unknown>;
   isLoading: boolean;
   readyForOutput: boolean;
   onGenerateOutput: () => Promise<void>;

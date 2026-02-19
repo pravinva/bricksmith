@@ -1,6 +1,6 @@
 """Pydantic request/response schemas for the web API."""
 
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, Field
 
@@ -135,3 +135,87 @@ class ErrorResponse(BaseModel):
 
     detail: str
     error_code: Optional[str] = None
+
+
+# CLI mirror schemas
+class CLICommandSpec(BaseModel):
+    """Metadata for a supported CLI command."""
+
+    name: str
+    description: str
+    examples: list[str] = Field(default_factory=list)
+    supports_stdin: bool = False
+
+
+class CLICommandsResponse(BaseModel):
+    """Response containing supported CLI commands."""
+
+    commands: list[CLICommandSpec]
+
+
+class StartCliJobRequest(BaseModel):
+    """Request to execute a CLI command."""
+
+    command: str = Field(..., description="CLI subcommand name")
+    args: list[str] = Field(
+        default_factory=list,
+        description="Arguments to pass to the command (one array item per argument)",
+    )
+    stdin_text: Optional[str] = Field(
+        default=None,
+        description="Optional stdin content for interactive commands",
+    )
+    timeout_seconds: int = Field(
+        default=1800,
+        ge=1,
+        le=7200,
+        description="Timeout in seconds before command is terminated",
+    )
+
+
+class CliJobResponse(BaseModel):
+    """Response describing the state/result of a CLI job."""
+
+    job_id: str
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled", "timeout"]
+    command: str
+    args: list[str]
+    started_at: str
+    ended_at: Optional[str] = None
+    exit_code: Optional[int] = None
+    stdout: str = ""
+    stderr: str = ""
+    timeout_seconds: int
+
+
+class StartCliJobResponse(BaseModel):
+    """Response when submitting a CLI job."""
+
+    job: CliJobResponse
+
+
+# Best results explorer schemas
+class BestResultItem(BaseModel):
+    """One ranked architecture+prompt result."""
+
+    result_id: str
+    source: Literal["chat", "generate_raw", "refine", "unknown"]
+    title: str
+    image_path: Optional[str] = None
+    image_url: Optional[str] = None
+    prompt_path: Optional[str] = None
+    prompt_preview: str = ""
+    full_prompt: Optional[str] = None
+    run_id: Optional[str] = None
+    score: Optional[float] = None
+    score_source: Optional[str] = None
+    created_at: Optional[str] = None
+    relative_output_dir: str
+    notes: Optional[str] = None
+
+
+class BestResultsResponse(BaseModel):
+    """Response containing ranked architecture results."""
+
+    results: list[BestResultItem]
+    total: int
