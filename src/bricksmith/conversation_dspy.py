@@ -21,18 +21,12 @@ class ConversationalRefinementSignature(dspy.Signature):
     original_prompt: str = dspy.InputField(
         desc="The original/initial prompt that started the conversation"
     )
-    current_prompt: str = dspy.InputField(
-        desc="The most recent prompt used for generation"
-    )
+    current_prompt: str = dspy.InputField(desc="The most recent prompt used for generation")
     conversation_history: str = dspy.InputField(
         desc="JSON array of previous turns with scores, feedback, and analysis"
     )
-    current_feedback: str = dspy.InputField(
-        desc="User's feedback on the current generation"
-    )
-    current_score: str = dspy.InputField(
-        desc="User's score (1-10) for the current generation"
-    )
+    current_feedback: str = dspy.InputField(desc="User's feedback on the current generation")
+    current_score: str = dspy.InputField(desc="User's score (1-10) for the current generation")
     visual_analysis: str = dspy.InputField(
         desc="AI analysis of what the current diagram looks like"
     )
@@ -41,9 +35,7 @@ class ConversationalRefinementSignature(dspy.Signature):
         desc="The improved prompt that addresses all feedback and issues. "
         "Must preserve logo constraints and critical requirements from the original."
     )
-    reasoning: str = dspy.OutputField(
-        desc="Explanation of what changes were made and why"
-    )
+    reasoning: str = dspy.OutputField(desc="Explanation of what changes were made and why")
     expected_improvement: str = dspy.OutputField(
         desc="What improvements to expect in the next generation"
     )
@@ -126,12 +118,11 @@ class ConversationalRefiner(dspy.Module):
             temperature=0.3,  # Lower temperature for more focused refinement
         )
 
-        # Set as default LM for this module
-        dspy.settings.configure(lm=self.lm)
-
-        # Initialize chain-of-thought modules
-        self.refine = dspy.ChainOfThought(ConversationalRefinementSignature)
-        self.analyze = dspy.ChainOfThought(PromptAnalysisSignature)
+        # Initialize chain-of-thought modules using thread-local context
+        # (avoids async task affinity issues with dspy.settings.configure)
+        with dspy.context(lm=self.lm):
+            self.refine = dspy.ChainOfThought(ConversationalRefinementSignature)
+            self.analyze = dspy.ChainOfThought(PromptAnalysisSignature)
 
     def forward(
         self,
@@ -155,14 +146,15 @@ class ConversationalRefiner(dspy.Module):
         Returns:
             Prediction with refined_prompt, reasoning, expected_improvement
         """
-        return self.refine(
-            original_prompt=original_prompt,
-            current_prompt=current_prompt,
-            conversation_history=conversation_history,
-            current_feedback=current_feedback,
-            current_score=current_score,
-            visual_analysis=visual_analysis,
-        )
+        with dspy.context(lm=self.lm):
+            return self.refine(
+                original_prompt=original_prompt,
+                current_prompt=current_prompt,
+                conversation_history=conversation_history,
+                current_feedback=current_feedback,
+                current_score=current_score,
+                visual_analysis=visual_analysis,
+            )
 
     def analyze_issues(
         self,
@@ -180,11 +172,12 @@ class ConversationalRefiner(dspy.Module):
         Returns:
             Prediction with issues_identified and suggested_improvements
         """
-        return self.analyze(
-            prompt_text=prompt_text,
-            visual_analysis=visual_analysis,
-            user_score=user_score,
-        )
+        with dspy.context(lm=self.lm):
+            return self.analyze(
+                prompt_text=prompt_text,
+                visual_analysis=visual_analysis,
+                user_score=user_score,
+            )
 
     def refine_with_context(
         self,
@@ -208,27 +201,28 @@ class ConversationalRefiner(dspy.Module):
         Returns:
             Tuple of (refined_prompt, reasoning, expected_improvement)
         """
-        # If no feedback provided and score is low, try to analyze issues
-        if not feedback.strip() and score < 8:
-            if visual_analysis:
-                analysis = self.analyze_issues(
-                    prompt_text=current_prompt,
-                    visual_analysis=visual_analysis,
-                    user_score=str(score),
-                )
-                feedback = f"Auto-identified issues: {analysis.issues_identified}"
+        with dspy.context(lm=self.lm):
+            # If no feedback provided and score is low, try to analyze issues
+            if not feedback.strip() and score < 8:
+                if visual_analysis:
+                    analysis = self.analyze_issues(
+                        prompt_text=current_prompt,
+                        visual_analysis=visual_analysis,
+                        user_score=str(score),
+                    )
+                    feedback = f"Auto-identified issues: {analysis.issues_identified}"
 
-        result = self(
-            original_prompt=original_prompt,
-            current_prompt=current_prompt,
-            conversation_history=session_history,
-            current_feedback=feedback or "No specific feedback provided",
-            current_score=str(score),
-            visual_analysis=visual_analysis or "No visual analysis available",
-        )
+            result = self(
+                original_prompt=original_prompt,
+                current_prompt=current_prompt,
+                conversation_history=session_history,
+                current_feedback=feedback or "No specific feedback provided",
+                current_score=str(score),
+                visual_analysis=visual_analysis or "No visual analysis available",
+            )
 
-        return (
-            result.refined_prompt,
-            result.reasoning,
-            result.expected_improvement,
-        )
+            return (
+                result.refined_prompt,
+                result.reasoning,
+                result.expected_improvement,
+            )

@@ -27,18 +27,12 @@ class ArchitectConversationSignature(dspy.Signature):
     - If a reference prompt is provided, use it as inspiration for style and structure
     """
 
-    user_message: str = dspy.InputField(
-        desc="The user's current message or response"
-    )
-    conversation_history: str = dspy.InputField(
-        desc="JSON array of previous conversation turns"
-    )
+    user_message: str = dspy.InputField(desc="The user's current message or response")
+    conversation_history: str = dspy.InputField(desc="JSON array of previous conversation turns")
     available_logos: str = dspy.InputField(
         desc="Comma-separated list of logo names available for the diagram"
     )
-    custom_context: str = dspy.InputField(
-        desc="Optional domain knowledge or customer context"
-    )
+    custom_context: str = dspy.InputField(desc="Optional domain knowledge or customer context")
     current_architecture: str = dspy.InputField(
         desc="JSON object with current components and connections"
     )
@@ -53,9 +47,9 @@ class ArchitectConversationSignature(dspy.Signature):
     )
     updated_architecture: str = dspy.OutputField(
         desc="JSON object with updated components and connections based on this turn. "
-        "Format: {\"components\": [{\"id\": \"...\", \"label\": \"...\", \"type\": \"...\", "
-        "\"logo_name\": \"...\"}], \"connections\": [{\"from_id\": \"...\", \"to_id\": \"...\", "
-        "\"label\": \"...\"}]}. Return existing architecture if no changes."
+        'Format: {"components": [{"id": "...", "label": "...", "type": "...", '
+        '"logo_name": "..."}], "connections": [{"from_id": "...", "to_id": "...", '
+        '"label": "..."}]}. Return existing architecture if no changes.'
     )
     ready_for_output: str = dspy.OutputField(
         desc="'yes' if enough information has been gathered to generate a complete "
@@ -81,9 +75,7 @@ class ArchitectPromptGenerationSignature(dspy.Signature):
     available_logos: str = dspy.InputField(
         desc="Comma-separated list of logo names available for the diagram"
     )
-    style_preferences: str = dspy.InputField(
-        desc="Any stated visual preferences or requirements"
-    )
+    style_preferences: str = dspy.InputField(desc="Any stated visual preferences or requirements")
 
     diagram_prompt: str = dspy.OutputField(
         desc="Complete prompt for diagram generation. Include: "
@@ -157,12 +149,11 @@ class ArchitectRefiner(dspy.Module):
             temperature=0.4,  # Slightly higher for more conversational responses
         )
 
-        # Set as default LM for this module
-        dspy.settings.configure(lm=self.lm)
-
-        # Initialize chain-of-thought modules
-        self.converse = dspy.ChainOfThought(ArchitectConversationSignature)
-        self.generate_prompt = dspy.ChainOfThought(ArchitectPromptGenerationSignature)
+        # Initialize chain-of-thought modules using thread-local context
+        # (avoids async task affinity issues with dspy.settings.configure)
+        with dspy.context(lm=self.lm):
+            self.converse = dspy.ChainOfThought(ArchitectConversationSignature)
+            self.generate_prompt = dspy.ChainOfThought(ArchitectPromptGenerationSignature)
 
     def forward(
         self,
@@ -186,14 +177,15 @@ class ArchitectRefiner(dspy.Module):
         Returns:
             Prediction with response, updated_architecture, ready_for_output
         """
-        return self.converse(
-            user_message=user_message,
-            conversation_history=conversation_history,
-            available_logos=available_logos,
-            custom_context=custom_context or "No additional context provided.",
-            current_architecture=current_architecture,
-            reference_prompt=reference_prompt or "No reference prompt provided.",
-        )
+        with dspy.context(lm=self.lm):
+            return self.converse(
+                user_message=user_message,
+                conversation_history=conversation_history,
+                available_logos=available_logos,
+                custom_context=custom_context or "No additional context provided.",
+                current_architecture=current_architecture,
+                reference_prompt=reference_prompt or "No reference prompt provided.",
+            )
 
     def create_diagram_prompt(
         self,
@@ -213,12 +205,14 @@ class ArchitectRefiner(dspy.Module):
         Returns:
             Tuple of (diagram_prompt, rationale)
         """
-        result = self.generate_prompt(
-            conversation_summary=conversation_summary,
-            architecture_json=architecture_json,
-            available_logos=available_logos,
-            style_preferences=style_preferences or "Professional, clean, consulting-firm quality",
-        )
+        with dspy.context(lm=self.lm):
+            result = self.generate_prompt(
+                conversation_summary=conversation_summary,
+                architecture_json=architecture_json,
+                available_logos=available_logos,
+                style_preferences=style_preferences
+                or "Professional, clean, consulting-firm quality",
+            )
 
         return result.diagram_prompt, result.prompt_rationale
 
