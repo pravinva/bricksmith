@@ -1,5 +1,7 @@
 """Chat/conversation API endpoints."""
 
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from .schemas import (
@@ -14,6 +16,8 @@ from .schemas import (
 )
 from ..services.architect_service import get_architect_service
 from ..services.session_store import get_session_store
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -36,10 +40,14 @@ async def send_message(
         HTTPException: If session not found
     """
     service = get_architect_service()
-    response = await service.send_message(
-        session_id=session_id,
-        message=request.message,
-    )
+    try:
+        response = await service.send_message(
+            session_id=session_id,
+            message=request.message,
+        )
+    except Exception as e:
+        logger.error("Error in send_message for %s: %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
     if response is None:
         raise HTTPException(status_code=404, detail="Session not found")
