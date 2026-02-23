@@ -304,7 +304,7 @@ class ArchitectChatbot:
         if ready:
             response += "\n\n[dim]I believe we have enough information. Type 'output' to generate the diagram prompt, or continue discussing.[/dim]"
 
-        return response, False
+        return response, ready
 
     def _show_status(self) -> str:
         """Show current architecture status.
