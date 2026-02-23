@@ -82,10 +82,12 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
 
 interface BestResultsProps {
   onCreateArchitectSessionFromResult?: (result: BestResultItem) => Promise<void>;
+  onRefinePrompt?: (result: BestResultItem) => void;
 }
 
 export function BestResults({
   onCreateArchitectSessionFromResult,
+  onRefinePrompt,
 }: BestResultsProps) {
   const [results, setResults] = useState<BestResultItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -484,13 +486,24 @@ export function BestResults({
                   <p className="mt-4 text-sm text-gray-500">No image found for this result.</p>
                 )}
 
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <button
                     onClick={() => void createArchitectSessionFromResult()}
                     className="px-3 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700"
                   >
                     Open in Architect Studio
                   </button>
+                  {onRefinePrompt && (
+                    <button
+                      onClick={() => {
+                        void refreshWithPrompt(selected);
+                        onRefinePrompt(selected);
+                      }}
+                      className="px-3 py-2 text-sm bg-white border border-primary-600 text-primary-700 rounded hover:bg-primary-50"
+                    >
+                      Refine Prompt
+                    </button>
+                  )}
                 </div>
               </div>
 

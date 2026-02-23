@@ -257,6 +257,15 @@ export interface RefineResponse {
   error?: string;
 }
 
+// Standalone refinement types
+
+export interface StartStandaloneRefinementRequest {
+  prompt: string;
+  image_provider?: 'gemini' | 'openai';
+  openai_api_key?: string;
+  vertex_api_key?: string;
+}
+
 // Generation settings types
 
 export interface GenerationSettingsRequest {

@@ -428,3 +428,12 @@ class GenerateAndEvaluateRequest(BaseModel):
     """Request body for refinement generate-and-evaluate endpoint."""
 
     settings: Optional[GenerationSettingsRequest] = None
+
+
+class StartStandaloneRefinementRequest(BaseModel):
+    """Request to start a standalone refinement loop from a raw prompt."""
+
+    prompt: str = Field(..., description="Raw diagram prompt text")
+    image_provider: Optional[Literal["gemini", "openai"]] = None
+    openai_api_key: Optional[str] = None
+    vertex_api_key: Optional[str] = None

@@ -15,9 +15,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from ...config import load_config
 from ...conversation import build_evaluation_prompt
 from ...conversation_dspy import ConversationalRefiner
 from ...gemini_client import GeminiClient
+from ...image_generator import ImageGenerator
+from ...logos import LogoKitHandler
+from ...models import LogoInfo
 from ..api.schemas import (
     EvaluationScores,
     GenerationSettingsRequest,
@@ -64,6 +68,9 @@ class RefinementService:
         self._states: dict[str, _RefinementState] = {}
         self._refiner: Optional[ConversationalRefiner] = None
         self._gemini_analyzer: Optional[GeminiClient] = None
+        # Standalone refinement resources (not backed by architect sessions)
+        self._standalone_logos: dict[str, tuple[LogoKitHandler, list[LogoInfo]]] = {}
+        self._standalone_generators: dict[str, ImageGenerator] = {}
 
     def _get_refiner(self) -> ConversationalRefiner:
         """Lazy-initialize DSPy refiner."""
@@ -101,6 +108,42 @@ class RefinementService:
 
         return state.to_response()
 
+    async def start_standalone_refinement(
+        self,
+        prompt: str,
+        image_provider: Optional[str] = None,
+        openai_api_key: Optional[str] = None,
+        vertex_api_key: Optional[str] = None,
+    ) -> RefinementStateResponse:
+        """Start a standalone refinement loop from a raw prompt (no architect session).
+
+        Loads all logos from the default logo kit and creates refinement state.
+        """
+        import uuid
+
+        session_id = f"standalone-{str(uuid.uuid4())[:8]}"
+
+        config = load_config()
+        logo_handler = LogoKitHandler(config=config.logo_kit)
+        logos = logo_handler.load_logo_kit(config.logo_kit.logo_dir)
+        self._standalone_logos[session_id] = (logo_handler, logos)
+
+        # Set up per-session image generator if custom keys provided
+        if image_provider == "openai":
+            from ...openai_image_client import OpenAIImageClient
+
+            self._standalone_generators[session_id] = OpenAIImageClient(
+                api_key=openai_api_key or None,
+                model=config.image_provider.openai_model,
+            )
+        elif image_provider == "gemini" and vertex_api_key:
+            self._standalone_generators[session_id] = GeminiClient(api_key=vertex_api_key)
+
+        state = _RefinementState(session_id=session_id, original_prompt=prompt)
+        self._states[session_id] = state
+
+        return state.to_response()
+
     async def generate_and_evaluate(
         self,
         session_id: str,
@@ -119,9 +162,16 @@ class RefinementService:
             )
 
         service = get_architect_service()
-        chatbot = await service._get_or_restore_chatbot(session_id)
-        if chatbot is None:
-            return RefinementIterationResponse(success=False, error="Session not found")
+
+        # Determine if this is a standalone or session-based refinement
+        is_standalone = session_id in self._standalone_logos
+
+        if not is_standalone:
+            chatbot = await service._get_or_restore_chatbot(session_id)
+            if chatbot is None:
+                return RefinementIterationResponse(success=False, error="Session not found")
+        else:
+            chatbot = None
 
         try:
             # Phase 1: Generate image(s)
@@ -134,39 +184,49 @@ class RefinementService:
                 gen_kwargs = settings_req.to_generation_kwargs()
                 num_variants = settings_req.num_variants or 1
 
-            session = chatbot._session
-            arch = session.current_architecture if session else {}
-            components = arch.get("components", [])
-
-            # Build logo parts (reuses architect_service pattern)
+            # Build logo parts depending on mode
             logo_parts = []
-            logos_used: set[str] = set()
-            for comp in components:
-                logo_name = comp.get("logo_name")
-                if logo_name and logo_name not in logos_used:
-                    try:
-                        logo = chatbot.logo_handler.get_logo(logo_name)
-                        logo_part = chatbot.logo_handler.to_image_part(logo)
-                        logo_parts.append(logo_part)
-                        logos_used.add(logo_name)
-                    except KeyError:
-                        pass
+            if is_standalone:
+                logo_handler, logos = self._standalone_logos[session_id]
+                for logo in logos:
+                    logo_part = logo_handler.to_image_part(logo)
+                    logo_parts.append(logo_part)
+            else:
+                session = chatbot._session
+                arch = session.current_architecture if session else {}
+                components = arch.get("components", [])
+                logos_used: set[str] = set()
+                for comp in components:
+                    logo_name = comp.get("logo_name")
+                    if logo_name and logo_name not in logos_used:
+                        try:
+                            logo = chatbot.logo_handler.get_logo(logo_name)
+                            logo_part = chatbot.logo_handler.to_image_part(logo)
+                            logo_parts.append(logo_part)
+                            logos_used.add(logo_name)
+                        except KeyError:
+                            pass
 
-            # Get per-session image generator or default
-            image_generator = service._session_image_generators.get(session_id)
-            if image_generator is None:
-                from ...openai_image_client import OpenAIImageClient
+            # Get image generator: standalone > per-session > default
+            if is_standalone and session_id in self._standalone_generators:
+                gen = self._standalone_generators[session_id]
+            elif not is_standalone:
+                image_generator = service._session_image_generators.get(session_id)
+                if image_generator is None:
+                    from ...openai_image_client import OpenAIImageClient
 
-                provider_override = service._session_provider_overrides.get(session_id)
-                if provider_override == "openai":
-                    image_generator = OpenAIImageClient(
-                        model=service.config.image_provider.openai_model
-                    )
-                elif provider_override == "gemini":
-                    image_generator = GeminiClient()
-                else:
-                    image_generator = service._image_generator
-            gen = image_generator
+                    provider_override = service._session_provider_overrides.get(session_id)
+                    if provider_override == "openai":
+                        image_generator = OpenAIImageClient(
+                            model=service.config.image_provider.openai_model
+                        )
+                    elif provider_override == "gemini":
+                        image_generator = GeminiClient()
+                    else:
+                        image_generator = service._image_generator
+                gen = image_generator
+            else:
+                gen = service._image_generator
 
             # Create output directory
             iteration_num = len(state.iterations) + 1

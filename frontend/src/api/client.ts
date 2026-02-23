@@ -26,6 +26,7 @@ import type {
   RefinementIterationResponse,
   RefineRequest,
   RefineResponse,
+  StartStandaloneRefinementRequest,
 } from '../types';
 
 const API_BASE = '/api';
@@ -210,7 +211,7 @@ export const resultsApi = {
 };
 
 /**
- * Refinement loop API endpoints.
+ * Refinement loop API endpoints (session-based).
  */
 export const refinementApi = {
   start: (sessionId: string): Promise<RefinementState> =>
@@ -235,4 +236,33 @@ export const refinementApi = {
 
   getState: (sessionId: string): Promise<RefinementState> =>
     fetchApi(`/sessions/${sessionId}/refinement/state`),
+};
+
+/**
+ * Standalone refinement API endpoints (no architect session required).
+ */
+export const standaloneRefinementApi = {
+  start: (request: StartStandaloneRefinementRequest): Promise<RefinementState> =>
+    fetchApi('/refinement/start', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  generateAndEvaluate: (
+    sessionId: string,
+    settings?: GenerationSettingsRequest
+  ): Promise<RefinementIterationResponse> =>
+    fetchApi(`/refinement/${sessionId}/generate`, {
+      method: 'POST',
+      body: settings ? JSON.stringify({ settings }) : undefined,
+    }),
+
+  refine: (sessionId: string, request: RefineRequest): Promise<RefineResponse> =>
+    fetchApi(`/refinement/${sessionId}/refine`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  getState: (sessionId: string): Promise<RefinementState> =>
+    fetchApi(`/refinement/${sessionId}/state`),
 };
