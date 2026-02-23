@@ -13,6 +13,7 @@ interface ChatProps {
   isLoading: boolean;
   readyForOutput: boolean;
   onGenerateOutput: () => Promise<void>;
+  onStartRefinement?: () => void;
   disabled?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function Chat({
   isLoading,
   readyForOutput,
   onGenerateOutput,
+  onStartRefinement,
   disabled = false,
 }: ChatProps) {
   const [input, setInput] = useState('');
@@ -123,16 +125,27 @@ export function Chat({
                 Architecture is ready!
               </p>
               <p className="text-green-600 text-sm">
-                Generate the diagram prompt when satisfied
+                Generate a diagram or save the prompt
               </p>
             </div>
-            <button
-              onClick={onGenerateOutput}
-              disabled={isSending || isLoading}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              Generate Output
-            </button>
+            <div className="flex gap-2">
+              {onStartRefinement && (
+                <button
+                  onClick={onStartRefinement}
+                  disabled={isSending || isLoading}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  Generate &amp; Refine
+                </button>
+              )}
+              <button
+                onClick={onGenerateOutput}
+                disabled={isSending || isLoading}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                Generate Output
+              </button>
+            </div>
           </div>
         </div>
       )}

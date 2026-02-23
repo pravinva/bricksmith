@@ -13,8 +13,13 @@ from .schemas import (
     GeneratePreviewResponse,
     TurnSchema,
     TurnsResponse,
+    RefineRequest,
+    RefineResponse,
+    RefinementIterationResponse,
+    RefinementStateResponse,
 )
 from ..services.architect_service import get_architect_service
+from ..services.refinement_service import get_refinement_service
 from ..services.session_store import get_session_store
 
 logger = logging.getLogger(__name__)
@@ -163,3 +168,63 @@ async def generate_preview(session_id: str) -> GeneratePreviewResponse:
         raise HTTPException(status_code=404, detail="Session not found")
 
     return response
+
+
+# --- Refinement loop endpoints ---
+
+
+@router.post("/{session_id}/refinement/start", response_model=RefinementStateResponse)
+async def start_refinement(session_id: str) -> RefinementStateResponse:
+    """Start a refinement loop from the current architect session state.
+
+    Initializes the refinement service with the diagram prompt built from the
+    session's current architecture.
+    """
+    service = get_refinement_service()
+    try:
+        return await service.start_refinement(session_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Error starting refinement for %s: %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{session_id}/refinement/generate", response_model=RefinementIterationResponse)
+async def generate_and_evaluate(session_id: str) -> RefinementIterationResponse:
+    """Generate a diagram image and evaluate it with the LLM Judge.
+
+    This generates the image from the current prompt, then runs evaluation
+    to produce scores, strengths, issues, and improvement suggestions.
+    """
+    service = get_refinement_service()
+    try:
+        return await service.generate_and_evaluate(session_id)
+    except Exception as e:
+        logger.error("Error in generate_and_evaluate for %s: %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{session_id}/refinement/refine", response_model=RefineResponse)
+async def refine_prompt(session_id: str, request: RefineRequest) -> RefineResponse:
+    """Refine the current prompt using DSPy with optional user feedback.
+
+    Takes user feedback and uses ConversationalRefiner to produce an improved
+    prompt for the next generation cycle.
+    """
+    service = get_refinement_service()
+    try:
+        return await service.refine_prompt(session_id, request.user_feedback)
+    except Exception as e:
+        logger.error("Error in refine_prompt for %s: %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{session_id}/refinement/state", response_model=RefinementStateResponse)
+async def get_refinement_state(session_id: str) -> RefinementStateResponse:
+    """Get the current refinement state for a session."""
+    service = get_refinement_service()
+    state = service.get_state(session_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail="No refinement in progress for this session")
+    return state

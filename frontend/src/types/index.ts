@@ -189,3 +189,66 @@ export interface PromptFilesResponse {
   files: PromptFileItem[];
   total: number;
 }
+
+export interface GenerateFromDocRequest {
+  document_text: string;
+  filename?: string;
+}
+
+export interface GenerateFromDocResponse {
+  prompt: string;
+}
+
+// Refinement loop types
+
+export interface EvaluationScores {
+  information_hierarchy: number;
+  technical_accuracy: number;
+  logo_fidelity: number;
+  visual_clarity: number;
+  data_flow_legibility: number;
+  text_readability: number;
+}
+
+export interface RefinementIteration {
+  iteration: number;
+  prompt_used: string;
+  image_url: string;
+  overall_score?: number;
+  scores?: EvaluationScores;
+  strengths: string[];
+  issues: string[];
+  improvements: string[];
+  feedback_for_refinement: string;
+  user_feedback?: string;
+  refinement_reasoning?: string;
+  created_at: string;
+}
+
+export interface RefinementState {
+  session_id: string;
+  status: 'idle' | 'generating' | 'evaluating' | 'refining';
+  original_prompt: string;
+  current_prompt: string;
+  current_image_url?: string;
+  iterations: RefinementIteration[];
+  iteration_count: number;
+}
+
+export interface RefinementIterationResponse {
+  success: boolean;
+  iteration?: RefinementIteration;
+  error?: string;
+}
+
+export interface RefineRequest {
+  user_feedback: string;
+}
+
+export interface RefineResponse {
+  success: boolean;
+  refined_prompt?: string;
+  reasoning?: string;
+  expected_improvement?: string;
+  error?: string;
+}

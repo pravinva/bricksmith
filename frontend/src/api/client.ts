@@ -18,6 +18,12 @@ import type {
   BestResultsResponse,
   PromptFilesResponse,
   TurnsResponse,
+  GenerateFromDocRequest,
+  GenerateFromDocResponse,
+  RefinementState,
+  RefinementIterationResponse,
+  RefineRequest,
+  RefineResponse,
 } from '../types';
 
 const API_BASE = '/api';
@@ -183,4 +189,34 @@ export const resultsApi = {
     if (query) params.set('query', query);
     return fetchApi(`/results/prompt-files?${params.toString()}`);
   },
+
+  generateFromDoc: (request: GenerateFromDocRequest): Promise<GenerateFromDocResponse> =>
+    fetchApi('/results/from-document', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+};
+
+/**
+ * Refinement loop API endpoints.
+ */
+export const refinementApi = {
+  start: (sessionId: string): Promise<RefinementState> =>
+    fetchApi(`/sessions/${sessionId}/refinement/start`, {
+      method: 'POST',
+    }),
+
+  generateAndEvaluate: (sessionId: string): Promise<RefinementIterationResponse> =>
+    fetchApi(`/sessions/${sessionId}/refinement/generate`, {
+      method: 'POST',
+    }),
+
+  refine: (sessionId: string, request: RefineRequest): Promise<RefineResponse> =>
+    fetchApi(`/sessions/${sessionId}/refinement/refine`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  getState: (sessionId: string): Promise<RefinementState> =>
+    fetchApi(`/sessions/${sessionId}/refinement/state`),
 };

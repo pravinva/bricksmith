@@ -3,17 +3,20 @@
  */
 
 import { useArchitect } from './hooks/useArchitect';
+import { useRefinement } from './hooks/useRefinement';
 import { Chat } from './components/Chat';
 import { ArchitectureViz } from './components/ArchitectureViz';
+import { RefinementPanel } from './components/RefinementPanel';
 import { SessionList } from './components/SessionList';
 import { StatusPanel } from './components/StatusPanel';
 import { CliRunner } from './components/CliRunner';
 import { BestResults } from './components/BestResults';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { BestResultItem } from './types';
 
 function App() {
   const [mode, setMode] = useState<'architect' | 'cli' | 'best'>('architect');
+  const refinement = useRefinement();
   const {
     sessions,
     currentSession,
@@ -55,6 +58,12 @@ function App() {
     });
     setMode('architect');
   };
+
+  const handleStartRefinement = useCallback(() => {
+    if (currentSession) {
+      refinement.startRefinement(currentSession.session_id);
+    }
+  }, [currentSession, refinement]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -170,28 +179,45 @@ function App() {
               isLoading={isLoading}
               readyForOutput={readyForOutput}
               onGenerateOutput={generateOutput}
+              onStartRefinement={currentSession ? handleStartRefinement : undefined}
               disabled={!currentSession}
             />
           </main>
 
-          {/* Right sidebar - Architecture visualization and status */}
-          <aside className="w-96 border-l bg-gray-50 flex-shrink-0 overflow-y-auto p-4 space-y-4">
-            <ArchitectureViz
-              imageUrl={diagramImageUrl ?? undefined}
-              isGenerating={isGeneratingPreview}
-              onRequestGenerate={currentSession ? generatePreview : undefined}
-            />
-
-            {currentSession && (
-              <StatusPanel
-                architecture={architecture}
-                availableLogos={availableLogos}
-                sessionStatus={currentSession.status}
-                turnCount={currentSession.turn_count}
-                readyForOutput={readyForOutput}
-                imageProvider={imageProvider}
-                credentialMode={credentialMode}
+          {/* Right sidebar - Refinement panel or architecture visualization */}
+          <aside className="w-96 border-l bg-gray-50 flex-shrink-0 overflow-hidden">
+            {refinement.isActive ? (
+              <RefinementPanel
+                state={refinement.refinementState!}
+                currentIteration={refinement.currentIteration}
+                isGenerating={refinement.isGenerating}
+                isRefining={refinement.isRefining}
+                error={refinement.error}
+                onRefine={refinement.refinePrompt}
+                onAccept={refinement.acceptResult}
+                onRegenerate={refinement.generateAndEvaluate}
+                onClearError={refinement.clearError}
               />
+            ) : (
+              <div className="overflow-y-auto h-full p-4 space-y-4">
+                <ArchitectureViz
+                  imageUrl={diagramImageUrl ?? undefined}
+                  isGenerating={isGeneratingPreview}
+                  onRequestGenerate={currentSession ? generatePreview : undefined}
+                />
+
+                {currentSession && (
+                  <StatusPanel
+                    architecture={architecture}
+                    availableLogos={availableLogos}
+                    sessionStatus={currentSession.status}
+                    turnCount={currentSession.turn_count}
+                    readyForOutput={readyForOutput}
+                    imageProvider={imageProvider}
+                    credentialMode={credentialMode}
+                  />
+                )}
+              </div>
             )}
           </aside>
         </div>

@@ -290,3 +290,82 @@ class PromptFilesResponse(BaseModel):
 
     files: list[PromptFileItem]
     total: int
+
+
+# Prompt generation from document schemas
+class GenerateFromDocRequest(BaseModel):
+    """Request to generate a bricksmith diagram prompt from an architecture document."""
+
+    document_text: str = Field(..., description="Full text of the architecture document")
+    filename: Optional[str] = Field(None, description="Original filename for context")
+
+
+class GenerateFromDocResponse(BaseModel):
+    """Response containing the generated bricksmith diagram prompt."""
+
+    prompt: str = Field(..., description="Generated bricksmith diagram prompt")
+
+
+# Refinement loop schemas
+class EvaluationScores(BaseModel):
+    """LLM Judge evaluation scores for a generated diagram."""
+
+    information_hierarchy: int
+    technical_accuracy: int
+    logo_fidelity: int
+    visual_clarity: int
+    data_flow_legibility: int
+    text_readability: int
+
+
+class RefinementIterationSchema(BaseModel):
+    """A single iteration of the refinement loop."""
+
+    iteration: int
+    prompt_used: str
+    image_url: str
+    overall_score: Optional[int] = None
+    scores: Optional[EvaluationScores] = None
+    strengths: list[str] = Field(default_factory=list)
+    issues: list[str] = Field(default_factory=list)
+    improvements: list[str] = Field(default_factory=list)
+    feedback_for_refinement: str = ""
+    user_feedback: Optional[str] = None
+    refinement_reasoning: Optional[str] = None
+    created_at: str
+
+
+class RefinementStateResponse(BaseModel):
+    """Current state of a refinement loop for a session."""
+
+    session_id: str
+    status: str = Field(description="Status: idle, generating, evaluating, refining")
+    original_prompt: str
+    current_prompt: str
+    current_image_url: Optional[str] = None
+    iterations: list[RefinementIterationSchema] = Field(default_factory=list)
+    iteration_count: int = 0
+
+
+class RefinementIterationResponse(BaseModel):
+    """Response from a generate-and-evaluate step."""
+
+    success: bool
+    iteration: Optional[RefinementIterationSchema] = None
+    error: Optional[str] = None
+
+
+class RefineRequest(BaseModel):
+    """Request to refine the current prompt with user feedback."""
+
+    user_feedback: str
+
+
+class RefineResponse(BaseModel):
+    """Response from a prompt refinement step."""
+
+    success: bool
+    refined_prompt: Optional[str] = None
+    reasoning: Optional[str] = None
+    expected_improvement: Optional[str] = None
+    error: Optional[str] = None
