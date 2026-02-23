@@ -97,11 +97,19 @@ export function BestResults({
   const [isFullscreenOpen, setIsFullscreenOpen] = useState<boolean>(false);
   const [groupBy, setGroupBy] = useState<GroupByMode>('date');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [editingRunGroup, setEditingRunGroup] = useState(false);
+  const [runGroupDraft, setRunGroupDraft] = useState('');
+  const [isSavingRunGroup, setIsSavingRunGroup] = useState(false);
 
   const selected = useMemo(
     () => results.find((result) => result.result_id === selectedId) || null,
     [results, selectedId]
   );
+
+  // Reset run group editing when selection changes
+  useEffect(() => {
+    setEditingRunGroup(false);
+  }, [selectedId]);
 
   const groupedResults = useMemo<ResultGroup[]>(() => {
     const groupMap = new Map<string, { items: BestResultItem[]; sortKey: string }>();
@@ -201,6 +209,30 @@ export function BestResults({
     if (!selected?.full_prompt) return;
     await navigator.clipboard.writeText(selected.full_prompt);
     setInfo('Prompt copied to clipboard.');
+  };
+
+  const saveRunGroup = async () => {
+    if (!selected || isSavingRunGroup) return;
+    const newValue = runGroupDraft.trim() || undefined;
+    // Skip save if value hasn't changed
+    if ((newValue || '') === (selected.run_group || '')) {
+      setEditingRunGroup(false);
+      return;
+    }
+    setIsSavingRunGroup(true);
+    try {
+      const updated = await resultsApi.updateResult(selected.result_id, {
+        run_group: newValue,
+      });
+      setResults((prev) =>
+        prev.map((r) => (r.result_id === updated.result_id ? updated : r))
+      );
+      setEditingRunGroup(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save run group');
+    } finally {
+      setIsSavingRunGroup(false);
+    }
   };
 
   const createArchitectSessionFromResult = async () => {
@@ -393,7 +425,40 @@ export function BestResults({
                         {selected.score !== undefined ? selected.score : 'N/A'}
                       </span>
                     </p>
-                    <p className="text-gray-500">{selected.run_group || 'Ungrouped'}</p>
+                    {editingRunGroup ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          autoFocus
+                          value={runGroupDraft}
+                          onChange={(e) => setRunGroupDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void saveRunGroup();
+                            if (e.key === 'Escape') setEditingRunGroup(false);
+                          }}
+                          onBlur={() => void saveRunGroup()}
+                          className="border rounded px-1.5 py-0.5 text-xs w-32"
+                          placeholder="Group name..."
+                          disabled={isSavingRunGroup}
+                        />
+                        {isSavingRunGroup && (
+                          <svg className="w-3 h-3 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setRunGroupDraft(selected.run_group || '');
+                          setEditingRunGroup(true);
+                        }}
+                        className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded px-1.5 py-0.5 text-sm transition-colors"
+                        title="Click to edit run group"
+                      >
+                        {selected.run_group || 'Ungrouped'}
+                      </button>
+                    )}
                     <p className="text-gray-500">{selected.run_id || 'No run id'}</p>
                   </div>
                 </div>

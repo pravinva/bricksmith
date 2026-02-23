@@ -43,6 +43,8 @@ function App() {
   const handleCreateArchitectSessionFromResult = async (
     result: BestResultItem
   ) => {
+    setMode('architect'); // Switch immediately so user sees architect loading state
+
     const problem = `Refine architecture based on: ${result.title}`;
     const contextParts = [
       `Source: ${result.source}`,
@@ -55,7 +57,6 @@ function App() {
     await createSession(problem, contextParts.join('\n\n'), {
       referencePrompt: refPrompt || undefined,
     });
-    setMode('architect');
   };
 
   const handleStartRefinement = useCallback(() => {

@@ -267,6 +267,12 @@ class BestResultItem(BaseModel):
     notes: Optional[str] = None
 
 
+class UpdateResultRequest(BaseModel):
+    """Request to update a result's metadata."""
+
+    run_group: Optional[str] = Field(None, description="Run group tag")
+
+
 class BestResultsResponse(BaseModel):
     """Response containing ranked architecture results."""
 

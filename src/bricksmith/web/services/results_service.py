@@ -122,6 +122,52 @@ class ResultsService:
         limited = candidates[:limit]
         return [self._to_item(c, include_prompt=include_prompt) for c in limited]
 
+    def update_result(
+        self,
+        result_id: str,
+        run_group: Optional[str] = None,
+    ) -> Optional[BestResultItem]:
+        """Update a result's metadata on disk and return the updated item.
+
+        Finds the matching candidate by result_id, updates run_group in the
+        metadata JSON (for generate_raw/refine) or session.json (for chat),
+        then returns the refreshed BestResultItem.
+        """
+        candidates = self._collect_candidates()
+        target = None
+        for c in candidates:
+            cid = f"{c.source}:{c.run_id or c.title}:{c.created_at or ''}"
+            if cid == result_id:
+                target = c
+                break
+
+        if target is None:
+            return None
+
+        output_dir = target.output_dir
+
+        if target.source == "chat":
+            # Update session.json top-level run_group
+            session_file = output_dir / "session.json"
+            if session_file.exists():
+                data = self._read_json(session_file) or {}
+                if run_group is not None:
+                    data["run_group"] = run_group
+                session_file.write_text(json.dumps(data, indent=2))
+                target.run_group = run_group
+        else:
+            # Update metadata JSON file
+            metadata_files = sorted(output_dir.glob("metadata*.json"))
+            if metadata_files:
+                meta_path = metadata_files[0]
+                data = self._read_json(meta_path) or {}
+                if run_group is not None:
+                    data["run_group"] = run_group
+                meta_path.write_text(json.dumps(data, indent=2))
+                target.run_group = run_group
+
+        return self._to_item(target, include_prompt=True)
+
     def _collect_candidates(self) -> list[_ResultCandidate]:
         if not self.OUTPUTS_DIR.exists():
             return []
@@ -176,7 +222,7 @@ class ResultsService:
                         prompt_path=prompt_path,
                         prompt_text=prompt_text,
                         run_id=turn.get("run_id"),
-                        run_group=None,
+                        run_group=data.get("run_group"),
                         score=score,
                         score_source="chat_score" if score is not None else None,
                         created_at=turn.get("timestamp"),

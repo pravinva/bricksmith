@@ -15,6 +15,7 @@ import type {
   CliJob,
   StartCliJobRequest,
   StartCliJobResponse,
+  BestResultItem,
   BestResultsResponse,
   PromptFilesResponse,
   TurnsResponse,
@@ -194,6 +195,12 @@ export const resultsApi = {
     fetchApi('/results/from-document', {
       method: 'POST',
       body: JSON.stringify(request),
+    }),
+
+  updateResult: (resultId: string, body: { run_group?: string }): Promise<BestResultItem> =>
+    fetchApi(`/results/${encodeURIComponent(resultId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
     }),
 };
 
