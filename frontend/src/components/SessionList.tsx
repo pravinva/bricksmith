@@ -42,7 +42,7 @@ export function SessionList({
   const [referencePrompt, setReferencePrompt] = useState('');
   const [referencePromptPath, setReferencePromptPath] = useState('');
   const [mcpEnrichment, setMcpEnrichment] = useState<MCPEnrichmentOptions>({
-    enabled: false,
+    enabled: true,
     sources: ['glean', 'confluence'],
   });
 
@@ -63,7 +63,7 @@ export function SessionList({
     setImageProvider('gemini');
     setReferencePrompt('');
     setReferencePromptPath('');
-    setMcpEnrichment({ enabled: false, sources: ['glean', 'confluence'] });
+    setMcpEnrichment({ enabled: true, sources: ['glean', 'confluence'] });
     setShowNewSession(false);
   };
 
@@ -160,7 +160,7 @@ export function SessionList({
                   setImageProvider('gemini');
                   setReferencePrompt('');
                   setReferencePromptPath('');
-                  setMcpEnrichment({ enabled: false, sources: ['glean', 'confluence'] });
+                  setMcpEnrichment({ enabled: true, sources: ['glean', 'confluence'] });
                 }}
                 className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
               >
