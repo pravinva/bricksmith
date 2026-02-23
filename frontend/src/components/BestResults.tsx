@@ -3,11 +3,81 @@ import { useEffect, useMemo, useState } from 'react';
 import { resultsApi } from '../api/client';
 import type { BestResultItem } from '../types';
 
+// --- Types & constants ---
+
+type GroupByMode = 'date' | 'run_group' | 'source';
+
+const GROUP_BY_OPTIONS: { value: GroupByMode; label: string }[] = [
+  { value: 'date', label: 'Date' },
+  { value: 'run_group', label: 'Run group' },
+  { value: 'source', label: 'Source type' },
+];
+
+interface ResultGroup {
+  key: string;
+  items: BestResultItem[];
+  bestScore: number | null;
+}
+
+// --- Helpers ---
+
 function sourceClass(source: BestResultItem['source']): string {
   if (source === 'chat') return 'bg-blue-100 text-blue-700';
   if (source === 'refine') return 'bg-purple-100 text-purple-700';
   if (source === 'generate_raw') return 'bg-green-100 text-green-700';
   return 'bg-gray-100 text-gray-700';
+}
+
+function friendlyDateLabel(isoString: string | undefined): string {
+  if (!isoString) return 'Unknown date';
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86_400_000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return target.toLocaleDateString('en-US', { weekday: 'long' });
+  return target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function getGroupKey(result: BestResultItem, mode: GroupByMode): string {
+  if (mode === 'date') return friendlyDateLabel(result.created_at);
+  if (mode === 'run_group') return (result.run_group && result.run_group.trim()) || 'Ungrouped';
+  if (mode === 'source') return result.source || 'unknown';
+  return 'Other';
+}
+
+function getGroupSortKey(result: BestResultItem, mode: GroupByMode): string {
+  if (mode === 'date') {
+    if (!result.created_at) return '9999-99-99';
+    return result.created_at.slice(0, 10);
+  }
+  if (mode === 'run_group') {
+    const key = (result.run_group && result.run_group.trim()) || '';
+    return key === '' ? '\uffff' : key.toLowerCase();
+  }
+  if (mode === 'source') {
+    const s = result.source || 'unknown';
+    return s === 'unknown' ? '\uffff' : s;
+  }
+  return '';
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`w-4 h-4 text-gray-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
 }
 
 interface BestResultsProps {
@@ -25,25 +95,38 @@ export function BestResults({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState<boolean>(false);
+  const [groupBy, setGroupBy] = useState<GroupByMode>('date');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const selected = useMemo(
     () => results.find((result) => result.result_id === selectedId) || null,
     [results, selectedId]
   );
 
-  const groupedResults = useMemo(() => {
-    const groups = new Map<string, BestResultItem[]>();
+  const groupedResults = useMemo<ResultGroup[]>(() => {
+    const groupMap = new Map<string, { items: BestResultItem[]; sortKey: string }>();
     for (const result of results) {
-      const key = (result.run_group && result.run_group.trim()) || 'Ungrouped';
-      const existing = groups.get(key);
+      const key = getGroupKey(result, groupBy);
+      const existing = groupMap.get(key);
       if (existing) {
-        existing.push(result);
+        existing.items.push(result);
+        const sk = getGroupSortKey(result, groupBy);
+        if (sk < existing.sortKey) existing.sortKey = sk;
       } else {
-        groups.set(key, [result]);
+        groupMap.set(key, { items: [result], sortKey: getGroupSortKey(result, groupBy) });
       }
     }
-    return Array.from(groups.entries());
-  }, [results]);
+
+    const sorted = Array.from(groupMap.entries()).sort(([, a], [, b]) => {
+      if (groupBy === 'date') return a.sortKey > b.sortKey ? -1 : a.sortKey < b.sortKey ? 1 : 0;
+      return a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0;
+    });
+
+    return sorted.map(([key, { items }]) => {
+      const scores = items.map((r) => r.score).filter((s): s is number => s !== undefined);
+      return { key, items, bestScore: scores.length > 0 ? Math.max(...scores) : null };
+    });
+  }, [results, groupBy]);
 
   const loadResults = async (includePrompt: boolean) => {
     setIsLoading(true);
@@ -90,6 +173,24 @@ export function BestResults({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isFullscreenOpen]);
+
+  // Reset collapse state when grouping mode or results change: first group expanded, rest collapsed
+  useEffect(() => {
+    if (groupedResults.length <= 1) {
+      setCollapsedGroups(new Set());
+    } else {
+      setCollapsedGroups(new Set(groupedResults.slice(1).map((g) => g.key)));
+    }
+  }, [groupBy, results.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const refreshWithPrompt = async (result: BestResultItem) => {
     if (result.full_prompt) return;
@@ -164,54 +265,108 @@ export function BestResults({
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3">
         <section className="bg-white border-r p-4 overflow-y-auto">
-          <h3 className="font-medium text-gray-900 mb-3">Ranked Results</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-gray-900">Ranked Results</h3>
+            <select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as GroupByMode)}
+              className="border rounded px-2 py-1 text-xs text-gray-700"
+            >
+              {GROUP_BY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           {results.length === 0 ? (
             <p className="text-sm text-gray-500">No ranked results found.</p>
           ) : (
-            <div className="space-y-3">
-              {groupedResults.map(([groupName, groupItems]) => (
-                <div key={groupName} className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    {groupName} ({groupItems.length})
-                  </p>
-                  <ul className="space-y-2">
-                    {groupItems.map((result) => (
-                      <li
-                        key={result.result_id}
-                        onClick={() => setSelectedId(result.result_id)}
-                        className={`border rounded p-3 cursor-pointer ${
-                          selectedId === result.result_id
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-medium text-gray-900 truncate">
-                            {result.title}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 text-xs rounded ${sourceClass(
-                              result.source
-                            )}`}
+            <div className="space-y-2">
+              {groupedResults.map((group) => {
+                const expanded = !collapsedGroups.has(group.key);
+                return (
+                  <div key={group.key}>
+                    <button
+                      onClick={() => toggleGroup(group.key)}
+                      className="w-full flex items-center gap-2 py-1.5 px-1 rounded hover:bg-gray-50 text-left"
+                    >
+                      <ChevronIcon expanded={expanded} />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex-1 truncate">
+                        {group.key} ({group.items.length})
+                      </span>
+                      {group.bestScore !== null && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                          {group.bestScore}
+                        </span>
+                      )}
+                    </button>
+                    {expanded && (
+                      <ul className="space-y-2 mt-1">
+                        {group.items.map((result) => (
+                          <li
+                            key={result.result_id}
+                            onClick={() => setSelectedId(result.result_id)}
+                            className={`border rounded p-2 cursor-pointer flex gap-3 ${
+                              selectedId === result.result_id
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'hover:bg-gray-50'
+                            }`}
                           >
-                            {result.source}
-                          </span>
-                        </div>
-                        <div className="mt-1 text-xs text-gray-600">
-                          Score:{' '}
-                          <span className="font-semibold">
-                            {result.score !== undefined ? result.score : 'N/A'}
-                          </span>
-                          {result.score_source ? ` (${result.score_source})` : ''}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                          {result.prompt_preview}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+                            {result.image_url ? (
+                              <img
+                                src={result.image_url}
+                                alt=""
+                                className="w-10 h-10 rounded object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <svg
+                                  className="w-5 h-5 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-medium text-gray-900 truncate">
+                                  {result.title}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 text-xs rounded flex-shrink-0 ${sourceClass(
+                                    result.source
+                                  )}`}
+                                >
+                                  {result.source}
+                                </span>
+                              </div>
+                              <div className="mt-0.5 text-xs text-gray-600">
+                                Score:{' '}
+                                <span className="font-semibold">
+                                  {result.score !== undefined ? result.score : 'N/A'}
+                                </span>
+                                {result.score_source ? ` (${result.score_source})` : ''}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                {result.prompt_preview}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
