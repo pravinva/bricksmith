@@ -32,6 +32,8 @@ async def create_session(request: CreateSessionRequest) -> SessionResponse:
         vertex_api_key=request.vertex_api_key,
         reference_prompt=request.reference_prompt,
         reference_prompt_path=request.reference_prompt_path,
+        reference_image_base64=request.reference_image_base64,
+        reference_image_filename=request.reference_image_filename,
         mcp_enrichment=request.mcp_enrichment,
     )
     return session

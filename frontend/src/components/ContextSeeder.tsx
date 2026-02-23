@@ -16,6 +16,9 @@ interface ContextSeederProps {
   customContext: string;
   referencePrompt: string;
   referencePromptPath: string;
+  referenceImageBase64: string;
+  referenceImageFilename: string;
+  onReferenceImageChange: (base64: string, filename: string) => void;
   mcpEnrichment: { enabled: boolean; sources: string[] };
   onCustomContextChange: (value: string) => void;
   onReferencePromptChange: (value: string) => void;
@@ -47,6 +50,9 @@ export function ContextSeeder({
   customContext,
   referencePrompt,
   referencePromptPath,
+  referenceImageBase64,
+  referenceImageFilename,
+  onReferenceImageChange,
   mcpEnrichment,
   onCustomContextChange,
   onReferencePromptChange,
@@ -54,9 +60,22 @@ export function ContextSeeder({
   onMCPEnrichmentChange,
 }: ContextSeederProps) {
   // Section open state
+  const [fromDocOpen, setFromDocOpen] = useState(false);
+  const [refImageOpen, setRefImageOpen] = useState(false);
   const [promptFileOpen, setPromptFileOpen] = useState(false);
   const [prevResultOpen, setPrevResultOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
+
+  // Reference image drop state
+  const [refImageDragOver, setRefImageDragOver] = useState(false);
+
+  // Generate-from-document state
+  const [docText, setDocText] = useState('');
+  const [docFilename, setDocFilename] = useState('');
+  const [isGeneratingFromDoc, setIsGeneratingFromDoc] = useState(false);
+  const [fromDocError, setFromDocError] = useState('');
+  const [fromDocGenerated, setFromDocGenerated] = useState(false);
+  const [docIsDragOver, setDocIsDragOver] = useState(false);
 
   // Prompt file search/list
   const [promptFileQuery, setPromptFileQuery] = useState('');
@@ -164,11 +183,247 @@ export function ContextSeeder({
     onMCPEnrichmentChange({ ...mcpEnrichment, sources: next });
   };
 
+  // Generate-from-document handlers
+  const handleDocDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDocIsDragOver(true);
+  }, []);
+
+  const handleDocDragLeave = useCallback(() => {
+    setDocIsDragOver(false);
+  }, []);
+
+  const handleDocDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDocIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    for (const file of files) {
+      if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setDocText(reader.result as string);
+          setDocFilename(file.name);
+          setFromDocGenerated(false);
+          setFromDocError('');
+        };
+        reader.readAsText(file);
+        break;
+      }
+    }
+  }, []);
+
+  const handleGenerateFromDoc = useCallback(async () => {
+    if (!docText.trim()) return;
+    setIsGeneratingFromDoc(true);
+    setFromDocError('');
+    setFromDocGenerated(false);
+    try {
+      const result = await resultsApi.generateFromDoc({
+        document_text: docText,
+        filename: docFilename || undefined,
+      });
+      onReferencePromptChange(result.prompt);
+      onReferencePromptPathChange('');
+      setFromDocGenerated(true);
+    } catch (err) {
+      setFromDocError(err instanceof Error ? err.message : 'Generation failed');
+    } finally {
+      setIsGeneratingFromDoc(false);
+    }
+  }, [docText, docFilename, onReferencePromptChange, onReferencePromptPathChange]);
+
   const hasSelectedPromptFile = !!referencePromptPath;
   const hasSelectedResult = !!referencePrompt && !referencePromptPath;
 
   return (
     <div className="space-y-2">
+      {/* Section 0: Generate prompt from architecture document */}
+      <div className="border rounded border-primary-200">
+        <button
+          type="button"
+          onClick={() => setFromDocOpen(!fromDocOpen)}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-primary-50"
+        >
+          <ChevronIcon open={fromDocOpen} />
+          <span className="font-medium">Generate prompt from document</span>
+          {fromDocGenerated && (
+            <span className="ml-auto text-xs text-green-600 font-medium">✓ Generated</span>
+          )}
+          {!fromDocGenerated && docText && (
+            <span className="ml-auto text-xs text-primary-600 font-medium">Doc loaded</span>
+          )}
+        </button>
+        {fromDocOpen && (
+          <div className="px-3 pb-3 space-y-2">
+            <p className="text-xs text-gray-500">
+              Drop an architecture doc (.md or .txt) — Gemini will turn it into a diagram prompt.
+            </p>
+
+            {/* Drop zone / textarea */}
+            <div
+              onDragOver={handleDocDragOver}
+              onDragLeave={handleDocDragLeave}
+              onDrop={handleDocDrop}
+              className={`relative rounded border ${
+                docIsDragOver
+                  ? 'border-dashed border-primary-400 ring-2 ring-primary-200'
+                  : 'border-gray-300'
+              }`}
+            >
+              <textarea
+                value={docText}
+                onChange={(e) => {
+                  setDocText(e.target.value);
+                  setFromDocGenerated(false);
+                  setFromDocError('');
+                  if (!e.target.value) setDocFilename('');
+                }}
+                placeholder="Drop an architecture .md or .txt file here, or paste the document text…"
+                rows={5}
+                className="w-full px-3 py-2 text-xs border-0 rounded focus:outline-none focus:ring-0 resize-none"
+              />
+              {docIsDragOver && (
+                <div className="absolute inset-0 flex items-center justify-center bg-primary-50/90 rounded pointer-events-none">
+                  <span className="text-sm text-primary-700 font-medium">
+                    Drop .md or .txt file here
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {docFilename && (
+              <p className="text-xs text-gray-500 truncate">
+                File: <span className="font-mono text-gray-700">{docFilename}</span>
+              </p>
+            )}
+
+            {fromDocError && (
+              <p className="text-xs text-red-600">{fromDocError}</p>
+            )}
+
+            {fromDocGenerated && (
+              <p className="text-xs text-green-700 font-medium">
+                ✓ Prompt generated — it's now set as the reference prompt below.
+              </p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleGenerateFromDoc}
+                disabled={!docText.trim() || isGeneratingFromDoc}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
+              >
+                {isGeneratingFromDoc ? (
+                  <>
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Generating…
+                  </>
+                ) : (
+                  'Generate prompt'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Section: Analyze reference diagram */}
+      <div className="border rounded border-primary-200">
+        <button
+          type="button"
+          onClick={() => setRefImageOpen(!refImageOpen)}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-primary-50"
+        >
+          <ChevronIcon open={refImageOpen} />
+          <span className="font-medium">Analyze reference diagram</span>
+          {referenceImageBase64 && (
+            <span className="ml-auto text-xs text-green-600 font-medium">Image loaded</span>
+          )}
+        </button>
+        {refImageOpen && (
+          <div className="px-3 pb-3 space-y-2">
+            <p className="text-xs text-gray-500">
+              Drop a whiteboard photo, Visio export, or draw.io screenshot to analyze as starting context.
+            </p>
+            {!referenceImageBase64 ? (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setRefImageDragOver(true); }}
+                onDragLeave={() => setRefImageDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setRefImageDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (!file) return;
+                  const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+                  if (!validTypes.includes(file.type)) return;
+                  if (file.size > 10 * 1024 * 1024) return; // 10MB limit
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const dataUrl = reader.result as string;
+                    const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '');
+                    onReferenceImageChange(base64, file.name);
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className={`flex flex-col items-center justify-center gap-2 py-6 rounded border-2 border-dashed cursor-pointer ${
+                  refImageDragOver
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+                  input.onchange = () => {
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string;
+                      const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '');
+                      onReferenceImageChange(base64, file.name);
+                    };
+                    reader.readAsDataURL(file);
+                  };
+                  input.click();
+                }}
+              >
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs text-gray-500">
+                  Drop image here or click to browse (PNG, JPG, GIF, WebP - max 10MB)
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 bg-primary-50 px-3 py-2 rounded">
+                <img
+                  src={`data:image/png;base64,${referenceImageBase64}`}
+                  alt="Reference"
+                  className="w-16 h-16 object-cover rounded border"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-800 truncate">{referenceImageFilename}</p>
+                  <p className="text-xs text-gray-500">Image will be analyzed when session starts</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onReferenceImageChange('', '')}
+                  className="text-xs text-primary-600 hover:text-primary-800 shrink-0"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Section 1: Seed from prompt file */}
       <div className="border rounded">
         <button

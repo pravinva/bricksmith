@@ -52,6 +52,8 @@ export interface CreateSessionRequest {
   vertex_api_key?: string;
   reference_prompt?: string;
   reference_prompt_path?: string;
+  reference_image_base64?: string;
+  reference_image_filename?: string;
   mcp_enrichment?: MCPEnrichmentOptions;
 }
 

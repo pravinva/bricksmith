@@ -11,9 +11,7 @@ class LogoInfo(BaseModel):
     """Information about a single logo."""
 
     name: str = Field(..., description="Human-readable logo name (e.g., 'databricks')")
-    description: str = Field(
-        ..., description="Description for prompt (e.g., 'red icon')"
-    )
+    description: str = Field(..., description="Description for prompt (e.g., 'red icon')")
     file_path: Path = Field(..., description="Path to logo file")
     sha256_hash: str = Field(..., description="SHA256 hash for tracking")
     content_type: str = Field(..., description="MIME type (e.g., 'image/jpeg')")
@@ -23,13 +21,9 @@ class LogoInfo(BaseModel):
 class EvaluationScores(BaseModel):
     """Manual evaluation scores for a generated diagram."""
 
-    logo_fidelity_score: int = Field(
-        ..., ge=1, le=10, description="Logo reuse fidelity (1-10)"
-    )
+    logo_fidelity_score: int = Field(..., ge=1, le=10, description="Logo reuse fidelity (1-10)")
     layout_clarity_score: int = Field(..., ge=1, le=10, description="Layout clarity (1-10)")
-    text_legibility_score: int = Field(
-        ..., ge=1, le=10, description="Text legibility (1-10)"
-    )
+    text_legibility_score: int = Field(..., ge=1, le=10, description="Text legibility (1-10)")
     constraint_compliance_score: int = Field(
         ..., ge=1, le=10, description="Constraint compliance (1-10)"
     )
@@ -66,9 +60,7 @@ class PromptRefinement(BaseModel):
     original_prompt: str = Field(..., description="Original prompt text")
     refined_prompt: str = Field(..., description="Improved prompt text")
     changes: list[str] = Field(..., description="List of key changes made")
-    expected_improvements: list[str] = Field(
-        ..., description="Expected improvements from changes"
-    )
+    expected_improvements: list[str] = Field(..., description="Expected improvements from changes")
     analysis: dict[str, Any] = Field(..., description="Visual analysis results")
     confidence_score: float = Field(
         default=0.0, ge=0.0, le=1.0, description="Confidence in refinement (0-1)"
@@ -201,13 +193,15 @@ class ConversationSession(BaseModel):
 
         history = []
         for turn in self.turns:
-            history.append({
-                "iteration": turn.iteration,
-                "score": turn.score,
-                "feedback": turn.feedback,
-                "visual_analysis": turn.visual_analysis,
-                "refinement_reasoning": turn.refinement_reasoning,
-            })
+            history.append(
+                {
+                    "iteration": turn.iteration,
+                    "score": turn.score,
+                    "feedback": turn.feedback,
+                    "visual_analysis": turn.visual_analysis,
+                    "refinement_reasoning": turn.refinement_reasoning,
+                }
+            )
         return json.dumps(history, indent=2)
 
     def is_satisfied(self, target_score: int = 10) -> bool:
@@ -250,32 +244,26 @@ class GenerationSettings(BaseModel):
     """Sampling settings for image generation."""
 
     temperature: float = Field(
-        default=0.8, ge=0.0, le=2.0,
-        description="Sampling temperature: 0=deterministic, 0.8=balanced, 2.0=creative"
+        default=0.8,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature: 0=deterministic, 0.8=balanced, 2.0=creative",
     )
     top_p: float = Field(
-        default=0.95, ge=0.0, le=1.0,
-        description="Nucleus sampling: lower=focused, higher=diverse"
+        default=0.95, ge=0.0, le=1.0, description="Nucleus sampling: lower=focused, higher=diverse"
     )
     top_k: int = Field(
-        default=50, ge=0,
-        description="Top-k sampling: limits token choices (0 to disable)"
+        default=50, ge=0, description="Top-k sampling: limits token choices (0 to disable)"
     )
     presence_penalty: float = Field(
-        default=0.1, ge=0.0, le=2.0,
-        description="Penalty for repeating elements"
+        default=0.1, ge=0.0, le=2.0, description="Penalty for repeating elements"
     )
     frequency_penalty: float = Field(
-        default=0.1, ge=0.0, le=2.0,
-        description="Penalty for frequent patterns"
+        default=0.1, ge=0.0, le=2.0, description="Penalty for frequent patterns"
     )
-    image_size: str = Field(
-        default="2K",
-        description="Image resolution: 1K, 2K, or 4K"
-    )
+    image_size: str = Field(default="2K", description="Image resolution: 1K, 2K, or 4K")
     aspect_ratio: str = Field(
-        default="16:9",
-        description="Image aspect ratio: 1:1, 4:3, 16:9, 9:16, 3:4, 21:9"
+        default="16:9", description="Image aspect ratio: 1:1, 4:3, 16:9, 9:16, 3:4, 21:9"
     )
 
     def summary(self) -> str:
@@ -296,60 +284,41 @@ class ConversationConfig(BaseModel):
     """Configuration for conversation sessions."""
 
     max_iterations: int = Field(
-        default=0, ge=0, le=500,
-        description="Maximum number of iterations (0 = no limit)"
+        default=0, ge=0, le=500, description="Maximum number of iterations (0 = no limit)"
     )
     target_score: int = Field(
         default=10, ge=1, le=10, description="Target score to stop refinement"
     )
-    auto_analyze: bool = Field(
-        default=True, description="Automatically analyze images with AI"
-    )
+    auto_analyze: bool = Field(default=True, description="Automatically analyze images with AI")
     auto_refine: bool = Field(
         default=False,
-        description="Automatically refine based on design principles (no manual feedback)"
+        description="Automatically refine based on design principles (no manual feedback)",
     )
     reference_image: Optional[Path] = Field(
-        default=None,
-        description="Reference image to match style and design patterns"
+        default=None, description="Reference image to match style and design patterns"
     )
     session_name: Optional[str] = Field(
-        default=None,
-        description="Name for the session (used in output directory)"
+        default=None, description="Name for the session (used in output directory)"
     )
-    temperature: float = Field(
-        default=0.8, ge=0.0, le=2.0, description="Generation temperature"
-    )
-    top_p: float = Field(
-        default=0.95, ge=0.0, le=1.0, description="Nucleus sampling"
-    )
-    top_k: int = Field(
-        default=50, ge=0, description="Top-k sampling (0 to disable)"
-    )
-    presence_penalty: float = Field(
-        default=0.1, ge=0.0, le=2.0, description="Presence penalty"
-    )
-    frequency_penalty: float = Field(
-        default=0.1, ge=0.0, le=2.0, description="Frequency penalty"
-    )
-    logo_dir: Optional[Path] = Field(
-        default=None, description="Logo directory override"
-    )
+    temperature: float = Field(default=0.8, ge=0.0, le=2.0, description="Generation temperature")
+    top_p: float = Field(default=0.95, ge=0.0, le=1.0, description="Nucleus sampling")
+    top_k: int = Field(default=50, ge=0, description="Top-k sampling (0 to disable)")
+    presence_penalty: float = Field(default=0.1, ge=0.0, le=2.0, description="Presence penalty")
+    frequency_penalty: float = Field(default=0.1, ge=0.0, le=2.0, description="Frequency penalty")
+    logo_dir: Optional[Path] = Field(default=None, description="Logo directory override")
     evaluation_persona: EvaluationPersona = Field(
         default=EvaluationPersona.ARCHITECT,
-        description="Persona lens for LLM Judge evaluation (architect, executive, developer, auto)"
+        description="Persona lens for LLM Judge evaluation (architect, executive, developer, auto)",
     )
-    image_size: str = Field(
-        default="2K",
-        description="Image resolution: 1K, 2K, or 4K"
-    )
+    image_size: str = Field(default="2K", description="Image resolution: 1K, 2K, or 4K")
     aspect_ratio: str = Field(
-        default="16:9",
-        description="Image aspect ratio: 1:1, 4:3, 16:9, 9:16, 3:4, 21:9"
+        default="16:9", description="Image aspect ratio: 1:1, 4:3, 16:9, 9:16, 3:4, 21:9"
     )
     num_variants: int = Field(
-        default=1, ge=1, le=8,
-        description="Number of image variants to generate per iteration (1-8)"
+        default=1,
+        ge=1,
+        le=8,
+        description="Number of image variants to generate per iteration (1-8)",
     )
     selected_output_dir: Optional[Path] = Field(
         default=None,
@@ -381,8 +350,7 @@ class ArchitectTurn(BaseModel):
     user_input: str = Field(..., description="User's message in this turn")
     architect_response: str = Field(..., description="AI architect's response")
     architecture_snapshot: Optional[dict] = Field(
-        default=None,
-        description="Components and connections at this point in the conversation"
+        default=None, description="Components and connections at this point in the conversation"
     )
     timestamp: str = Field(default="", description="Turn timestamp")
 
@@ -397,7 +365,7 @@ class ArchitectSession(BaseModel):
     )
     current_architecture: dict = Field(
         default_factory=lambda: {"components": [], "connections": []},
-        description="Evolving architecture state"
+        description="Evolving architecture state",
     )
     available_logos: list[str] = Field(
         default_factory=list, description="Logo names available for the diagram"
@@ -428,12 +396,14 @@ class ArchitectSession(BaseModel):
 
         history = []
         for turn in self.turns:
-            history.append({
-                "turn_number": turn.turn_number,
-                "user_input": turn.user_input,
-                "architect_response": turn.architect_response,
-                "architecture_snapshot": turn.architecture_snapshot,
-            })
+            history.append(
+                {
+                    "turn_number": turn.turn_number,
+                    "user_input": turn.user_input,
+                    "architect_response": turn.architect_response,
+                    "architecture_snapshot": turn.architecture_snapshot,
+                }
+            )
         return json.dumps(history, indent=2)
 
     def get_architecture_json(self) -> str:
@@ -443,6 +413,7 @@ class ArchitectSession(BaseModel):
             JSON string of current architecture
         """
         import json
+
         return json.dumps(self.current_architecture, indent=2)
 
 
@@ -482,26 +453,23 @@ class MCPEnrichmentConfig(BaseModel):
 class ArchitectConfig(BaseModel):
     """Configuration for architect sessions."""
 
-    max_turns: int = Field(
-        default=20, ge=1, le=100, description="Maximum conversation turns"
-    )
+    max_turns: int = Field(default=20, ge=1, le=100, description="Maximum conversation turns")
     context_file: Optional[Path] = Field(
         default=None, description="Custom context file with domain knowledge"
     )
     reference_prompt: Optional[Path] = Field(
-        default=None,
-        description="Existing diagram prompt to use as reference/starting point"
+        default=None, description="Existing diagram prompt to use as reference/starting point"
+    )
+    reference_image: Optional[Path] = Field(
+        default=None, description="Reference architecture image to analyze at session start"
     )
     output_format: str = Field(
-        default="prompt",
-        description="Output format: 'prompt' for generate-raw"
+        default="prompt", description="Output format: 'prompt' for generate-raw"
     )
     session_name: Optional[str] = Field(
         default=None, description="Session name for output directory"
     )
-    logo_dir: Optional[Path] = Field(
-        default=None, description="Logo directory override"
-    )
+    logo_dir: Optional[Path] = Field(default=None, description="Logo directory override")
     mcp_enrichment: MCPEnrichmentConfig = Field(
         default_factory=MCPEnrichmentConfig,
         description="MCP context enrichment configuration",

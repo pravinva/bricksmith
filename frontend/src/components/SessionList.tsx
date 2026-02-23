@@ -20,6 +20,8 @@ interface SessionListProps {
       vertexApiKey?: string;
       referencePrompt?: string;
       referencePromptPath?: string;
+      referenceImageBase64?: string;
+      referenceImageFilename?: string;
       mcpEnrichment?: MCPEnrichmentOptions;
     }
   ) => void;
@@ -41,6 +43,8 @@ export function SessionList({
   const [customApiKey, setCustomApiKey] = useState('');
   const [referencePrompt, setReferencePrompt] = useState('');
   const [referencePromptPath, setReferencePromptPath] = useState('');
+  const [referenceImageBase64, setReferenceImageBase64] = useState('');
+  const [referenceImageFilename, setReferenceImageFilename] = useState('');
   const [mcpEnrichment, setMcpEnrichment] = useState<MCPEnrichmentOptions>({
     enabled: true,
     sources: ['glean', 'confluence'],
@@ -55,6 +59,8 @@ export function SessionList({
       vertexApiKey: imageProvider === 'gemini' ? key : undefined,
       referencePrompt: referencePrompt || undefined,
       referencePromptPath: referencePromptPath || undefined,
+      referenceImageBase64: referenceImageBase64 || undefined,
+      referenceImageFilename: referenceImageFilename || undefined,
       mcpEnrichment: mcpEnrichment.enabled ? mcpEnrichment : undefined,
     });
     setNewProblem('');
@@ -63,6 +69,8 @@ export function SessionList({
     setImageProvider('gemini');
     setReferencePrompt('');
     setReferencePromptPath('');
+    setReferenceImageBase64('');
+    setReferenceImageFilename('');
     setMcpEnrichment({ enabled: true, sources: ['glean', 'confluence'] });
     setShowNewSession(false);
   };
@@ -114,6 +122,12 @@ export function SessionList({
               customContext={newContext}
               referencePrompt={referencePrompt}
               referencePromptPath={referencePromptPath}
+              referenceImageBase64={referenceImageBase64}
+              referenceImageFilename={referenceImageFilename}
+              onReferenceImageChange={(b64, name) => {
+                setReferenceImageBase64(b64);
+                setReferenceImageFilename(name);
+              }}
               mcpEnrichment={mcpEnrichment}
               onCustomContextChange={setNewContext}
               onReferencePromptChange={setReferencePrompt}
@@ -160,6 +174,8 @@ export function SessionList({
                   setImageProvider('gemini');
                   setReferencePrompt('');
                   setReferencePromptPath('');
+                  setReferenceImageBase64('');
+                  setReferenceImageFilename('');
                   setMcpEnrichment({ enabled: true, sources: ['glean', 'confluence'] });
                 }}
                 className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"

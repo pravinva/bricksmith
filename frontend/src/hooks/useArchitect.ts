@@ -19,6 +19,8 @@ interface SessionAuthOptions {
   vertexApiKey?: string;
   referencePrompt?: string;
   referencePromptPath?: string;
+  referenceImageBase64?: string;
+  referenceImageFilename?: string;
   mcpEnrichment?: MCPEnrichmentOptions;
 }
 
@@ -123,6 +125,8 @@ export function useArchitect(): UseArchitectReturn {
         vertex_api_key: authOptions?.vertexApiKey,
         reference_prompt: authOptions?.referencePrompt,
         reference_prompt_path: authOptions?.referencePromptPath,
+        reference_image_base64: authOptions?.referenceImageBase64,
+        reference_image_filename: authOptions?.referenceImageFilename,
         mcp_enrichment: authOptions?.mcpEnrichment,
       });
 

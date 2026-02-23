@@ -73,6 +73,12 @@ class CreateSessionRequest(BaseModel):
     reference_prompt_path: Optional[str] = Field(
         None, description="Path to a prompt file to load as reference"
     )
+    reference_image_base64: Optional[str] = Field(
+        None, description="Base64-encoded reference architecture image (PNG, JPG, GIF, WebP)"
+    )
+    reference_image_filename: Optional[str] = Field(
+        None, description="Original filename for MIME type detection"
+    )
     mcp_enrichment: Optional[MCPEnrichmentOptions] = Field(
         None, description="MCP enrichment configuration"
     )

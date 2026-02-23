@@ -1,6 +1,8 @@
 """Service layer wrapping ArchitectChatbot for web use."""
 
+import base64
 import logging
+import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -75,6 +77,8 @@ class ArchitectService:
         vertex_api_key: Optional[str] = None,
         reference_prompt: Optional[str] = None,
         reference_prompt_path: Optional[str] = None,
+        reference_image_base64: Optional[str] = None,
+        reference_image_filename: Optional[str] = None,
         mcp_enrichment: Optional[MCPEnrichmentOptions] = None,
     ) -> SessionResponse:
         """Create a new architect session.
@@ -88,6 +92,8 @@ class ArchitectService:
             vertex_api_key: Optional per-session Gemini/Vertex key
             reference_prompt: Optional existing prompt text as reference
             reference_prompt_path: Optional path to prompt file to load as reference
+            reference_image_base64: Optional base64-encoded reference image
+            reference_image_filename: Optional original filename for MIME detection
             mcp_enrichment: Optional MCP enrichment configuration
 
         Returns:
@@ -144,6 +150,30 @@ class ArchitectService:
         chatbot._logo_names = available_logos
         chatbot._custom_context = custom_context or ""
         chatbot._reference_prompt = resolved_reference_prompt
+
+        # Analyze reference image if provided
+        if reference_image_base64:
+            try:
+                image_data = base64.b64decode(reference_image_base64)
+                suffix = ".png"
+                if reference_image_filename:
+                    ext = Path(reference_image_filename).suffix.lower()
+                    if ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                        suffix = ext
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                    tmp.write(image_data)
+                    tmp_path = Path(tmp.name)
+                try:
+                    chatbot.analyze_reference_image(tmp_path)
+                    logger.info(
+                        "Reference image analyzed for session %s (%d chars)",
+                        session_id,
+                        len(chatbot._reference_image_analysis),
+                    )
+                finally:
+                    tmp_path.unlink(missing_ok=True)
+            except Exception as e:
+                logger.warning("Failed to analyze reference image: %s", e)
 
         # Set up MCP enrichment if requested
         if mcp_enrichment and mcp_enrichment.enabled:
@@ -251,6 +281,7 @@ class ArchitectService:
         chatbot._logo_names = [logo.name for logo in logos]
         chatbot._custom_context = session_data.get("custom_context") or ""
         chatbot._reference_prompt = session_data.get("reference_prompt") or ""
+        chatbot._reference_image_analysis = session_data.get("reference_image_analysis") or ""
 
         # Restore MCP enricher from stored config
         if session_id in self._session_mcp_config:

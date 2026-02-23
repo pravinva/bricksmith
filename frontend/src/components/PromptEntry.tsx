@@ -17,6 +17,8 @@ interface PromptEntryProps {
       openaiApiKey?: string;
       vertexApiKey?: string;
       referencePrompt?: string;
+      referenceImageBase64?: string;
+      referenceImageFilename?: string;
       mcpEnrichment?: MCPEnrichmentOptions;
     },
   ) => void;
@@ -44,6 +46,8 @@ export function PromptEntry({
   const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
   const [apiKey, setApiKey] = useState('');
   const [mcpEnabled, setMcpEnabled] = useState(true);
+  const [refImageBase64, setRefImageBase64] = useState('');
+  const [refImageFilename, setRefImageFilename] = useState('');
 
   // File browser state
   const [promptFiles, setPromptFiles] = useState<PromptFileItem[]>([]);
@@ -114,6 +118,8 @@ export function PromptEntry({
       undefined,
       {
         referencePrompt: prompt.trim(),
+        referenceImageBase64: refImageBase64 || undefined,
+        referenceImageFilename: refImageFilename || undefined,
         mcpEnrichment: { enabled: mcpEnabled, sources: ['glean', 'confluence'] },
       },
     );
@@ -302,6 +308,71 @@ export function PromptEntry({
               className="rounded"
             />
           </div>
+        </div>
+
+        {/* Reference image drop zone */}
+        <div className="mt-4 pt-4 border-t">
+          <label className="block text-xs text-gray-600 mb-2">Reference diagram (optional)</label>
+          {!refImageBase64 ? (
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (!file) return;
+                const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+                if (!validTypes.includes(file.type)) return;
+                if (file.size > 10 * 1024 * 1024) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const dataUrl = reader.result as string;
+                  const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '');
+                  setRefImageBase64(base64);
+                  setRefImageFilename(file.name);
+                };
+                reader.readAsDataURL(file);
+              }}
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+                input.onchange = () => {
+                  const file = input.files?.[0];
+                  if (!file || file.size > 10 * 1024 * 1024) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const dataUrl = reader.result as string;
+                    const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '');
+                    setRefImageBase64(base64);
+                    setRefImageFilename(file.name);
+                  };
+                  reader.readAsDataURL(file);
+                };
+                input.click();
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer"
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-xs text-gray-500">Drop or click to add a reference architecture image</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 bg-gray-50 px-3 py-2 rounded border">
+              <img
+                src={`data:image/png;base64,${refImageBase64}`}
+                alt="Reference"
+                className="w-10 h-10 object-cover rounded"
+              />
+              <span className="text-xs text-gray-700 truncate flex-1">{refImageFilename}</span>
+              <button
+                onClick={() => { setRefImageBase64(''); setRefImageFilename(''); }}
+                className="text-xs text-gray-500 hover:text-red-600"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action buttons */}

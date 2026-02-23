@@ -22,6 +22,7 @@ from rich.table import Table
 
 from .architect_dspy import ArchitectRefiner
 from .config import AppConfig
+from .gemini_client import GeminiClient
 from .logos import LogoKitHandler
 from .mcp_context_enricher import MCPContextEnricher, MCPQuery
 from .models import (
@@ -109,6 +110,39 @@ LOGO RULES:
 """
 
 
+# Prompt for analyzing a reference architecture image
+ARCHITECT_REFERENCE_IMAGE_PROMPT = """Analyze this architecture diagram image in detail. Extract:
+
+1. **Components**: List every distinct component, service, or system shown. For each, note:
+   - Name/label
+   - Type (database, compute, API, storage, network, external service, etc.)
+   - Any technology or product indicated (e.g. Databricks, Azure, Kafka)
+
+2. **Connections & Data Flows**: Describe how components connect:
+   - Source and destination
+   - Direction (unidirectional, bidirectional)
+   - Labels on arrows or connections
+   - Flow type (data, control, API call, event, etc.)
+
+3. **Groupings & Zones**: Identify any visual groupings:
+   - Named zones, layers, or sections
+   - Cloud provider boundaries
+   - Network boundaries (VPC, subnet, etc.)
+   - Logical tiers (ingestion, processing, serving, etc.)
+
+4. **Layout Pattern**: Describe the overall layout:
+   - Flow direction (left-to-right, top-to-bottom, hub-and-spoke, etc.)
+   - Number of distinct layers or tiers
+   - How the visual hierarchy is organized
+
+5. **Technologies & Logos**: List any specific products or technologies visible:
+   - Cloud services (AWS, Azure, GCP specific services)
+   - Data platforms (Databricks, Snowflake, etc.)
+   - Tools and frameworks
+
+Provide a structured, detailed description that could be used to recreate or evolve this architecture."""
+
+
 class ArchitectChatbot:
     """Interactive chatbot for collaborative architecture design.
 
@@ -168,6 +202,7 @@ class ArchitectChatbot:
         # Custom context and reference prompt
         self._custom_context: str = ""
         self._reference_prompt: str = ""
+        self._reference_image_analysis: str = ""
 
     @property
     def refiner(self) -> ArchitectRefiner:
@@ -177,11 +212,30 @@ class ArchitectChatbot:
             self._refiner = ArchitectRefiner(model=self._dspy_model)
         return self._refiner
 
+    def analyze_reference_image(self, image_path: Path) -> str:
+        """Analyze a reference architecture image and store the result.
+
+        Args:
+            image_path: Path to the reference image file
+
+        Returns:
+            Analysis text describing the architecture in the image
+        """
+        console.print(f"[bold]Analyzing reference image: {image_path.name}...[/bold]")
+        client = GeminiClient()
+        analysis = client.analyze_image(
+            str(image_path), ARCHITECT_REFERENCE_IMAGE_PROMPT, temperature=0.2
+        )
+        self._reference_image_analysis = analysis
+        console.print(f"  [green]Analysis complete ({len(analysis)} chars)[/green]")
+        return analysis
+
     def start_session(
         self,
         initial_problem: str,
         context_file: Optional[Path] = None,
         reference_prompt: Optional[Path] = None,
+        reference_image: Optional[Path] = None,
     ) -> ArchitectSession:
         """Start a new architect session.
 
@@ -189,6 +243,7 @@ class ArchitectChatbot:
             initial_problem: Description of the architecture problem
             context_file: Optional file with domain/customer context
             reference_prompt: Optional existing diagram prompt to use as reference
+            reference_image: Optional reference architecture image to analyze
 
         Returns:
             New ArchitectSession
@@ -200,7 +255,9 @@ class ArchitectChatbot:
         logo_hints = self.logo_handler.load_logo_hints(logo_dir)
         self._logo_names = [logo.name for logo in self._logos]
         hints_msg = f" with {len(logo_hints)} hints" if logo_hints else ""
-        console.print(f"  Loaded {len(self._logos)} logos{hints_msg}: {', '.join(self._logo_names[:5])}...")
+        console.print(
+            f"  Loaded {len(self._logos)} logos{hints_msg}: {', '.join(self._logo_names[:5])}..."
+        )
 
         # Load custom context if provided
         if context_file:
@@ -215,20 +272,25 @@ class ArchitectChatbot:
             console.print(f"[bold]Loading reference prompt from {reference_prompt}...[/bold]")
             self._reference_prompt = reference_prompt.read_text()
         elif self.arch_config.reference_prompt:
-            console.print(f"[bold]Loading reference prompt from {self.arch_config.reference_prompt}...[/bold]")
+            console.print(
+                f"[bold]Loading reference prompt from {self.arch_config.reference_prompt}...[/bold]"
+            )
             self._reference_prompt = self.arch_config.reference_prompt.read_text()
+
+        # Analyze reference image if provided
+        ref_image = reference_image or self.arch_config.reference_image
+        if ref_image:
+            self.analyze_reference_image(ref_image)
 
         # Create session ID from name or generate random
         if self.arch_config.session_name:
-            safe_name = re.sub(r'[^\w\-_]', '_', self.arch_config.session_name)
+            safe_name = re.sub(r"[^\w\-_]", "_", self.arch_config.session_name)
             session_id = safe_name[:50]
 
             # If directory already exists, append a short random suffix to avoid
             # collisions when multiple sessions share the same name.
             candidate_dir = (
-                Path("outputs")
-                / datetime.now().strftime("%Y-%m-%d")
-                / f"architect-{session_id}"
+                Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"architect-{session_id}"
             )
             if candidate_dir.exists():
                 session_id = f"{session_id}-{str(uuid.uuid4())[:6]}"
@@ -275,7 +337,23 @@ class ArchitectChatbot:
                 conversation_history=self._session.get_history_json(),
             )
             if mcp_context:
-                enriched_context = f"{self._custom_context}\n\n{mcp_context}" if self._custom_context else mcp_context
+                enriched_context = (
+                    f"{self._custom_context}\n\n{mcp_context}"
+                    if self._custom_context
+                    else mcp_context
+                )
+
+        # Prepend reference image analysis if available
+        if self._reference_image_analysis:
+            image_context = (
+                "[REFERENCE IMAGE ANALYSIS]\n"
+                "The user provided an existing architecture diagram:\n\n"
+                f"{self._reference_image_analysis}\n"
+                "[END REFERENCE IMAGE ANALYSIS]\n\n"
+            )
+            enriched_context = (
+                f"{image_context}{enriched_context}" if enriched_context else image_context
+            )
 
         # Process through DSPy
         response, updated_arch, ready = self.refiner.process_turn(
@@ -328,13 +406,15 @@ class ArchitectChatbot:
         if components:
             lines.append("\n**Components:**")
             for comp in components:
-                logo = f" ({comp.get('logo_name', 'no logo')})" if comp.get('logo_name') else ""
+                logo = f" ({comp.get('logo_name', 'no logo')})" if comp.get("logo_name") else ""
                 lines.append(f"  - {comp.get('label', comp.get('id', 'unknown'))}{logo}")
 
         if connections:
             lines.append(f"\n**Connections:** {len(connections)}")
             for conn in connections:
-                lines.append(f"  - {conn.get('from_id')} → {conn.get('to_id')}: {conn.get('label', '')}")
+                lines.append(
+                    f"  - {conn.get('from_id')} → {conn.get('to_id')}: {conn.get('label', '')}"
+                )
 
         return "\n".join(lines)
 
@@ -564,12 +644,19 @@ class ArchitectChatbot:
             "_config": {
                 "logo_dir": str(self.arch_config.logo_dir) if self.arch_config.logo_dir else None,
                 "max_turns": self.arch_config.max_turns,
-                "context_file": str(self.arch_config.context_file) if self.arch_config.context_file else None,
-                "reference_prompt": str(self.arch_config.reference_prompt) if self.arch_config.reference_prompt else None,
+                "context_file": (
+                    str(self.arch_config.context_file) if self.arch_config.context_file else None
+                ),
+                "reference_prompt": (
+                    str(self.arch_config.reference_prompt)
+                    if self.arch_config.reference_prompt
+                    else None
+                ),
                 "output_format": self.arch_config.output_format,
             },
             "_custom_context": self._custom_context,
             "_reference_prompt": self._reference_prompt,
+            "_reference_image_analysis": self._reference_image_analysis,
             "_last_saved": datetime.now().isoformat(),
         }
 
@@ -606,15 +693,17 @@ class ArchitectChatbot:
                 if session_file.exists():
                     try:
                         data = json.loads(session_file.read_text())
-                        sessions.append({
-                            "path": session_file,
-                            "session_id": data.get("session_id", "unknown"),
-                            "problem": data.get("initial_problem", "")[:80],
-                            "turns": len(data.get("turns", [])),
-                            "status": data.get("status", "unknown"),
-                            "created_at": data.get("created_at", ""),
-                            "last_saved": data.get("_last_saved", ""),
-                        })
+                        sessions.append(
+                            {
+                                "path": session_file,
+                                "session_id": data.get("session_id", "unknown"),
+                                "problem": data.get("initial_problem", "")[:80],
+                                "turns": len(data.get("turns", [])),
+                                "status": data.get("status", "unknown"),
+                                "created_at": data.get("created_at", ""),
+                                "last_saved": data.get("_last_saved", ""),
+                            }
+                        )
                     except (json.JSONDecodeError, KeyError):
                         continue
 
@@ -657,8 +746,14 @@ class ArchitectChatbot:
 
         arch_config = ArchitectConfig(
             max_turns=saved_config.get("max_turns", 20),
-            context_file=Path(saved_config["context_file"]) if saved_config.get("context_file") else None,
-            reference_prompt=Path(saved_config["reference_prompt"]) if saved_config.get("reference_prompt") else None,
+            context_file=(
+                Path(saved_config["context_file"]) if saved_config.get("context_file") else None
+            ),
+            reference_prompt=(
+                Path(saved_config["reference_prompt"])
+                if saved_config.get("reference_prompt")
+                else None
+            ),
             output_format=saved_config.get("output_format", "prompt"),
             session_name=session_data.get("session_id"),
             logo_dir=Path(saved_config["logo_dir"]) if saved_config.get("logo_dir") else None,
@@ -687,7 +782,9 @@ class ArchitectChatbot:
             custom_context=session_data.get("custom_context"),
             created_at=session_data.get("created_at", datetime.now().isoformat()),
             status=ConversationStatus(session_data.get("status", "active")),
-            current_architecture=session_data.get("current_architecture", {"components": [], "connections": []}),
+            current_architecture=session_data.get(
+                "current_architecture", {"components": [], "connections": []}
+            ),
         )
 
         # Restore turns
@@ -701,9 +798,10 @@ class ArchitectChatbot:
             )
             chatbot._session.turns.append(turn)
 
-        # Restore custom context and reference prompt
+        # Restore custom context, reference prompt, and image analysis
         chatbot._custom_context = session_data.get("_custom_context", "")
         chatbot._reference_prompt = session_data.get("_reference_prompt", "")
+        chatbot._reference_image_analysis = session_data.get("_reference_image_analysis", "")
 
         console.print(f"\n[bold green]Session restored: {chatbot._session.session_id}[/bold green]")
         console.print(f"  Turns: {len(chatbot._session.turns)}")
@@ -726,18 +824,20 @@ class ArchitectChatbot:
 
         # Show session panel
         resume_note = " (Resumed)" if skip_initial else ""
-        console.print(Panel(
-            f"[bold]Problem:[/bold] {self._session.initial_problem}\n\n"
-            f"[dim]Available logos: {', '.join(self._logo_names[:8])}...[/dim]\n\n"
-            f"[dim]Session: {self._session.session_id}{resume_note}[/dim]\n\n"
-            "Commands:\n"
-            "  • Natural text - continue discussing architecture\n"
-            "  • 'output' or 'generate' - generate the diagram prompt\n"
-            "  • 'status' - show current architecture state\n"
-            "  • 'done' - save and exit",
-            title="Architect Session",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                f"[bold]Problem:[/bold] {self._session.initial_problem}\n\n"
+                f"[dim]Available logos: {', '.join(self._logo_names[:8])}...[/dim]\n\n"
+                f"[dim]Session: {self._session.session_id}{resume_note}[/dim]\n\n"
+                "Commands:\n"
+                "  • Natural text - continue discussing architecture\n"
+                "  • 'output' or 'generate' - generate the diagram prompt\n"
+                "  • 'status' - show current architecture state\n"
+                "  • 'done' - save and exit",
+                title="Architect Session",
+                border_style="cyan",
+            )
+        )
 
         # Process the initial problem (skip if resuming)
         if not skip_initial:

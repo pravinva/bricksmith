@@ -26,7 +26,6 @@ from .prompt_refiner import PromptRefiner
 from .conversation import ConversationChatbot
 from .models import ConversationConfig, ArchitectConfig
 
-
 console = Console()
 
 
@@ -66,9 +65,7 @@ class Context:
     def set_image_provider(self, provider: str) -> None:
         """Override image provider for this context (e.g. from CLI --image-provider)."""
         if provider == "openai":
-            self._image_generator = OpenAIImageClient(
-                model=self.config.image_provider.openai_model
-            )
+            self._image_generator = OpenAIImageClient(model=self.config.image_provider.openai_model)
         else:
             self._image_generator = self.gemini_client
 
@@ -157,9 +154,7 @@ def list_runs(ctx: Context, filter_string: Optional[str], max_results: int):
         ctx.mlflow_tracker.initialize()
 
         # Get runs
-        runs = ctx.mlflow_tracker.list_runs(
-            filter_string=filter_string, max_results=max_results
-        )
+        runs = ctx.mlflow_tracker.list_runs(filter_string=filter_string, max_results=max_results)
 
         if not runs:
             console.print("[yellow]No runs found[/yellow]")
@@ -406,12 +401,14 @@ def generate_raw(
                     console.print(f"  ✓ {logo_file.name}")
                 except Exception as e:
                     console.print(f"  [red]✗ Failed to load {logo_file.name}: {e}[/red]")
-            
+
             if not logos:
                 raise click.ClickException("No valid logos loaded. Check logo file paths.")
-            
+
             # Set logo_path for logging purposes (use directory of first logo file)
-            logo_path = logo_files[0].parent if logo_files else (logo_dir or ctx.config.logo_kit.logo_dir)
+            logo_path = (
+                logo_files[0].parent if logo_files else (logo_dir or ctx.config.logo_kit.logo_dir)
+            )
         else:
             # Load all logos from directory
             logo_path = logo_dir or ctx.config.logo_kit.logo_dir
@@ -448,6 +445,7 @@ def generate_raw(
         # Add Databricks brand style guide if requested
         if databricks_style:
             from .databricks_style import get_style_prompt
+
             console.print("[bold]Applying Databricks brand style guide...[/bold]")
             sections.append(get_style_prompt())
         else:
@@ -488,46 +486,62 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
         # Extract component names from prompt and map to logos
         component_logo_mapping = []
         prompt_lower = raw_prompt.lower()
-        
+
         # Build mapping based on logo names found in prompt
         for idx, logo in enumerate(logos, 1):
             logo_name_variants = [
                 logo.name.lower(),
-                logo.name.replace('-', ' ').replace('_', ' ').lower(),
-                logo.name.replace('-logo', '').replace('_logo', '').lower(),
-                logo.name.replace('00-', '').replace('-logo', '').replace('_logo', '').lower(),
+                logo.name.replace("-", " ").replace("_", " ").lower(),
+                logo.name.replace("-logo", "").replace("_logo", "").lower(),
+                logo.name.replace("00-", "").replace("-logo", "").replace("_logo", "").lower(),
             ]
-            
+
             # Special handling for Unity Catalog
-            if "unity" in logo.name.lower() or "uc" in logo.name.lower() or "00-unity" in logo.name.lower():
-                logo_name_variants.extend(["unity catalog", "unity-catalog", "uc", "governance", "catalog"])
-            
+            if (
+                "unity" in logo.name.lower()
+                or "uc" in logo.name.lower()
+                or "00-unity" in logo.name.lower()
+            ):
+                logo_name_variants.extend(
+                    ["unity catalog", "unity-catalog", "uc", "governance", "catalog"]
+                )
+
             for variant in logo_name_variants:
                 if variant in prompt_lower:
                     # Find context around the mention
-                    logo_display = logo.name.replace('-', ' ').replace('_', ' ').replace('00-', '').title()
-                    component_logo_mapping.append(f"- Components/text mentioning '{logo_display}' or related terms → Use Image {idx} ({logo_display} logo)")
+                    logo_display = (
+                        logo.name.replace("-", " ").replace("_", " ").replace("00-", "").title()
+                    )
+                    component_logo_mapping.append(
+                        f"- Components/text mentioning '{logo_display}' or related terms → Use Image {idx} ({logo_display} logo)"
+                    )
                     break
-        
+
         # Also add explicit mappings for common patterns
         if "azure" in prompt_lower:
             azure_logo = next((logo for logo in logos if "azure" in logo.name.lower()), None)
             if azure_logo:
                 idx = logos.index(azure_logo) + 1
-                component_logo_mapping.append(f"- Azure services/components (Azure Data Factory, Azure Synapse, etc.) → Use Image {idx} (Azure logo)")
-        
+                component_logo_mapping.append(
+                    f"- Azure services/components (Azure Data Factory, Azure Synapse, etc.) → Use Image {idx} (Azure logo)"
+                )
+
         if "databricks" in prompt_lower:
             db_logo = next((logo for logo in logos if "databricks" in logo.name.lower()), None)
             if db_logo:
                 idx = logos.index(db_logo) + 1
-                component_logo_mapping.append(f"- Databricks components → Use Image {idx} (Databricks logo)")
-        
+                component_logo_mapping.append(
+                    f"- Databricks components → Use Image {idx} (Databricks logo)"
+                )
+
         if "delta" in prompt_lower or "delta lake" in prompt_lower:
             delta_logo = next((logo for logo in logos if "delta" in logo.name.lower()), None)
             if delta_logo:
                 idx = logos.index(delta_logo) + 1
-                component_logo_mapping.append(f"- Delta Lake components → Use Image {idx} (Delta Lake logo)")
-        
+                component_logo_mapping.append(
+                    f"- Delta Lake components → Use Image {idx} (Delta Lake logo)"
+                )
+
         # Keep logo mapping minimal to avoid confusing the model
         if component_logo_mapping:
             mapping_section = "Logo mapping: " + ", ".join(component_logo_mapping[:5])
@@ -539,20 +553,17 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
         critical_constraints = [
             "Reuse uploaded logos EXACTLY",
             "Scale all logos uniformly",
-            "NO filenames"
+            "NO filenames",
         ]
         has_constraints = all(
-            constraint.lower() in final_prompt.lower()
-            for constraint in critical_constraints
+            constraint.lower() in final_prompt.lower() for constraint in critical_constraints
         )
         # Add simple reminder - avoid verbose instructions that cause numbered circles
         if not has_constraints:
             final_prompt = "Use uploaded logos exactly. No numbered labels.\n\n" + final_prompt
 
         # Convert logos to image parts (once, reused for all generations)
-        logo_parts = [
-            ctx.logo_handler.to_image_part(logo) for logo in logos
-        ]
+        logo_parts = [ctx.logo_handler.to_image_part(logo) for logo in logos]
 
         import time
         from datetime import datetime
@@ -699,7 +710,9 @@ Ensure the output does NOT contain any of the above qualities or elements. Doubl
 
                         # Save feedback to file with matching timestamp
                         feedback_data = {"score": user_score, "comment": user_comment}
-                        (batch_dir / f"feedback_{gen_time}.json").write_text(json.dumps(feedback_data, indent=2))
+                        (batch_dir / f"feedback_{gen_time}.json").write_text(
+                            json.dumps(feedback_data, indent=2)
+                        )
                         console.print("  [green]✓ Feedback saved[/green]")
 
                 ctx.mlflow_tracker.end_run("FINISHED")
@@ -847,7 +860,11 @@ def refine(
 
         # Get artifact URI and load original prompt
         artifact_uri = run_info["artifact_uri"]
-        prompt_path = Path(artifact_uri.replace("file://", "").replace("dbfs:", "/dbfs")) / "prompts" / "prompt.txt"
+        prompt_path = (
+            Path(artifact_uri.replace("file://", "").replace("dbfs:", "/dbfs"))
+            / "prompts"
+            / "prompt.txt"
+        )
 
         if not prompt_path.exists():
             # Try alternative path structures
@@ -912,7 +929,9 @@ Please regenerate addressing ALL of the above feedback.
             console.print(f"\n[bold]Generating refined diagram{iteration}...[/bold]\n")
 
             # Start new MLflow run
-            new_run_name = f"refine-{original_run_name}-{i+1}" if count > 1 else f"refine-{original_run_name}"
+            new_run_name = (
+                f"refine-{original_run_name}-{i+1}" if count > 1 else f"refine-{original_run_name}"
+            )
             new_run_id = ctx.mlflow_tracker.start_run(run_name=new_run_name)
 
             # Create date-based output folder: outputs/YYYY-MM-DD/{run_name}/
@@ -924,18 +943,20 @@ Please regenerate addressing ALL of the above feedback.
 
             try:
                 # Log parameters
-                ctx.mlflow_tracker.log_parameters({
-                    "original_run_id": run_id,
-                    "feedback": feedback[:500],  # Truncate if too long
-                    "temperature": temperature,
-                    "top_p": top_p,
-                    "top_k": top_k if top_k > 0 else None,
-                    "presence_penalty": presence_penalty,
-                    "frequency_penalty": frequency_penalty,
-                    "iteration": i + 1,
-                    "prompt_template_id": "refined",
-                    "logo_count": len(logos),
-                })
+                ctx.mlflow_tracker.log_parameters(
+                    {
+                        "original_run_id": run_id,
+                        "feedback": feedback[:500],  # Truncate if too long
+                        "temperature": temperature,
+                        "top_p": top_p,
+                        "top_k": top_k if top_k > 0 else None,
+                        "presence_penalty": presence_penalty,
+                        "frequency_penalty": frequency_penalty,
+                        "iteration": i + 1,
+                        "prompt_template_id": "refined",
+                        "logo_count": len(logos),
+                    }
+                )
 
                 # Log refined prompt
                 ctx.mlflow_tracker.log_prompt(refined_prompt, "prompt.txt")
@@ -981,20 +1002,32 @@ Please regenerate addressing ALL of the above feedback.
                     "feedback": feedback,
                     **metadata,
                 }
-                (run_dir / f"metadata_{gen_time}_{temp_str}.json").write_text(json.dumps(run_metadata, indent=2))
+                (run_dir / f"metadata_{gen_time}_{temp_str}.json").write_text(
+                    json.dumps(run_metadata, indent=2)
+                )
 
                 ctx.mlflow_tracker.log_output_image(image_path)
                 ctx.mlflow_tracker.log_metrics({"success": 1})
                 ctx.mlflow_tracker.end_run("FINISHED")
 
-                output_dirs.append((run_dir, f"diagram_{gen_time}_{temp_str}.png", f"metadata_{gen_time}_{temp_str}.json"))
-                console.print(f"[green]✓ Saved to: {run_dir}/diagram_{gen_time}_{temp_str}.png[/green]")
+                output_dirs.append(
+                    (
+                        run_dir,
+                        f"diagram_{gen_time}_{temp_str}.png",
+                        f"metadata_{gen_time}_{temp_str}.json",
+                    )
+                )
+                console.print(
+                    f"[green]✓ Saved to: {run_dir}/diagram_{gen_time}_{temp_str}.png[/green]"
+                )
 
             except Exception as e:
                 ctx.mlflow_tracker.end_run("FAILED")
                 console.print(f"[red]✗ Failed: {e}[/red]")
 
-        console.print(f"\n[bold green]Done! Generated {len(output_dirs)} refined run(s)[/bold green]")
+        console.print(
+            f"\n[bold green]Done! Generated {len(output_dirs)} refined run(s)[/bold green]"
+        )
         for d, img, meta in output_dirs:
             console.print(f"  {d}/")
             console.print(f"    ├── {img}")
@@ -1336,7 +1369,11 @@ def chat(
             table.add_column("Path", style="dim")
 
             for s in sessions:
-                status_color = "green" if s["status"] == "completed" else "yellow" if s["status"] == "active" else "red"
+                status_color = (
+                    "green"
+                    if s["status"] == "completed"
+                    else "yellow" if s["status"] == "active" else "red"
+                )
                 table.add_row(
                     s["session_id"],
                     str(s["turns"]),
@@ -1493,6 +1530,11 @@ def chat(
     help="Existing diagram prompt to use as reference for style and structure",
 )
 @click.option(
+    "--reference-image",
+    type=click.Path(exists=True, path_type=Path),
+    help="Reference architecture diagram image to analyze and use as context",
+)
+@click.option(
     "--output-format",
     type=click.Choice(["prompt"]),
     default="prompt",
@@ -1549,6 +1591,7 @@ def architect(
     logo_dir: Optional[Path],
     context: Optional[Path],
     reference_prompt: Optional[Path],
+    reference_image: Optional[Path],
     output_format: str,
     output_file: Optional[Path],
     max_turns: int,
@@ -1671,7 +1714,9 @@ def architect(
             # Get problem description
             if not problem:
                 console.print("[bold cyan]Describe your architecture problem:[/bold cyan]")
-                console.print("[dim]What system do you need to design? What are the requirements?[/dim]\n")
+                console.print(
+                    "[dim]What system do you need to design? What are the requirements?[/dim]\n"
+                )
                 problem = click.prompt("Problem", default="")
 
                 if not problem.strip():
@@ -1692,6 +1737,7 @@ def architect(
                 max_turns=max_turns,
                 context_file=context,
                 reference_prompt=reference_prompt,
+                reference_image=reference_image,
                 output_format=output_format,
                 session_name=name,
                 logo_dir=logo_dir,
@@ -1711,6 +1757,7 @@ def architect(
                 initial_problem=problem,
                 context_file=context,
                 reference_prompt=reference_prompt,
+                reference_image=reference_image,
             )
 
             # Run conversation
@@ -1723,11 +1770,17 @@ def architect(
         console.print(f"  Components: {len(session.current_architecture.get('components', []))}")
 
         # Show next steps
-        output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"architect-{session.session_id}"
+        output_dir = (
+            Path("outputs")
+            / datetime.now().strftime("%Y-%m-%d")
+            / f"architect-{session.session_id}"
+        )
         if (output_dir / "prompt.txt").exists():
             console.print("\n[bold]Next steps:[/bold]")
             console.print("  # Use the generated prompt")
-            console.print(f"  bricksmith generate-raw --prompt-file {output_dir}/prompt.txt --logo-dir logos/default")
+            console.print(
+                f"  bricksmith generate-raw --prompt-file {output_dir}/prompt.txt --logo-dir logos/default"
+            )
             console.print("\n  # Or continue refining with chat")
             console.print(f"  bricksmith chat --prompt-file {output_dir}/prompt.txt")
 
