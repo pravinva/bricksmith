@@ -30,6 +30,7 @@ function App() {
     imageProvider,
     credentialMode,
     diagramImageUrl,
+    diagramImageUrls,
     isGeneratingPreview,
     createSession,
     selectSession,
@@ -192,6 +193,7 @@ function App() {
               <div className="overflow-y-auto h-full p-4 space-y-4">
                 <ArchitectureViz
                   imageUrl={diagramImageUrl ?? undefined}
+                  imageUrls={diagramImageUrls}
                   isGenerating={isGeneratingPreview}
                   onRequestGenerate={currentSession ? generatePreview : undefined}
                 />

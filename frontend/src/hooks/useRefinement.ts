@@ -7,7 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { refinementApi } from '../api/client';
-import type { RefinementState, RefinementIteration } from '../types';
+import type { RefinementState, RefinementIteration, GenerationSettingsRequest } from '../types';
 
 export interface UseRefinementReturn {
   refinementState: RefinementState | null;
@@ -17,8 +17,8 @@ export interface UseRefinementReturn {
   currentIteration: RefinementIteration | null;
   error: string | null;
   startRefinement: (sessionId: string) => Promise<void>;
-  generateAndEvaluate: () => Promise<void>;
-  refinePrompt: (feedback: string) => Promise<void>;
+  generateAndEvaluate: (settings?: GenerationSettingsRequest) => Promise<void>;
+  refinePrompt: (feedback: string, settings?: GenerationSettingsRequest) => Promise<void>;
   acceptResult: () => void;
   clearError: () => void;
 }
@@ -36,14 +36,17 @@ export function useRefinement(): UseRefinementReturn {
       ? refinementState.iterations[refinementState.iterations.length - 1]
       : null;
 
-  const generateAndEvaluate = useCallback(async () => {
+  const generateAndEvaluate = useCallback(async (settings?: GenerationSettingsRequest) => {
     if (!refinementState) return;
 
     setIsGenerating(true);
     setError(null);
 
     try {
-      const result = await refinementApi.generateAndEvaluate(refinementState.session_id);
+      const result = await refinementApi.generateAndEvaluate(
+        refinementState.session_id,
+        settings,
+      );
 
       if (!result.success) {
         setError(result.error || 'Generation failed');
@@ -84,7 +87,10 @@ export function useRefinement(): UseRefinementReturn {
     }
   }, []);
 
-  const refinePrompt = useCallback(async (feedback: string) => {
+  const refinePrompt = useCallback(async (
+    feedback: string,
+    settings?: GenerationSettingsRequest,
+  ) => {
     if (!refinementState) return;
 
     setIsRefining(true);
@@ -110,9 +116,12 @@ export function useRefinement(): UseRefinementReturn {
       );
       setIsRefining(false);
 
-      // Auto-trigger next generation
+      // Auto-trigger next generation with settings
       setIsGenerating(true);
-      const genResult = await refinementApi.generateAndEvaluate(refinementState.session_id);
+      const genResult = await refinementApi.generateAndEvaluate(
+        refinementState.session_id,
+        settings,
+      );
       if (!genResult.success) {
         setError(genResult.error || 'Regeneration failed');
       }

@@ -18,6 +18,7 @@ from ..api.schemas import (
     ArchitectureState,
     ComponentSchema,
     ConnectionSchema,
+    GenerationSettingsRequest,
     MCPEnrichmentOptions,
     MessageResponse,
     SessionResponse,
@@ -444,11 +445,16 @@ class ArchitectService:
                 error=str(e),
             )
 
-    async def generate_preview(self, session_id: str) -> GeneratePreviewResponse:
+    async def generate_preview(
+        self,
+        session_id: str,
+        settings_req: Optional[GenerationSettingsRequest] = None,
+    ) -> GeneratePreviewResponse:
         """Generate a diagram preview image from the current architecture.
 
         Args:
             session_id: Session ID
+            settings_req: Optional generation settings (preset, size, ratio, variants)
 
         Returns:
             GeneratePreviewResponse with image URL and run ID
@@ -477,6 +483,13 @@ class ArchitectService:
                     error="No components defined in architecture",
                 )
 
+            # Resolve generation settings
+            gen_kwargs: dict = {}
+            num_variants = 1
+            if settings_req:
+                gen_kwargs = settings_req.to_generation_kwargs()
+                num_variants = settings_req.num_variants or 1
+
             # Build prompt from architecture
             prompt = self._build_diagram_prompt(arch, session.initial_problem)
 
@@ -492,7 +505,6 @@ class ArchitectService:
                         logo_parts.append(logo_part)
                         logos_used.add(logo_name)
                     except KeyError:
-                        # Logo not found, skip it
                         pass
 
             # Generate image using per-session override when provided, otherwise app default.
@@ -507,26 +519,31 @@ class ArchitectService:
                     image_generator = GeminiClient()
                 else:
                     image_generator = self._image_generator
-            image_bytes, response_text, metadata = image_generator.generate_image(
-                prompt=prompt,
-                logo_parts=logo_parts,
-            )
 
-            # Create output directory and save image
+            # Create output directory
             run_id = f"preview-{session_id}-{datetime.now().strftime('%H%M%S')}"
-            output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / run_id
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            output_dir = Path("outputs") / date_str / run_id
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            image_path = output_dir / "diagram.png"
-            with open(image_path, "wb") as f:
-                f.write(image_bytes)
-
-            # Return URL for serving the image
-            image_url = f"/api/images/{datetime.now().strftime('%Y-%m-%d')}/{run_id}/diagram.png"
+            # Generate variant(s)
+            image_urls: list[str] = []
+            for v in range(num_variants):
+                image_bytes, response_text, metadata = image_generator.generate_image(
+                    prompt=prompt,
+                    logo_parts=logo_parts,
+                    **gen_kwargs,
+                )
+                filename = "diagram.png" if v == 0 else f"diagram_v{v + 1}.png"
+                image_path = output_dir / filename
+                with open(image_path, "wb") as f:
+                    f.write(image_bytes)
+                image_urls.append(f"/api/images/{date_str}/{run_id}/{filename}")
 
             return GeneratePreviewResponse(
                 success=True,
-                image_url=image_url,
+                image_url=image_urls[0],
+                image_urls=image_urls,
                 run_id=run_id,
             )
 

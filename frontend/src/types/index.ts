@@ -108,6 +108,7 @@ export interface TurnsResponse {
 export interface GeneratePreviewResponse {
   success: boolean;
   image_url?: string;
+  image_urls?: string[];
   run_id?: string;
   error?: string;
 }
@@ -215,6 +216,7 @@ export interface RefinementIteration {
   iteration: number;
   prompt_used: string;
   image_url: string;
+  image_urls: string[];
   overall_score?: number;
   scores?: EvaluationScores;
   strengths: string[];
@@ -223,6 +225,7 @@ export interface RefinementIteration {
   feedback_for_refinement: string;
   user_feedback?: string;
   refinement_reasoning?: string;
+  settings_used?: GenerationSettingsRequest;
   created_at: string;
 }
 
@@ -253,3 +256,24 @@ export interface RefineResponse {
   expected_improvement?: string;
   error?: string;
 }
+
+// Generation settings types
+
+export interface GenerationSettingsRequest {
+  preset?: string;
+  image_size?: string;
+  aspect_ratio?: string;
+  num_variants?: number;
+}
+
+export const TEMPERATURE_PRESETS = [
+  { value: 'deterministic', label: 'Deterministic', temp: '0.0' },
+  { value: 'conservative', label: 'Conservative', temp: '0.4' },
+  { value: 'balanced', label: 'Balanced', temp: '0.8' },
+  { value: 'creative', label: 'Creative', temp: '1.2' },
+  { value: 'wild', label: 'Wild', temp: '1.8' },
+] as const;
+
+export const IMAGE_SIZES = ['1K', '2K', '4K'] as const;
+
+export const ASPECT_RATIOS = ['16:9', '1:1', '4:3', '9:16', '3:4', '21:9'] as const;

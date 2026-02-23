@@ -3,21 +3,31 @@
  */
 
 import { useState } from 'react';
+import type { GenerationSettingsRequest } from '../types';
+import { GenerationSettingsPanel } from './GenerationSettings';
 
 interface ArchitectureVizProps {
   imageUrl?: string;
+  imageUrls?: string[];
   isGenerating?: boolean;
-  onRequestGenerate?: () => void;
+  onRequestGenerate?: (settings?: GenerationSettingsRequest) => void;
   className?: string;
 }
 
 export function ArchitectureViz({
   imageUrl,
+  imageUrls = [],
   isGenerating = false,
   onRequestGenerate,
   className = ''
 }: ArchitectureVizProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [genSettings, setGenSettings] = useState<GenerationSettingsRequest>({
+    preset: 'balanced',
+    image_size: '2K',
+    aspect_ratio: '16:9',
+    num_variants: 1,
+  });
 
   return (
     <>
@@ -42,11 +52,38 @@ export function ArchitectureViz({
           )}
         </div>
 
+        {/* Generation settings */}
+        {onRequestGenerate && (
+          <div className="px-4 pt-3">
+            <GenerationSettingsPanel
+              settings={genSettings}
+              onChange={setGenSettings}
+              disabled={isGenerating}
+              showVariants
+            />
+          </div>
+        )}
+
         <div className="p-4">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
               <p className="text-gray-500">Generating diagram...</p>
+            </div>
+          ) : imageUrls.length > 1 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {imageUrls.map((url, idx) => (
+                <div
+                  key={url}
+                  className="relative rounded overflow-hidden border cursor-pointer hover:ring-2 hover:ring-primary-400"
+                  onClick={() => setIsFullscreen(true)}
+                >
+                  <img src={url} alt={`Variant ${idx + 1}`} className="w-full h-auto" />
+                  <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                    V{idx + 1}
+                  </span>
+                </div>
+              ))}
             </div>
           ) : imageUrl ? (
             <div className="relative">
@@ -75,12 +112,24 @@ export function ArchitectureViz({
               <p className="mb-4">Diagram will appear here after generation</p>
               {onRequestGenerate && (
                 <button
-                  onClick={onRequestGenerate}
+                  onClick={() => onRequestGenerate(genSettings)}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
                 >
                   Generate Preview
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Regenerate button when image already exists */}
+          {(imageUrl || imageUrls.length > 0) && onRequestGenerate && !isGenerating && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => onRequestGenerate(genSettings)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
+              >
+                Generate Preview
+              </button>
             </div>
           )}
         </div>

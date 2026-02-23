@@ -11,6 +11,7 @@ import type {
   StatusResponse,
   GenerateOutputResponse,
   GeneratePreviewResponse,
+  GenerationSettingsRequest,
   CLICommandsResponse,
   CliJob,
   StartCliJobRequest,
@@ -129,9 +130,13 @@ export const chatApi = {
   /**
    * Generate a diagram preview image.
    */
-  generatePreview: (sessionId: string): Promise<GeneratePreviewResponse> =>
+  generatePreview: (
+    sessionId: string,
+    settings?: GenerationSettingsRequest
+  ): Promise<GeneratePreviewResponse> =>
     fetchApi(`/sessions/${sessionId}/generate-preview`, {
       method: 'POST',
+      body: settings ? JSON.stringify({ settings }) : undefined,
     }),
 };
 
@@ -213,9 +218,13 @@ export const refinementApi = {
       method: 'POST',
     }),
 
-  generateAndEvaluate: (sessionId: string): Promise<RefinementIterationResponse> =>
+  generateAndEvaluate: (
+    sessionId: string,
+    settings?: GenerationSettingsRequest
+  ): Promise<RefinementIterationResponse> =>
     fetchApi(`/sessions/${sessionId}/refinement/generate`, {
       method: 'POST',
+      body: settings ? JSON.stringify({ settings }) : undefined,
     }),
 
   refine: (sessionId: string, request: RefineRequest): Promise<RefineResponse> =>

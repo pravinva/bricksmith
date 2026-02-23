@@ -10,6 +10,8 @@ from .schemas import (
     StatusResponse,
     GenerateOutputRequest,
     GenerateOutputResponse,
+    GenerateAndEvaluateRequest,
+    GeneratePreviewRequest,
     GeneratePreviewResponse,
     TurnSchema,
     TurnsResponse,
@@ -146,7 +148,10 @@ async def generate_output(
 
 
 @router.post("/{session_id}/generate-preview", response_model=GeneratePreviewResponse)
-async def generate_preview(session_id: str) -> GeneratePreviewResponse:
+async def generate_preview(
+    session_id: str,
+    request: GeneratePreviewRequest = None,
+) -> GeneratePreviewResponse:
     """Generate a diagram preview image from the current architecture state.
 
     This endpoint uses GeminiClient to generate an actual diagram image based on
@@ -154,6 +159,7 @@ async def generate_preview(session_id: str) -> GeneratePreviewResponse:
 
     Args:
         session_id: Session ID
+        request: Optional generation settings
 
     Returns:
         GeneratePreviewResponse with image URL and run ID
@@ -162,7 +168,8 @@ async def generate_preview(session_id: str) -> GeneratePreviewResponse:
         HTTPException: If session not found
     """
     service = get_architect_service()
-    response = await service.generate_preview(session_id)
+    settings_req = request.settings if request else None
+    response = await service.generate_preview(session_id, settings_req=settings_req)
 
     if response.error == "Session not found":
         raise HTTPException(status_code=404, detail="Session not found")
@@ -191,7 +198,10 @@ async def start_refinement(session_id: str) -> RefinementStateResponse:
 
 
 @router.post("/{session_id}/refinement/generate", response_model=RefinementIterationResponse)
-async def generate_and_evaluate(session_id: str) -> RefinementIterationResponse:
+async def generate_and_evaluate(
+    session_id: str,
+    request: GenerateAndEvaluateRequest = None,
+) -> RefinementIterationResponse:
     """Generate a diagram image and evaluate it with the LLM Judge.
 
     This generates the image from the current prompt, then runs evaluation
@@ -199,7 +209,8 @@ async def generate_and_evaluate(session_id: str) -> RefinementIterationResponse:
     """
     service = get_refinement_service()
     try:
-        return await service.generate_and_evaluate(session_id)
+        settings_req = request.settings if request else None
+        return await service.generate_and_evaluate(session_id, settings_req=settings_req)
     except Exception as e:
         logger.error("Error in generate_and_evaluate for %s: %s", session_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

@@ -20,6 +20,7 @@ from ...conversation_dspy import ConversationalRefiner
 from ...gemini_client import GeminiClient
 from ..api.schemas import (
     EvaluationScores,
+    GenerationSettingsRequest,
     RefineResponse,
     RefinementIterationResponse,
     RefinementIterationSchema,
@@ -100,7 +101,11 @@ class RefinementService:
 
         return state.to_response()
 
-    async def generate_and_evaluate(self, session_id: str) -> RefinementIterationResponse:
+    async def generate_and_evaluate(
+        self,
+        session_id: str,
+        settings_req: Optional[GenerationSettingsRequest] = None,
+    ) -> RefinementIterationResponse:
         """Generate an image from current prompt and evaluate it with LLM Judge.
 
         Returns a RefinementIterationResponse with the full iteration data.
@@ -119,8 +124,15 @@ class RefinementService:
             return RefinementIterationResponse(success=False, error="Session not found")
 
         try:
-            # Phase 1: Generate image
+            # Phase 1: Generate image(s)
             state.status = "generating"
+
+            # Resolve generation settings
+            gen_kwargs: dict = {}
+            num_variants = 1
+            if settings_req:
+                gen_kwargs = settings_req.to_generation_kwargs()
+                num_variants = settings_req.num_variants or 1
 
             session = chatbot._session
             arch = session.current_architecture if session else {}
@@ -156,33 +168,43 @@ class RefinementService:
                     image_generator = service._image_generator
             gen = image_generator
 
-            image_bytes, response_text, metadata = await asyncio.to_thread(
-                gen.generate_image,
-                prompt=state.current_prompt,
-                logo_parts=logo_parts,
-            )
-
-            # Save image
+            # Create output directory
             iteration_num = len(state.iterations) + 1
             run_id = f"refine-{session_id}-{iteration_num}-" f"{datetime.now().strftime('%H%M%S')}"
-            output_dir = Path("outputs") / datetime.now().strftime("%Y-%m-%d") / run_id
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            output_dir = Path("outputs") / date_str / run_id
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            image_path = output_dir / "diagram.png"
-            with open(image_path, "wb") as f:
-                f.write(image_bytes)
+            # Generate variant(s)
+            image_urls: list[str] = []
+            first_image_path: Optional[Path] = None
+            for v in range(num_variants):
+                image_bytes, response_text, metadata = await asyncio.to_thread(
+                    gen.generate_image,
+                    prompt=state.current_prompt,
+                    logo_parts=logo_parts,
+                    **gen_kwargs,
+                )
+                filename = "diagram.png" if v == 0 else f"diagram_v{v + 1}.png"
+                image_path = output_dir / filename
+                with open(image_path, "wb") as f:
+                    f.write(image_bytes)
+                url = f"/api/images/{date_str}/{run_id}/{filename}"
+                image_urls.append(url)
+                if v == 0:
+                    first_image_path = image_path
 
-            image_url = f"/api/images/{datetime.now().strftime('%Y-%m-%d')}/{run_id}/diagram.png"
+            image_url = image_urls[0]
             state.current_image_url = image_url
 
-            # Phase 2: Evaluate with LLM Judge
+            # Phase 2: Evaluate first variant with LLM Judge
             state.status = "evaluating"
             eval_prompt = build_evaluation_prompt("architect")
 
             analyzer = self._get_analyzer()
             eval_response = await asyncio.to_thread(
                 analyzer.analyze_image,
-                str(image_path),
+                str(first_image_path),
                 eval_prompt,
                 0.2,
             )
@@ -221,12 +243,14 @@ class RefinementService:
                 iteration=iteration_num,
                 prompt_used=state.current_prompt,
                 image_url=image_url,
+                image_urls=image_urls,
                 overall_score=overall_score,
                 scores=scores,
                 strengths=strengths,
                 issues=issues,
                 improvements=improvements,
                 feedback_for_refinement=feedback,
+                settings_used=settings_req,
                 created_at=datetime.now().isoformat(),
             )
 

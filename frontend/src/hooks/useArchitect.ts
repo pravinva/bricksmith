@@ -10,6 +10,7 @@ import type {
   ChatMessage,
   MessageResponse,
   MCPEnrichmentOptions,
+  GenerationSettingsRequest,
 } from '../types';
 
 interface SessionAuthOptions {
@@ -40,6 +41,7 @@ interface UseArchitectReturn {
 
   // Preview state
   diagramImageUrl: string | null;
+  diagramImageUrls: string[];
   isGeneratingPreview: boolean;
 
   // Actions
@@ -53,7 +55,7 @@ interface UseArchitectReturn {
   deleteSession: (sessionId: string) => Promise<void>;
   sendMessage: (message: string) => Promise<MessageResponse | null>;
   generateOutput: () => Promise<void>;
-  generatePreview: () => Promise<void>;
+  generatePreview: (settings?: GenerationSettingsRequest) => Promise<void>;
   clearError: () => void;
 }
 
@@ -82,6 +84,7 @@ export function useArchitect(): UseArchitectReturn {
 
   // Preview state
   const [diagramImageUrl, setDiagramImageUrl] = useState<string | null>(null);
+  const [diagramImageUrls, setDiagramImageUrls] = useState<string[]>([]);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
 
   /**
@@ -129,6 +132,7 @@ export function useArchitect(): UseArchitectReturn {
       setArchitecture(session.current_architecture || emptyArchitecture);
       setReadyForOutput(false);
       setDiagramImageUrl(null);
+      setDiagramImageUrls([]);
       setIsSessionLoading(false);
 
       // Load status to get available logos
@@ -176,6 +180,7 @@ export function useArchitect(): UseArchitectReturn {
       setCurrentSession(session);
       setArchitecture(session.current_architecture || emptyArchitecture);
       setDiagramImageUrl(null);
+      setDiagramImageUrls([]);
 
       // Load status for more details
       const status = await chatApi.getStatus(sessionId);
@@ -234,6 +239,7 @@ export function useArchitect(): UseArchitectReturn {
         setArchitecture(emptyArchitecture);
         setReadyForOutput(false);
         setDiagramImageUrl(null);
+        setDiagramImageUrls([]);
         setImageProvider('gemini');
         setCredentialMode('environment');
       }
@@ -345,7 +351,7 @@ export function useArchitect(): UseArchitectReturn {
   /**
    * Generate a diagram preview image.
    */
-  const generatePreview = useCallback(async () => {
+  const generatePreview = useCallback(async (settings?: GenerationSettingsRequest) => {
     if (!currentSession) {
       setError('No active session');
       return;
@@ -354,10 +360,11 @@ export function useArchitect(): UseArchitectReturn {
     setIsGeneratingPreview(true);
     setError(null);
     try {
-      const response = await chatApi.generatePreview(currentSession.session_id);
+      const response = await chatApi.generatePreview(currentSession.session_id, settings);
 
       if (response.success && response.image_url) {
         setDiagramImageUrl(response.image_url);
+        setDiagramImageUrls(response.image_urls || [response.image_url]);
         setMessages(prev => [
           ...prev,
           {
@@ -404,6 +411,7 @@ export function useArchitect(): UseArchitectReturn {
     imageProvider,
     credentialMode,
     diagramImageUrl,
+    diagramImageUrls,
     isGeneratingPreview,
     loadSessions,
     createSession,

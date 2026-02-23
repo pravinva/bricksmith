@@ -4,7 +4,13 @@
  */
 
 import { useState } from 'react';
-import type { RefinementState, RefinementIteration, EvaluationScores } from '../types';
+import type {
+  RefinementState,
+  RefinementIteration,
+  EvaluationScores,
+  GenerationSettingsRequest,
+} from '../types';
+import { GenerationSettingsPanel } from './GenerationSettings';
 
 interface RefinementPanelProps {
   state: RefinementState;
@@ -12,9 +18,9 @@ interface RefinementPanelProps {
   isGenerating: boolean;
   isRefining: boolean;
   error: string | null;
-  onRefine: (feedback: string) => Promise<void>;
+  onRefine: (feedback: string, settings?: GenerationSettingsRequest) => Promise<void>;
   onAccept: () => void;
-  onRegenerate: () => Promise<void>;
+  onRegenerate: (settings?: GenerationSettingsRequest) => Promise<void>;
   onClearError: () => void;
 }
 
@@ -98,6 +104,12 @@ export function RefinementPanel({
   const [feedback, setFeedback] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [imageExpanded, setImageExpanded] = useState(false);
+  const [genSettings, setGenSettings] = useState<GenerationSettingsRequest>({
+    preset: 'balanced',
+    image_size: '2K',
+    aspect_ratio: '16:9',
+    num_variants: 1,
+  });
 
   const isBusy = isGenerating || isRefining;
 
@@ -112,7 +124,7 @@ export function RefinementPanel({
     const text = feedback.trim();
     setFeedback('');
     setSelectedIdx(-1);
-    await onRefine(text || '');
+    await onRefine(text || '', genSettings);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -172,21 +184,38 @@ export function RefinementPanel({
           </div>
         )}
 
-        {/* Generated image */}
+        {/* Generated image(s) */}
         {displayIteration && (
           <>
-            <div
-              className={`rounded-lg overflow-hidden border cursor-pointer transition-all ${
-                imageExpanded ? 'fixed inset-4 z-50 bg-white shadow-2xl' : ''
-              }`}
-              onClick={() => setImageExpanded(!imageExpanded)}
-            >
-              <img
-                src={displayIteration.image_url}
-                alt={`Iteration ${displayIteration.iteration}`}
-                className="w-full h-auto"
-              />
-            </div>
+            {displayIteration.image_urls && displayIteration.image_urls.length > 1 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {displayIteration.image_urls.map((url, idx) => (
+                  <div
+                    key={url}
+                    className="relative rounded-lg overflow-hidden border cursor-pointer hover:ring-2 hover:ring-primary-400"
+                    onClick={() => setImageExpanded(true)}
+                  >
+                    <img src={url} alt={`Variant ${idx + 1}`} className="w-full h-auto" />
+                    <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      V{idx + 1}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                className={`rounded-lg overflow-hidden border cursor-pointer transition-all ${
+                  imageExpanded ? 'fixed inset-4 z-50 bg-white shadow-2xl' : ''
+                }`}
+                onClick={() => setImageExpanded(!imageExpanded)}
+              >
+                <img
+                  src={displayIteration.image_url}
+                  alt={`Iteration ${displayIteration.iteration}`}
+                  className="w-full h-auto"
+                />
+              </div>
+            )}
             {imageExpanded && (
               <div
                 className="fixed inset-0 bg-black/30 z-40"
@@ -277,6 +306,14 @@ export function RefinementPanel({
           selectedIndex={selectedIdx}
           onSelect={setSelectedIdx}
         />
+
+        {/* Generation settings */}
+        <GenerationSettingsPanel
+          settings={genSettings}
+          onChange={setGenSettings}
+          disabled={isBusy}
+          showVariants
+        />
       </div>
 
       {/* Action bar */}
@@ -299,7 +336,7 @@ export function RefinementPanel({
             {isRefining ? 'Refining...' : isGenerating ? 'Generating...' : 'Refine & Regenerate'}
           </button>
           <button
-            onClick={onRegenerate}
+            onClick={() => onRegenerate(genSettings)}
             disabled={isBusy || !currentIteration}
             className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Regenerate without changing the prompt"

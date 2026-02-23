@@ -1,6 +1,6 @@
 """Pydantic request/response schemas for the web API."""
 
-from typing import Optional, Literal
+from typing import Any, Optional, Literal
 
 from pydantic import BaseModel, Field
 
@@ -160,6 +160,7 @@ class GeneratePreviewResponse(BaseModel):
 
     success: bool
     image_url: Optional[str] = Field(None, description="URL to access the generated image")
+    image_urls: list[str] = Field(default_factory=list, description="URLs for all variants")
     run_id: Optional[str] = Field(None, description="Identifier for this generation run")
     error: Optional[str] = None
 
@@ -330,6 +331,7 @@ class RefinementIterationSchema(BaseModel):
     iteration: int
     prompt_used: str
     image_url: str
+    image_urls: list[str] = Field(default_factory=list)
     overall_score: Optional[int] = None
     scores: Optional[EvaluationScores] = None
     strengths: list[str] = Field(default_factory=list)
@@ -338,6 +340,7 @@ class RefinementIterationSchema(BaseModel):
     feedback_for_refinement: str = ""
     user_feedback: Optional[str] = None
     refinement_reasoning: Optional[str] = None
+    settings_used: Optional["GenerationSettingsRequest"] = None
     created_at: str
 
 
@@ -375,3 +378,53 @@ class RefineResponse(BaseModel):
     reasoning: Optional[str] = None
     expected_improvement: Optional[str] = None
     error: Optional[str] = None
+
+
+# Generation settings schemas
+
+
+class GenerationSettingsRequest(BaseModel):
+    """Per-run generation settings for image generation."""
+
+    preset: Optional[str] = Field(
+        None, description="Preset: deterministic, conservative, balanced, creative, wild"
+    )
+    image_size: Optional[str] = Field(None, description="1K, 2K, or 4K")
+    aspect_ratio: Optional[str] = Field(None, description="16:9, 1:1, 4:3, 9:16, 3:4, 21:9")
+    num_variants: Optional[int] = Field(None, ge=1, le=8)
+
+    def to_generation_kwargs(self) -> dict[str, Any]:
+        """Resolve preset + overrides into kwargs for generate_image()."""
+        from ...conversation import GENERATION_PRESETS
+
+        kwargs: dict[str, Any] = {}
+
+        if self.preset and self.preset in GENERATION_PRESETS:
+            settings = GENERATION_PRESETS[self.preset]
+            kwargs["temperature"] = settings.temperature
+            kwargs["top_p"] = settings.top_p
+            kwargs["top_k"] = settings.top_k
+            kwargs["presence_penalty"] = settings.presence_penalty
+            kwargs["frequency_penalty"] = settings.frequency_penalty
+            kwargs["image_size"] = settings.image_size
+            kwargs["aspect_ratio"] = settings.aspect_ratio
+
+        # Explicit overrides take precedence over preset
+        if self.image_size is not None:
+            kwargs["image_size"] = self.image_size
+        if self.aspect_ratio is not None:
+            kwargs["aspect_ratio"] = self.aspect_ratio
+
+        return kwargs
+
+
+class GeneratePreviewRequest(BaseModel):
+    """Request body for generate-preview endpoint."""
+
+    settings: Optional[GenerationSettingsRequest] = None
+
+
+class GenerateAndEvaluateRequest(BaseModel):
+    """Request body for refinement generate-and-evaluate endpoint."""
+
+    settings: Optional[GenerationSettingsRequest] = None
