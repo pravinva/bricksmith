@@ -433,11 +433,11 @@ class ArchitectChatbot:
         if len(components) < 2:
             return "Not enough components defined yet. Please describe more of the architecture."
 
-        # Generate conversation summary
+        # Generate conversation summary - use full text for recent turns
         summary_parts = [f"Problem: {self._session.initial_problem}"]
         for turn in self._session.turns[-5:]:  # Last 5 turns for context
-            summary_parts.append(f"User: {turn.user_input[:100]}...")
-            summary_parts.append(f"Architect: {turn.architect_response[:100]}...")
+            summary_parts.append(f"User: {turn.user_input[:500]}")
+            summary_parts.append(f"Architect: {turn.architect_response[:500]}")
         conversation_summary = "\n".join(summary_parts)
 
         # Use DSPy to generate the prompt
@@ -448,6 +448,7 @@ class ArchitectChatbot:
                 conversation_summary=conversation_summary,
                 architecture_json=json.dumps(arch, indent=2),
                 available_logos=", ".join(self._logo_names),
+                reference_prompt=self._reference_prompt,
             )
 
             # Save outputs

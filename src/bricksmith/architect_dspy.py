@@ -64,6 +64,12 @@ class ArchitectPromptGenerationSignature(dspy.Signature):
     Create a professional prompt suitable for Gemini image generation that
     captures the architecture discussed in the conversation. The prompt should
     match the quality and structure of consulting-firm architecture diagrams.
+
+    CRITICAL: If a reference_prompt is provided, treat it as the primary source
+    of truth for style, structure, and content. Preserve its wording, layout
+    instructions, and visual directives as much as possible. Only modify it to
+    incorporate new components/connections from the conversation and architecture
+    JSON. If no reference_prompt is provided, generate a new prompt from scratch.
     """
 
     conversation_summary: str = dspy.InputField(
@@ -76,9 +82,19 @@ class ArchitectPromptGenerationSignature(dspy.Signature):
         desc="Comma-separated list of logo names available for the diagram"
     )
     style_preferences: str = dspy.InputField(desc="Any stated visual preferences or requirements")
+    reference_prompt: str = dspy.InputField(
+        desc="The user's original diagram prompt to use as the base. "
+        "CRITICAL: When provided, preserve its structure, wording, and style. "
+        "Merge in any new components or connections from the architecture JSON, "
+        "but keep the original prompt's voice and layout instructions intact. "
+        "If empty, generate a new prompt from scratch."
+    )
 
     diagram_prompt: str = dspy.OutputField(
-        desc="Complete prompt for diagram generation. Include: "
+        desc="Complete prompt for diagram generation. "
+        "If a reference_prompt was provided, this should be a refined version of it "
+        "that incorporates conversation feedback while preserving the original style. "
+        "If no reference_prompt was provided, create a new prompt with: "
         "1) LOGO KIT section with available logos and rules "
         "2) DESIGN PHILOSOPHY with target audience and visual style "
         "3) CANVAS & TYPOGRAPHY specifications "
@@ -193,6 +209,7 @@ class ArchitectRefiner(dspy.Module):
         architecture_json: str,
         available_logos: str,
         style_preferences: str = "",
+        reference_prompt: str = "",
     ) -> tuple[str, str]:
         """Generate a diagram prompt from the conversation.
 
@@ -201,6 +218,7 @@ class ArchitectRefiner(dspy.Module):
             architecture_json: Final architecture JSON
             available_logos: Available logo names
             style_preferences: Visual preferences
+            reference_prompt: Original user prompt to preserve and refine
 
         Returns:
             Tuple of (diagram_prompt, rationale)
@@ -212,6 +230,8 @@ class ArchitectRefiner(dspy.Module):
                 available_logos=available_logos,
                 style_preferences=style_preferences
                 or "Professional, clean, consulting-firm quality",
+                reference_prompt=reference_prompt
+                or "No reference prompt provided. Generate a new prompt from scratch.",
             )
 
         return result.diagram_prompt, result.prompt_rationale
