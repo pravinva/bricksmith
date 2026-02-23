@@ -55,8 +55,13 @@ if [[ ! -d ".venv" ]]; then
   uv venv
 fi
 
-echo "Installing Python deps (dev + web)..."
-uv pip install -e ".[dev,web]"
+# Only install deps if explicitly requested or if packages are missing
+if [[ "${SKIP_INSTALL:-}" != "1" ]]; then
+  if ! python -c "import bricksmith" 2>/dev/null || ! python -c "import uvicorn" 2>/dev/null; then
+    echo "Installing Python deps (dev + web)..."
+    uv pip install -e ".[dev,web]"
+  fi
+fi
 
 if [[ "${MODE}" == "dev" ]]; then
   echo "Starting web in dev mode (backend + frontend)..."
