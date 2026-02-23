@@ -11,8 +11,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 MODE="dev"
-PORT="8080"
+PORT=""
 HOST="0.0.0.0"
+
+# Find an open port starting from the given base
+find_open_port() {
+  local port="${1:-8080}"
+  while lsof -iTCP:"${port}" -sTCP:LISTEN >/dev/null 2>&1; do
+    port=$((port + 1))
+  done
+  echo "${port}"
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -21,7 +30,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --port)
-      PORT="${2:-8080}"
+      PORT="${2:-}"
       shift 2
       ;;
     --host)
@@ -34,6 +43,12 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Auto-find open port if none was explicitly set
+if [[ -z "${PORT}" ]]; then
+  PORT=$(find_open_port 8080)
+  echo "Auto-selected open port: ${PORT}"
+fi
 
 if [[ ! -d ".venv" ]]; then
   echo "Creating virtual environment..."

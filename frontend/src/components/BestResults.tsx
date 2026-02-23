@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { cliApi, resultsApi } from '../api/client';
+import { resultsApi } from '../api/client';
 import type { BestResultItem } from '../types';
 
 function sourceClass(source: BestResultItem['source']): string {
@@ -12,12 +12,10 @@ function sourceClass(source: BestResultItem['source']): string {
 
 interface BestResultsProps {
   onCreateArchitectSessionFromResult?: (result: BestResultItem) => Promise<void>;
-  onOpenCliMirror?: () => void;
 }
 
 export function BestResults({
   onCreateArchitectSessionFromResult,
-  onOpenCliMirror,
 }: BestResultsProps) {
   const [results, setResults] = useState<BestResultItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -26,24 +24,6 @@ export function BestResults({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [logoDir, setLogoDir] = useState<string>('logos/default');
-  const [logoFilesText, setLogoFilesText] = useState<string>('');
-  const [brandingFile, setBrandingFile] = useState<string>('prompts/branding/minimal.txt');
-  const [runName, setRunName] = useState<string>('');
-  const [runGroup, setRunGroup] = useState<string>('');
-  const [tagsText, setTagsText] = useState<string>('');
-  const [temperature, setTemperature] = useState<string>('0.8');
-  const [topP, setTopP] = useState<string>('0.95');
-  const [topK, setTopK] = useState<string>('50');
-  const [presencePenalty, setPresencePenalty] = useState<string>('0.1');
-  const [frequencyPenalty, setFrequencyPenalty] = useState<string>('0.1');
-  const [systemInstruction, setSystemInstruction] = useState<string>('');
-  const [count, setCount] = useState<string>('1');
-  const [size, setSize] = useState<string>('1K');
-  const [aspectRatio, setAspectRatio] = useState<string>('16:9');
-  const [avoid, setAvoid] = useState<string>('');
-  const [feedbackEnabled, setFeedbackEnabled] = useState<boolean>(false);
-  const [databricksStyle, setDatabricksStyle] = useState<boolean>(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState<boolean>(false);
 
   const selected = useMemo(
@@ -122,28 +102,6 @@ export function BestResults({
     setInfo('Prompt copied to clipboard.');
   };
 
-  const createChatJobFromPrompt = async () => {
-    if (!selected?.prompt_path) {
-      setError('No prompt file available for this result.');
-      return;
-    }
-
-    setError(null);
-    setInfo(null);
-    try {
-      const response = await cliApi.startJob({
-        command: 'chat',
-        args: ['--prompt-file', selected.prompt_path],
-      });
-      setInfo(
-        `Started chat job ${response.job.job_id}. Open the CLI Mirror tab to monitor output.`
-      );
-      onOpenCliMirror?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start chat job');
-    }
-  };
-
   const createArchitectSessionFromResult = async () => {
     if (!selected || !onCreateArchitectSessionFromResult) return;
     setError(null);
@@ -153,120 +111,6 @@ export function BestResults({
       setInfo('Created architect session from selected result.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create architect session');
-    }
-  };
-
-  const generateRawFromPrompt = async () => {
-    if (!selected?.prompt_path) {
-      setError('No prompt file available for this result.');
-      return;
-    }
-
-    const normalizedRunGroup = runGroup.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-    const baseRunName = selected.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
-    const resolvedRunName = runName.trim() || (
-      normalizedRunGroup ? `${normalizedRunGroup}-${baseRunName}` : baseRunName
-    );
-
-    const parsedTemperature = Number.parseFloat(temperature);
-    const parsedTopP = Number.parseFloat(topP);
-    const parsedTopK = Number.parseInt(topK, 10);
-    const parsedPresencePenalty = Number.parseFloat(presencePenalty);
-    const parsedFrequencyPenalty = Number.parseFloat(frequencyPenalty);
-    const parsedCount = Number.parseInt(count, 10);
-
-    if (
-      Number.isNaN(parsedTemperature) ||
-      Number.isNaN(parsedTopP) ||
-      Number.isNaN(parsedTopK) ||
-      Number.isNaN(parsedPresencePenalty) ||
-      Number.isNaN(parsedFrequencyPenalty) ||
-      Number.isNaN(parsedCount)
-    ) {
-      setError('Invalid numeric values in generate-raw fields.');
-      return;
-    }
-
-    const args: string[] = ['--prompt-file', selected.prompt_path];
-    const logoFiles = logoFilesText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    if (logoFiles.length > 0) {
-      logoFiles.forEach((logoPath) => {
-        args.push('--logo', logoPath);
-      });
-    } else {
-      args.push('--logo-dir', logoDir.trim() || 'logos/default');
-    }
-
-    if (brandingFile.trim()) {
-      args.push('--branding', brandingFile.trim());
-    }
-
-    args.push('--run-name', resolvedRunName);
-
-    if (normalizedRunGroup) {
-      args.push('--tag', `run_group=${normalizedRunGroup}`);
-    }
-
-    const tags = tagsText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-    tags.forEach((tag) => {
-      args.push('--tag', tag);
-    });
-
-    args.push(
-      '--temperature',
-      String(parsedTemperature),
-      '--top-p',
-      String(parsedTopP),
-      '--top-k',
-      String(parsedTopK),
-      '--presence-penalty',
-      String(parsedPresencePenalty),
-      '--frequency-penalty',
-      String(parsedFrequencyPenalty),
-      '--count',
-      String(parsedCount),
-      '--size',
-      size,
-      '--aspect-ratio',
-      aspectRatio
-    );
-
-    if (systemInstruction.trim()) {
-      args.push('--system-instruction', systemInstruction.trim());
-    }
-
-    if (avoid.trim()) {
-      args.push('--avoid', avoid.trim());
-    }
-
-    if (feedbackEnabled) {
-      args.push('--feedback');
-    }
-
-    if (databricksStyle) {
-      args.push('--databricks-style');
-    }
-
-    setError(null);
-    setInfo(null);
-    try {
-      const response = await cliApi.startJob({
-        command: 'generate-raw',
-        args,
-      });
-      setInfo(
-        `Started generate-raw job ${response.job.job_id}. Open CLI Mirror to monitor generation.`
-      );
-      onOpenCliMirror?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start generate-raw job');
     }
   };
 
@@ -420,217 +264,12 @@ export function BestResults({
                   <p className="mt-4 text-sm text-gray-500">No image found for this result.</p>
                 )}
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => void createChatJobFromPrompt()}
-                    disabled={!selected.prompt_path}
-                    className="px-3 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
-                  >
-                    Create Chat Job from Prompt
-                  </button>
+                <div className="mt-4">
                   <button
                     onClick={() => void createArchitectSessionFromResult()}
-                    className="px-3 py-2 text-sm bg-gray-100 text-gray-800 rounded hover:bg-gray-200"
+                    className="px-3 py-2 text-sm bg-primary-600 text-white rounded hover:bg-primary-700"
                   >
-                    Create Architect Session from Result
-                  </button>
-                </div>
-
-                <div className="mt-4 border rounded p-3 bg-gray-50">
-                  <p className="text-sm font-medium text-gray-900 mb-2">
-                    Generate Raw from this Prompt
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Logo directory</label>
-                      <input
-                        value={logoDir}
-                        onChange={(e) => setLogoDir(e.target.value)}
-                        placeholder="logos/default"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Branding file</label>
-                      <input
-                        value={brandingFile}
-                        onChange={(e) => setBrandingFile(e.target.value)}
-                        placeholder="prompts/branding/minimal.txt"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Run group</label>
-                      <input
-                        value={runGroup}
-                        onChange={(e) => setRunGroup(e.target.value)}
-                        placeholder="e.g. customer-a-discovery"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Run name</label>
-                      <input
-                        value={runName}
-                        onChange={(e) => setRunName(e.target.value)}
-                        placeholder="optional, auto-derived from title/group"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Temperature</label>
-                      <input
-                        value={temperature}
-                        onChange={(e) => setTemperature(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Top P</label>
-                      <input
-                        value={topP}
-                        onChange={(e) => setTopP(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Top K</label>
-                      <input
-                        value={topK}
-                        onChange={(e) => setTopK(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        Presence penalty
-                      </label>
-                      <input
-                        value={presencePenalty}
-                        onChange={(e) => setPresencePenalty(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        Frequency penalty
-                      </label>
-                      <input
-                        value={frequencyPenalty}
-                        onChange={(e) => setFrequencyPenalty(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Count</label>
-                      <input
-                        value={count}
-                        onChange={(e) => setCount(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Size</label>
-                      <select
-                        value={size}
-                        onChange={(e) => setSize(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      >
-                        <option value="1K">1K</option>
-                        <option value="2K">2K</option>
-                        <option value="4K">4K</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Aspect ratio</label>
-                      <select
-                        value={aspectRatio}
-                        onChange={(e) => setAspectRatio(e.target.value)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      >
-                        <option value="1:1">1:1</option>
-                        <option value="4:3">4:3</option>
-                        <option value="16:9">16:9</option>
-                        <option value="9:16">9:16</option>
-                        <option value="3:4">3:4</option>
-                        <option value="21:9">21:9</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        Logos (one file path per line, optional)
-                      </label>
-                      <textarea
-                        value={logoFilesText}
-                        onChange={(e) => setLogoFilesText(e.target.value)}
-                        placeholder="logos/default/databricks-full.png"
-                        rows={3}
-                        className="w-full border rounded px-2 py-1.5 text-sm font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        Tags (one key=value per line, optional)
-                      </label>
-                      <textarea
-                        value={tagsText}
-                        onChange={(e) => setTagsText(e.target.value)}
-                        placeholder="customer=nab"
-                        rows={3}
-                        className="w-full border rounded px-2 py-1.5 text-sm font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-2">
-                    <label className="block text-xs text-gray-600 mb-1">
-                      System instruction (optional)
-                    </label>
-                    <textarea
-                      value={systemInstruction}
-                      onChange={(e) => setSystemInstruction(e.target.value)}
-                      rows={2}
-                      className="w-full border rounded px-2 py-1.5 text-sm"
-                    />
-                  </div>
-
-                  <div className="mt-2">
-                    <label className="block text-xs text-gray-600 mb-1">Avoid (optional)</label>
-                    <input
-                      value={avoid}
-                      onChange={(e) => setAvoid(e.target.value)}
-                      placeholder="blurry, spelling errors"
-                      className="w-full border rounded px-2 py-1.5 text-sm"
-                    />
-                  </div>
-
-                  <div className="mt-2 flex gap-4">
-                    <label className="text-xs text-gray-700 flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={feedbackEnabled}
-                        onChange={(e) => setFeedbackEnabled(e.target.checked)}
-                      />
-                      Enable feedback prompt
-                    </label>
-                    <label className="text-xs text-gray-700 flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={databricksStyle}
-                        onChange={(e) => setDatabricksStyle(e.target.checked)}
-                      />
-                      Use Databricks style
-                    </label>
-                  </div>
-                  <button
-                    onClick={() => void generateRawFromPrompt()}
-                    disabled={!selected.prompt_path}
-                    className="mt-3 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    Run generate-raw
+                    Open in Architect Studio
                   </button>
                 </div>
               </div>

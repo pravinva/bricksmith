@@ -1,4 +1,4 @@
-.PHONY: help install dev-install test test-cov format lint type-check clean verify run-example docs web-dev web-prod web app app-deploy
+.PHONY: help install dev-install test test-cov format lint type-check clean verify run-example docs web-dev web-prod web app app-deploy serve
 
 # Default target
 help:
@@ -24,6 +24,7 @@ help:
 	@echo "Web App:"
 	@echo "  make app           Run app locally (backend + frontend dev)"
 	@echo "  make web           Alias for make app"
+	@echo "  make serve         Run dev server on an auto-detected open port"
 	@echo "  make web-dev       Run backend + frontend dev servers"
 	@echo "  make web-prod      Run backend serving built frontend"
 	@echo "  make app-deploy    Build frontend and deploy Databricks App"
@@ -98,10 +99,12 @@ docs:
 	@echo "See docs/ directory for existing documentation"
 
 # Web app local run and deploy
-app:
+serve:
 	bash scripts/run_web_local.sh
 
-web: app
+app: serve
+
+web: serve
 
 web-dev:
 	bash scripts/run_web_local.sh

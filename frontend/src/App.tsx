@@ -9,13 +9,12 @@ import { ArchitectureViz } from './components/ArchitectureViz';
 import { RefinementPanel } from './components/RefinementPanel';
 import { SessionList } from './components/SessionList';
 import { StatusPanel } from './components/StatusPanel';
-import { CliRunner } from './components/CliRunner';
 import { BestResults } from './components/BestResults';
 import { useState, useCallback } from 'react';
 import type { BestResultItem } from './types';
 
 function App() {
-  const [mode, setMode] = useState<'architect' | 'cli' | 'best'>('architect');
+  const [mode, setMode] = useState<'architect' | 'best'>('architect');
   const refinement = useRefinement();
   const {
     sessions,
@@ -117,16 +116,6 @@ function App() {
             Architect Studio
           </button>
           <button
-            onClick={() => setMode('cli')}
-            className={`px-3 py-1.5 text-sm rounded ${
-              mode === 'cli'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            CLI Mirror
-          </button>
-          <button
             onClick={() => setMode('best')}
             className={`px-3 py-1.5 text-sm rounded ${
               mode === 'best'
@@ -221,17 +210,12 @@ function App() {
             )}
           </aside>
         </div>
-      ) : mode === 'cli' ? (
-        <div className="flex-1 min-h-0">
-          <CliRunner />
-        </div>
       ) : (
         <div className="flex-1 min-h-0">
           <BestResults
             onCreateArchitectSessionFromResult={
               handleCreateArchitectSessionFromResult
             }
-            onOpenCliMirror={() => setMode('cli')}
           />
         </div>
       )}
