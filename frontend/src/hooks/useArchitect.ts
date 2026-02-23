@@ -306,12 +306,25 @@ export function useArchitect(): UseArchitectReturn {
       const response = await chatApi.generateOutput(currentSession.session_id);
 
       if (response.success) {
+        // Also generate a preview image so the user can see the diagram
+        let previewUrl: string | undefined;
+        try {
+          const preview = await chatApi.generatePreview(currentSession.session_id);
+          if (preview.success && preview.image_url) {
+            previewUrl = preview.image_url;
+            setDiagramImageUrl(preview.image_url);
+          }
+        } catch {
+          // Preview generation is best-effort - don't block output
+        }
+
         setMessages(prev => [
           ...prev,
           {
             role: 'assistant',
-            content: `Diagram prompt generated successfully!\n\nOutput saved to:\n- ${response.prompt_file}\n- ${response.architecture_file}`,
+            content: `**Output saved**\n\n- \`${response.prompt_file}\`\n- \`${response.architecture_file}\``,
             timestamp: new Date().toISOString(),
+            imageUrl: previewUrl,
           },
         ]);
 

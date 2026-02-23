@@ -83,6 +83,20 @@ export function Chat({
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
+                {message.imageUrl && (
+                  <a
+                    href={message.imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mb-2"
+                  >
+                    <img
+                      src={message.imageUrl}
+                      alt="Generated diagram"
+                      className="rounded border border-gray-200 w-full h-auto hover:opacity-90 transition-opacity"
+                    />
+                  </a>
+                )}
                 <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-invert' : ''}`}>
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>

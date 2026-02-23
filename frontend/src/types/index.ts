@@ -90,6 +90,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   architecture?: ArchitectureState;
+  imageUrl?: string;
 }
 
 export interface TurnSchema {
