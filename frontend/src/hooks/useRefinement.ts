@@ -12,7 +12,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { refinementApi, standaloneRefinementApi } from '../api/client';
-import type { RefinementState, RefinementIteration, GenerationSettingsRequest } from '../types';
+import type { RefinementState, RefinementIteration, GenerationSettingsRequest, StartStandaloneRefinementRequest } from '../types';
 
 type RefinementMode = 'idle' | 'session' | 'standalone';
 
@@ -25,11 +25,7 @@ export interface UseRefinementReturn {
   currentIteration: RefinementIteration | null;
   error: string | null;
   startRefinement: (sessionId: string) => Promise<void>;
-  startStandaloneRefinement: (
-    prompt: string,
-    imageProvider?: 'gemini' | 'openai' | 'databricks',
-    apiKey?: string,
-  ) => Promise<void>;
+  startStandaloneRefinement: (request: StartStandaloneRefinementRequest) => Promise<void>;
   generateAndEvaluate: (settings?: GenerationSettingsRequest) => Promise<void>;
   refinePrompt: (feedback: string, settings?: GenerationSettingsRequest) => Promise<void>;
   acceptResult: () => void;
@@ -113,9 +109,7 @@ export function useRefinement(): UseRefinementReturn {
   }, []);
 
   const startStandaloneRefinement = useCallback(async (
-    prompt: string,
-    imageProvider?: 'gemini' | 'openai' | 'databricks',
-    apiKey?: string,
+    request: StartStandaloneRefinementRequest,
   ) => {
     setError(null);
     setIsGenerating(true);
@@ -123,12 +117,7 @@ export function useRefinement(): UseRefinementReturn {
     modeRef.current = 'standalone';
 
     try {
-      const state = await standaloneRefinementApi.start({
-        prompt,
-        image_provider: imageProvider,
-        openai_api_key: imageProvider === 'openai' ? apiKey : undefined,
-        vertex_api_key: imageProvider === 'gemini' ? apiKey : undefined,
-      });
+      const state = await standaloneRefinementApi.start(request);
       setRefinementState(state);
 
       // Auto-trigger first generation

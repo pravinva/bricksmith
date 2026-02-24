@@ -12,7 +12,7 @@ import { StatusPanel } from './components/StatusPanel';
 import { BestResults } from './components/BestResults';
 import { PromptEntry } from './components/PromptEntry';
 import { useState, useCallback } from 'react';
-import type { BestResultItem } from './types';
+import type { BestResultItem, StartStandaloneRefinementRequest } from './types';
 
 type AppMode = 'home' | 'architect' | 'refinement' | 'best';
 
@@ -67,7 +67,7 @@ function App() {
     const promptText = result.full_prompt || result.prompt_preview;
     if (!promptText) return;
     setMode('refinement');
-    void refinement.startStandaloneRefinement(promptText);
+    void refinement.startStandaloneRefinement({ prompt: promptText });
   }, [refinement]);
 
   const handleStartRefinement = useCallback(() => {
@@ -86,12 +86,10 @@ function App() {
   }, [createSession]);
 
   const handleStartRefinementFromHome = useCallback((
-    prompt: string,
-    imageProvider?: 'gemini' | 'openai' | 'databricks',
-    apiKey?: string,
+    request: StartStandaloneRefinementRequest,
   ) => {
     setMode('refinement');
-    void refinement.startStandaloneRefinement(prompt, imageProvider, apiKey);
+    void refinement.startStandaloneRefinement(request);
   }, [refinement]);
 
   const handleSelectSessionFromHome = useCallback((sessionId: string) => {

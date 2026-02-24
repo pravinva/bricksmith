@@ -267,10 +267,16 @@ export interface RefineResponse {
 // Standalone refinement types
 
 export interface StartStandaloneRefinementRequest {
-  prompt: string;
+  prompt?: string;
+  prompt_file?: string;
   image_provider?: 'gemini' | 'openai' | 'databricks';
   openai_api_key?: string;
   vertex_api_key?: string;
+  persona?: 'architect' | 'executive' | 'developer' | 'auto';
+  aspect_ratio?: string;
+  image_size?: string;
+  folder?: string;
+  num_variants?: number;
 }
 
 // Generation settings types

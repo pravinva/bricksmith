@@ -29,10 +29,18 @@ async def start_standalone_refinement(
     try:
         return await service.start_standalone_refinement(
             prompt=request.prompt,
+            prompt_file=request.prompt_file,
             image_provider=request.image_provider,
             openai_api_key=request.openai_api_key,
             vertex_api_key=request.vertex_api_key,
+            persona=request.persona,
+            aspect_ratio=request.aspect_ratio,
+            image_size=request.image_size,
+            folder=request.folder,
+            num_variants=request.num_variants,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -449,9 +449,23 @@ class GenerateAndEvaluateRequest(BaseModel):
 
 
 class StartStandaloneRefinementRequest(BaseModel):
-    """Request to start a standalone refinement loop from a raw prompt."""
+    """Request to start a standalone refinement loop from a raw prompt or CLI command.
 
-    prompt: str = Field(..., description="Raw diagram prompt text")
+    Accepts either a raw prompt string or a prompt_file path (read server-side).
+    Supports the same options as ``bricksmith chat`` CLI flags.
+    """
+
+    prompt: Optional[str] = Field(None, description="Raw diagram prompt text")
+    prompt_file: Optional[str] = Field(
+        None, description="Path to a prompt file on the server (read server-side)"
+    )
     image_provider: Optional[Literal["gemini", "openai", "databricks"]] = None
     openai_api_key: Optional[str] = None
     vertex_api_key: Optional[str] = None
+    persona: Optional[Literal["architect", "executive", "developer", "auto"]] = Field(
+        None, description="LLM Judge evaluation persona"
+    )
+    aspect_ratio: Optional[str] = Field(None, description="Image aspect ratio: 16:9, 1:1, etc.")
+    image_size: Optional[str] = Field(None, description="Image resolution: 1K, 2K, or 4K")
+    folder: Optional[str] = Field(None, description="Output folder name for the session")
+    num_variants: Optional[int] = Field(None, ge=1, le=8, description="Variants per iteration")

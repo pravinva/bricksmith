@@ -6,7 +6,40 @@
 
 import { useState, useEffect } from 'react';
 import { resultsApi } from '../api/client';
-import type { Session, PromptFileItem, BestResultItem, MCPEnrichmentOptions } from '../types';
+import type { Session, PromptFileItem, BestResultItem, MCPEnrichmentOptions, StartStandaloneRefinementRequest } from '../types';
+
+/** Parse a `bricksmith chat ...` CLI command into a StartStandaloneRefinementRequest. */
+function parseChatCommand(raw: string): StartStandaloneRefinementRequest | null {
+  // Normalize: collapse line continuations, trim
+  const cmd = raw.replace(/\\\s*\n/g, ' ').trim();
+  // Must look like a bricksmith chat invocation
+  if (!/(?:^|\s)bricksmith\s+chat\b/.test(cmd)) return null;
+
+  const get = (flag: string): string | undefined => {
+    // Match --flag value (value cannot start with --)
+    const re = new RegExp(`${flag}[=\\s]+([^\\s]+)`);
+    const m = cmd.match(re);
+    return m?.[1];
+  };
+
+  const promptFile = get('--prompt-file');
+  const persona = get('--persona') as StartStandaloneRefinementRequest['persona'];
+  const aspectRatio = get('--aspect-ratio');
+  const imageSize = get('--size');
+  const folder = get('--folder') || get('--name');
+  const imageProvider = get('--image-provider') as StartStandaloneRefinementRequest['image_provider'];
+  const numVariants = get('--num-variants');
+
+  return {
+    prompt_file: promptFile,
+    persona,
+    aspect_ratio: aspectRatio,
+    image_size: imageSize,
+    folder,
+    image_provider: imageProvider,
+    num_variants: numVariants ? parseInt(numVariants, 10) : undefined,
+  };
+}
 
 interface PromptEntryProps {
   onStartArchitect: (
@@ -22,11 +55,7 @@ interface PromptEntryProps {
       mcpEnrichment?: MCPEnrichmentOptions;
     },
   ) => void;
-  onStartRefinement: (
-    prompt: string,
-    imageProvider?: 'gemini' | 'openai' | 'databricks',
-    apiKey?: string,
-  ) => void;
+  onStartRefinement: (request: StartStandaloneRefinementRequest) => void;
   isLoading: boolean;
   recentSessions?: Session[];
   onSelectSession?: (sessionId: string) => void;
@@ -127,10 +156,32 @@ export function PromptEntry({
 
   const handleStartRefinement = () => {
     if (!prompt.trim()) return;
-    onStartRefinement(prompt.trim(), imageProvider, apiKey || undefined);
+
+    // Detect pasted CLI command
+    const parsed = parseChatCommand(prompt);
+    if (parsed && (parsed.prompt_file || parsed.folder)) {
+      // CLI command detected - pass all parsed flags through
+      onStartRefinement({
+        ...parsed,
+        image_provider: parsed.image_provider || imageProvider,
+        openai_api_key: imageProvider === 'openai' ? apiKey || undefined : undefined,
+        vertex_api_key: imageProvider === 'gemini' ? apiKey || undefined : undefined,
+      });
+      return;
+    }
+
+    // Raw prompt text
+    onStartRefinement({
+      prompt: prompt.trim(),
+      image_provider: imageProvider,
+      openai_api_key: imageProvider === 'openai' ? apiKey || undefined : undefined,
+      vertex_api_key: imageProvider === 'gemini' ? apiKey || undefined : undefined,
+    });
   };
 
   const hasPrompt = prompt.trim().length > 0;
+  const detectedCommand = hasPrompt ? parseChatCommand(prompt) : null;
+  const isCliCommand = detectedCommand !== null && (!!detectedCommand.prompt_file || !!detectedCommand.folder);
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-6">
@@ -174,12 +225,27 @@ export function PromptEntry({
 
         {/* Paste tab */}
         {sourceTab === 'paste' && (
-          <textarea
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            placeholder="Paste or type your architecture diagram prompt here...&#10;&#10;Example: Create a diagram showing Unity Catalog governance for a data lakehouse with three environments (dev, staging, prod) connected through Delta Sharing..."
-            className="w-full h-48 border rounded-lg px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
+          <>
+            <textarea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              placeholder={"Paste a prompt, or paste a CLI command:\n\nbricksmith chat --prompt-file prompts/my_prompt.txt --persona executive --aspect-ratio 16:9 --folder my-project"}
+              className={`w-full h-48 border rounded-lg px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${isCliCommand ? 'font-mono text-xs bg-gray-50' : ''}`}
+            />
+            {isCliCommand && detectedCommand && (
+              <div className="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                <span className="font-medium">CLI command detected</span>
+                <span className="mx-1.5 text-blue-400">|</span>
+                {detectedCommand.prompt_file && <span className="mr-3">File: <code className="bg-blue-100 px-1 rounded">{detectedCommand.prompt_file}</code></span>}
+                {detectedCommand.persona && <span className="mr-3">Persona: {detectedCommand.persona}</span>}
+                {detectedCommand.aspect_ratio && <span className="mr-3">Ratio: {detectedCommand.aspect_ratio}</span>}
+                {detectedCommand.image_size && <span className="mr-3">Size: {detectedCommand.image_size}</span>}
+                {detectedCommand.folder && <span className="mr-3">Folder: {detectedCommand.folder}</span>}
+                {detectedCommand.image_provider && <span className="mr-3">Provider: {detectedCommand.image_provider}</span>}
+                {detectedCommand.num_variants && <span className="mr-3">Variants: {detectedCommand.num_variants}</span>}
+              </div>
+            )}
+          </>
         )}
 
         {/* Files tab */}

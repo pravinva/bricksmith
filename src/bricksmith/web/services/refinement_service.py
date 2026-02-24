@@ -136,24 +136,57 @@ class RefinementService:
 
     async def start_standalone_refinement(
         self,
-        prompt: str,
+        prompt: Optional[str] = None,
+        prompt_file: Optional[str] = None,
         image_provider: Optional[str] = None,
         openai_api_key: Optional[str] = None,
         vertex_api_key: Optional[str] = None,
+        persona: Optional[str] = None,
+        aspect_ratio: Optional[str] = None,
+        image_size: Optional[str] = None,
+        folder: Optional[str] = None,
+        num_variants: Optional[int] = None,
     ) -> RefinementStateResponse:
-        """Start a standalone refinement loop from a raw prompt.
+        """Start a standalone refinement loop - same as ``bricksmith chat``.
 
-        Creates a ConversationChatbot that loads logos, builds the full prompt
-        with logo constraints, and prepares for the generate/evaluate/refine loop.
+        Accepts either a raw prompt string or a path to a prompt file on disk.
+        Supports the same options as the CLI (persona, aspect ratio, folder, etc.).
         """
         import uuid
 
-        session_id = f"standalone-{str(uuid.uuid4())[:8]}"
-        config = load_config()
+        # Resolve prompt text
+        if prompt_file:
+            path = Path(prompt_file)
+            if not path.exists():
+                raise ValueError(f"Prompt file not found: {prompt_file}")
+            prompt_text = path.read_text().strip()
+        elif prompt:
+            prompt_text = prompt
+        else:
+            raise ValueError("Must provide either prompt or prompt_file")
 
+        # Session ID from folder name or random
+        if folder:
+            import re
+
+            safe_name = re.sub(r"[^\w\-_]", "_", folder)
+            session_id = safe_name[:50]
+        else:
+            session_id = f"standalone-{str(uuid.uuid4())[:8]}"
+
+        config = load_config()
         image_gen = _resolve_image_generator(config, image_provider, openai_api_key, vertex_api_key)
 
-        return await self._init_chatbot(session_id, prompt, config, image_gen)
+        return await self._init_chatbot(
+            session_id,
+            prompt_text,
+            config,
+            image_gen,
+            persona=persona,
+            aspect_ratio=aspect_ratio,
+            image_size=image_size,
+            num_variants=num_variants,
+        )
 
     async def _init_chatbot(
         self,
@@ -161,13 +194,31 @@ class RefinementService:
         prompt: str,
         config: AppConfig,
         image_generator: Optional[ImageGenerator] = None,
+        persona: Optional[str] = None,
+        aspect_ratio: Optional[str] = None,
+        image_size: Optional[str] = None,
+        num_variants: Optional[int] = None,
     ) -> RefinementStateResponse:
         """Create and initialize a ConversationChatbot for the refinement loop."""
+        from ...models import EvaluationPersona
+
         conv_config = ConversationConfig(
             auto_refine=True,
             auto_analyze=True,
             session_name=session_id,
         )
+
+        # Apply persona if specified (same as CLI --persona flag)
+        if persona:
+            conv_config.evaluation_persona = EvaluationPersona(persona)
+
+        # Apply initial generation settings (same as CLI --aspect-ratio, --size, --num-variants)
+        if aspect_ratio:
+            conv_config.aspect_ratio = aspect_ratio
+        if image_size:
+            conv_config.image_size = image_size
+        if num_variants:
+            conv_config.num_variants = num_variants
 
         chatbot = ConversationChatbot(
             config=config,
