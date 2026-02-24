@@ -19,6 +19,7 @@ from .evaluator import Evaluator
 from .gemini_client import GeminiClient
 from .image_generator import ImageGenerator
 from .logos import LogoKitHandler
+from .databricks_image_client import DatabricksImageClient
 from .openai_image_client import OpenAIImageClient
 from .mlflow_tracker import MLflowTracker
 from .prompts import PromptBuilder
@@ -53,19 +54,30 @@ class Context:
 
     @property
     def image_generator(self) -> ImageGenerator:
-        """Lazy-initialized image generator (Gemini or OpenAI) from config."""
+        """Lazy-initialized image generator (Gemini, OpenAI, or Databricks) from config."""
         if self._image_generator is None:
             prov = self.config.image_provider
             if prov.provider == "openai":
                 self._image_generator = OpenAIImageClient(model=prov.openai_model)
+            elif prov.provider == "databricks":
+                self._image_generator = DatabricksImageClient(
+                    model=prov.databricks_model,
+                    image_model=prov.databricks_image_model,
+                )
             else:
                 self._image_generator = self.gemini_client
         return self._image_generator
 
     def set_image_provider(self, provider: str) -> None:
         """Override image provider for this context (e.g. from CLI --image-provider)."""
+        prov = self.config.image_provider
         if provider == "openai":
-            self._image_generator = OpenAIImageClient(model=self.config.image_provider.openai_model)
+            self._image_generator = OpenAIImageClient(model=prov.openai_model)
+        elif provider == "databricks":
+            self._image_generator = DatabricksImageClient(
+                model=prov.databricks_model,
+                image_model=prov.databricks_image_model,
+            )
         else:
             self._image_generator = self.gemini_client
 
@@ -79,9 +91,9 @@ class Context:
 )
 @click.option(
     "--image-provider",
-    type=click.Choice(["gemini", "openai"]),
+    type=click.Choice(["gemini", "openai", "databricks"]),
     default=None,
-    help="Image generation backend: gemini (default) or openai (gpt-image-1.5). Overrides config.",
+    help="Image generation backend: gemini (default), openai (gpt-image-1.5), or databricks (AWS US). Overrides config.",
 )
 @click.pass_context
 def main(ctx: click.Context, config: Optional[Path], image_provider: Optional[str]):

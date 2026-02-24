@@ -27,7 +27,7 @@ export interface UseRefinementReturn {
   startRefinement: (sessionId: string) => Promise<void>;
   startStandaloneRefinement: (
     prompt: string,
-    imageProvider?: 'gemini' | 'openai',
+    imageProvider?: 'gemini' | 'openai' | 'databricks',
     apiKey?: string,
   ) => Promise<void>;
   generateAndEvaluate: (settings?: GenerationSettingsRequest) => Promise<void>;
@@ -114,7 +114,7 @@ export function useRefinement(): UseRefinementReturn {
 
   const startStandaloneRefinement = useCallback(async (
     prompt: string,
-    imageProvider?: 'gemini' | 'openai',
+    imageProvider?: 'gemini' | 'openai' | 'databricks',
     apiKey?: string,
   ) => {
     setError(null);

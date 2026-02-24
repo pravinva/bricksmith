@@ -136,6 +136,13 @@ class RefinementService:
                 api_key=openai_api_key or None,
                 model=config.image_provider.openai_model,
             )
+        elif image_provider == "databricks":
+            from ...databricks_image_client import DatabricksImageClient
+
+            self._standalone_generators[session_id] = DatabricksImageClient(
+                model=config.image_provider.databricks_model,
+                image_model=config.image_provider.databricks_image_model,
+            )
         elif image_provider == "gemini" and vertex_api_key:
             self._standalone_generators[session_id] = GeminiClient(api_key=vertex_api_key)
 
@@ -213,12 +220,18 @@ class RefinementService:
             elif not is_standalone:
                 image_generator = service._session_image_generators.get(session_id)
                 if image_generator is None:
+                    from ...databricks_image_client import DatabricksImageClient
                     from ...openai_image_client import OpenAIImageClient
 
                     provider_override = service._session_provider_overrides.get(session_id)
                     if provider_override == "openai":
                         image_generator = OpenAIImageClient(
                             model=service.config.image_provider.openai_model
+                        )
+                    elif provider_override == "databricks":
+                        image_generator = DatabricksImageClient(
+                            model=service.config.image_provider.databricks_model,
+                            image_model=service.config.image_provider.databricks_image_model,
                         )
                     elif provider_override == "gemini":
                         image_generator = GeminiClient()

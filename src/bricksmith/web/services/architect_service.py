@@ -15,6 +15,7 @@ from ...image_generator import ImageGenerator
 from ...mcp_config import MCPEnrichmentConfig
 from ...mcp_context_enricher import MCPContextEnricher
 from ...models import ArchitectConfig, ArchitectSession, ArchitectTurn, ConversationStatus
+from ...databricks_image_client import DatabricksImageClient
 from ...openai_image_client import OpenAIImageClient
 from ..api.schemas import (
     ArchitectureState,
@@ -46,7 +47,7 @@ class ArchitectService:
         self._image_generator_instance: Optional[ImageGenerator] = None
         self._chatbots: dict[str, ArchitectChatbot] = {}
         self._session_image_generators: dict[str, ImageGenerator] = {}
-        self._session_provider_overrides: dict[str, Literal["gemini", "openai"]] = {}
+        self._session_provider_overrides: dict[str, Literal["gemini", "openai", "databricks"]] = {}
         self._session_mcp_config: dict[str, MCPEnrichmentOptions] = {}
 
     @property
@@ -58,11 +59,16 @@ class ArchitectService:
 
     @property
     def _image_generator(self) -> ImageGenerator:
-        """Image generator from config (Gemini or OpenAI), cached per service."""
+        """Image generator from config (Gemini, OpenAI, or Databricks), cached per service."""
         if self._image_generator_instance is None:
             prov = self.config.image_provider
             if prov.provider == "openai":
                 self._image_generator_instance = OpenAIImageClient(model=prov.openai_model)
+            elif prov.provider == "databricks":
+                self._image_generator_instance = DatabricksImageClient(
+                    model=prov.databricks_model,
+                    image_model=prov.databricks_image_model,
+                )
             else:
                 self._image_generator_instance = GeminiClient()
         return self._image_generator_instance
@@ -72,7 +78,7 @@ class ArchitectService:
         initial_problem: str,
         custom_context: Optional[str] = None,
         logo_dir: Optional[str] = None,
-        image_provider: Optional[Literal["gemini", "openai"]] = None,
+        image_provider: Optional[Literal["gemini", "openai", "databricks"]] = None,
         openai_api_key: Optional[str] = None,
         vertex_api_key: Optional[str] = None,
         reference_prompt: Optional[str] = None,
@@ -222,6 +228,11 @@ class ArchitectService:
                     api_key=openai_api_key,
                     model=self.config.image_provider.openai_model,
                 )
+        elif selected_provider == "databricks":
+            self._session_image_generators[session_id] = DatabricksImageClient(
+                model=self.config.image_provider.databricks_model,
+                image_model=self.config.image_provider.databricks_image_model,
+            )
         elif selected_provider == "gemini":
             if vertex_api_key:
                 self._session_image_generators[session_id] = GeminiClient(
@@ -590,6 +601,11 @@ class ArchitectService:
                 if provider_override == "openai":
                     image_generator = OpenAIImageClient(
                         model=self.config.image_provider.openai_model
+                    )
+                elif provider_override == "databricks":
+                    image_generator = DatabricksImageClient(
+                        model=self.config.image_provider.databricks_model,
+                        image_model=self.config.image_provider.databricks_image_model,
                     )
                 elif provider_override == "gemini":
                     image_generator = GeminiClient()

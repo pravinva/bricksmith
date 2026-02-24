@@ -10,7 +10,7 @@ interface StatusPanelProps {
   sessionStatus: string;
   turnCount: number;
   readyForOutput: boolean;
-  imageProvider: 'gemini' | 'openai';
+  imageProvider: 'gemini' | 'openai' | 'databricks';
   credentialMode: 'environment' | 'custom_key';
 }
 

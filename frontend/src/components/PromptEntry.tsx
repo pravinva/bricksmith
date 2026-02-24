@@ -13,7 +13,7 @@ interface PromptEntryProps {
     prompt: string,
     context?: string,
     authOptions?: {
-      imageProvider?: 'gemini' | 'openai';
+      imageProvider?: 'gemini' | 'openai' | 'databricks';
       openaiApiKey?: string;
       vertexApiKey?: string;
       referencePrompt?: string;
@@ -24,7 +24,7 @@ interface PromptEntryProps {
   ) => void;
   onStartRefinement: (
     prompt: string,
-    imageProvider?: 'gemini' | 'openai',
+    imageProvider?: 'gemini' | 'openai' | 'databricks',
     apiKey?: string,
   ) => void;
   isLoading: boolean;
@@ -43,7 +43,7 @@ export function PromptEntry({
 }: PromptEntryProps) {
   const [prompt, setPrompt] = useState('');
   const [sourceTab, setSourceTab] = useState<SourceTab>('paste');
-  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai' | 'databricks'>('gemini');
   const [apiKey, setApiKey] = useState('');
   const [mcpEnabled, setMcpEnabled] = useState(true);
   const [refImageBase64, setRefImageBase64] = useState('');
@@ -282,11 +282,12 @@ export function PromptEntry({
             <label className="text-xs text-gray-600">Image provider</label>
             <select
               value={imageProvider}
-              onChange={e => setImageProvider(e.target.value as 'gemini' | 'openai')}
+              onChange={e => setImageProvider(e.target.value as 'gemini' | 'openai' | 'databricks')}
               className="border rounded px-2 py-1 text-sm"
             >
               <option value="gemini">Gemini</option>
               <option value="openai">OpenAI</option>
+              <option value="databricks">Databricks (AWS US)</option>
             </select>
           </div>
           <div className="flex items-center gap-2">

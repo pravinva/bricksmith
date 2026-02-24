@@ -29,9 +29,7 @@ class VertexAIConfig(BaseModel):
 class MLflowConfig(BaseModel):
     """MLflow tracking configuration."""
 
-    tracking_uri: str = Field(
-        default="file:./mlruns", description="MLflow tracking server URI"
-    )
+    tracking_uri: str = Field(default="file:./mlruns", description="MLflow tracking server URI")
     experiment_name: str = Field(
         default="bricksmith-arch-diagrams",
         description="MLflow experiment name",
@@ -42,15 +40,23 @@ class MLflowConfig(BaseModel):
 
 
 class ImageProviderConfig(BaseModel):
-    """Image generation provider (Gemini or OpenAI gpt-image)."""
+    """Image generation provider (Gemini, OpenAI, or Databricks)."""
 
-    provider: Literal["gemini", "openai"] = Field(
+    provider: Literal["gemini", "openai", "databricks"] = Field(
         default="gemini",
-        description="Backend for diagram image generation: gemini or openai (gpt-image-1.5)",
+        description="Backend for diagram image generation: gemini, openai, or databricks",
     )
     openai_model: str = Field(
         default="gpt-image-1.5",
         description="OpenAI model when provider is openai (e.g. gpt-image-1.5, gpt-image-1)",
+    )
+    databricks_model: str = Field(
+        default="databricks-gpt-5-2",
+        description="Databricks serving endpoint for routing (AWS US only)",
+    )
+    databricks_image_model: str = Field(
+        default="gpt-image-1.5",
+        description="Image generation model on Databricks",
     )
 
 

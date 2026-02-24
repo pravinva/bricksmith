@@ -87,7 +87,7 @@ function App() {
 
   const handleStartRefinementFromHome = useCallback((
     prompt: string,
-    imageProvider?: 'gemini' | 'openai',
+    imageProvider?: 'gemini' | 'openai' | 'databricks',
     apiKey?: string,
   ) => {
     setMode('refinement');

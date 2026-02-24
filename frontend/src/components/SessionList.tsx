@@ -15,7 +15,7 @@ interface SessionListProps {
     problem: string,
     context?: string,
     authOptions?: {
-      imageProvider?: 'gemini' | 'openai';
+      imageProvider?: 'gemini' | 'openai' | 'databricks';
       openaiApiKey?: string;
       vertexApiKey?: string;
       referencePrompt?: string;
@@ -39,7 +39,7 @@ export function SessionList({
   const [showNewSession, setShowNewSession] = useState(false);
   const [newProblem, setNewProblem] = useState('');
   const [newContext, setNewContext] = useState('');
-  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai' | 'databricks'>('gemini');
   const [customApiKey, setCustomApiKey] = useState('');
   const [referencePrompt, setReferencePrompt] = useState('');
   const [referencePromptPath, setReferencePromptPath] = useState('');
@@ -140,11 +140,12 @@ export function SessionList({
               </label>
               <select
                 value={imageProvider}
-                onChange={(e) => setImageProvider(e.target.value as 'gemini' | 'openai')}
+                onChange={(e) => setImageProvider(e.target.value as 'gemini' | 'openai' | 'databricks')}
                 className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="gemini">Gemini / Vertex</option>
                 <option value="openai">OpenAI</option>
+                <option value="databricks">Databricks (AWS US)</option>
               </select>
             </div>
             <div>

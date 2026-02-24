@@ -47,7 +47,7 @@ export interface CreateSessionRequest {
   initial_problem: string;
   custom_context?: string;
   logo_dir?: string;
-  image_provider?: 'gemini' | 'openai';
+  image_provider?: 'gemini' | 'openai' | 'databricks';
   openai_api_key?: string;
   vertex_api_key?: string;
   reference_prompt?: string;
@@ -79,7 +79,7 @@ export interface StatusResponse {
   ready_for_output: boolean;
   architecture: ArchitectureState;
   available_logos: string[];
-  image_provider: 'gemini' | 'openai';
+  image_provider: 'gemini' | 'openai' | 'databricks';
   credential_mode: 'environment' | 'custom_key';
 }
 
@@ -268,7 +268,7 @@ export interface RefineResponse {
 
 export interface StartStandaloneRefinementRequest {
   prompt: string;
-  image_provider?: 'gemini' | 'openai';
+  image_provider?: 'gemini' | 'openai' | 'databricks';
   openai_api_key?: string;
   vertex_api_key?: string;
 }

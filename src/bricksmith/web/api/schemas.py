@@ -55,7 +55,7 @@ class CreateSessionRequest(BaseModel):
     logo_dir: Optional[str] = Field(
         None, description="Path to logo directory (defaults to logos/default)"
     )
-    image_provider: Optional[Literal["gemini", "openai"]] = Field(
+    image_provider: Optional[Literal["gemini", "openai", "databricks"]] = Field(
         None,
         description="Optional image provider override for this session",
     )
@@ -144,7 +144,7 @@ class StatusResponse(BaseModel):
     ready_for_output: bool
     architecture: ArchitectureState
     available_logos: list[str] = Field(default_factory=list)
-    image_provider: Literal["gemini", "openai"] = Field(
+    image_provider: Literal["gemini", "openai", "databricks"] = Field(
         default="gemini",
         description="Active image provider for this session",
     )
@@ -452,6 +452,6 @@ class StartStandaloneRefinementRequest(BaseModel):
     """Request to start a standalone refinement loop from a raw prompt."""
 
     prompt: str = Field(..., description="Raw diagram prompt text")
-    image_provider: Optional[Literal["gemini", "openai"]] = None
+    image_provider: Optional[Literal["gemini", "openai", "databricks"]] = None
     openai_api_key: Optional[str] = None
     vertex_api_key: Optional[str] = None

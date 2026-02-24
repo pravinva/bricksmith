@@ -14,7 +14,7 @@ import type {
 } from '../types';
 
 interface SessionAuthOptions {
-  imageProvider?: 'gemini' | 'openai';
+  imageProvider?: 'gemini' | 'openai' | 'databricks';
   openaiApiKey?: string;
   vertexApiKey?: string;
   referencePrompt?: string;
@@ -38,7 +38,7 @@ interface UseArchitectReturn {
   architecture: ArchitectureState;
   readyForOutput: boolean;
   availableLogos: string[];
-  imageProvider: 'gemini' | 'openai';
+  imageProvider: 'gemini' | 'openai' | 'databricks';
   credentialMode: 'environment' | 'custom_key';
 
   // Preview state
@@ -79,7 +79,7 @@ export function useArchitect(): UseArchitectReturn {
   const [architecture, setArchitecture] = useState<ArchitectureState>(emptyArchitecture);
   const [readyForOutput, setReadyForOutput] = useState(false);
   const [availableLogos, setAvailableLogos] = useState<string[]>([]);
-  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [imageProvider, setImageProvider] = useState<'gemini' | 'openai' | 'databricks'>('gemini');
   const [credentialMode, setCredentialMode] = useState<'environment' | 'custom_key'>(
     'environment'
   );
