@@ -345,7 +345,9 @@ class RefinementService:
                 pass
             return RefinementIterationResponse(success=False, error=str(e))
 
-    async def refine_prompt(self, session_id: str, user_feedback: str) -> RefineResponse:
+    async def refine_prompt(
+        self, session_id: str, user_feedback: str, user_score: Optional[int] = None
+    ) -> RefineResponse:
         """Refine the current prompt using DSPy with user feedback.
 
         Uses ConversationChatbot.refine_prompt() which passes full session history,
@@ -365,6 +367,8 @@ class RefinementService:
 
             latest_turn = chatbot._session.turns[-1]
             latest_turn.feedback = user_feedback
+            if user_score is not None:
+                latest_turn.score = user_score
 
             # Store user feedback on the iteration schema too
             iterations = self._iterations.get(session_id, [])
@@ -397,6 +401,18 @@ class RefinementService:
             logger.error("Error in refine_prompt for %s: %s", session_id, e, exc_info=True)
             self._statuses[session_id] = "idle"
             return RefineResponse(success=False, error=str(e))
+
+    async def update_prompt(self, session_id: str, new_prompt: str) -> bool:
+        """Directly update the current prompt for the next generation (no DSPy).
+
+        Sets ``current_prompt_override`` on the session so that the next call to
+        ``get_latest_prompt()`` returns *new_prompt* instead of the last turn's prompt.
+        """
+        chatbot = self._chatbots.get(session_id)
+        if chatbot is None or chatbot._session is None:
+            return False
+        chatbot._session.current_prompt_override = new_prompt
+        return True
 
     def get_state(self, session_id: str) -> Optional[RefinementStateResponse]:
         """Get the current refinement state for a session."""

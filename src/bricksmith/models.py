@@ -174,13 +174,21 @@ class ConversationSession(BaseModel):
     diagram_spec_path: Optional[Path] = Field(
         default=None, description="Path to the diagram spec file if generated"
     )
+    current_prompt_override: Optional[str] = Field(
+        default=None,
+        description="Manual prompt override; cleared when a new turn is added",
+    )
 
     def add_turn(self, turn: ConversationTurn) -> None:
         """Add a turn to the session.
 
+        Clears any manual prompt override since the turn captures the
+        prompt that was actually used.
+
         Args:
             turn: ConversationTurn to add
         """
+        self.current_prompt_override = None
         self.turns.append(turn)
 
     def get_history_json(self) -> str:
@@ -221,9 +229,14 @@ class ConversationSession(BaseModel):
     def get_latest_prompt(self) -> str:
         """Get the most recent prompt used.
 
+        If a manual override has been set via ``current_prompt_override``,
+        it takes precedence until cleared by ``add_turn()``.
+
         Returns:
-            Latest prompt or initial prompt if no turns
+            Override prompt, latest turn prompt, or initial prompt
         """
+        if self.current_prompt_override is not None:
+            return self.current_prompt_override
         if self.turns:
             return self.turns[-1].prompt_used
         return self.initial_prompt

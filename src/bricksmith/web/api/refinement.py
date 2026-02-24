@@ -14,6 +14,8 @@ from .schemas import (
     RefinementIterationResponse,
     RefinementStateResponse,
     StartStandaloneRefinementRequest,
+    UpdatePromptRequest,
+    UpdatePromptResponse,
 )
 from ..services.refinement_service import get_refinement_service
 
@@ -63,7 +65,26 @@ async def refine_prompt(
 ) -> RefineResponse:
     """Refine the current prompt with user feedback."""
     service = get_refinement_service()
-    return await service.refine_prompt(session_id, request.user_feedback)
+    return await service.refine_prompt(
+        session_id, request.user_feedback, user_score=request.user_score
+    )
+
+
+@router.post("/{session_id}/update-prompt", response_model=UpdatePromptResponse)
+async def update_prompt(
+    session_id: str,
+    request: UpdatePromptRequest,
+) -> UpdatePromptResponse:
+    """Directly update the current prompt without DSPy refinement."""
+    service = get_refinement_service()
+    success = await service.update_prompt(session_id, request.prompt)
+    if not success:
+        raise HTTPException(status_code=404, detail="Refinement session not found")
+    state = service.get_state(session_id)
+    return UpdatePromptResponse(
+        success=True,
+        current_prompt=state.current_prompt if state else "",
+    )
 
 
 @router.get("/{session_id}/state", response_model=RefinementStateResponse)

@@ -386,6 +386,21 @@ class RefineRequest(BaseModel):
     """Request to refine the current prompt with user feedback."""
 
     user_feedback: str
+    user_score: Optional[int] = Field(None, ge=1, le=10, description="User's manual score (1-10)")
+
+
+class UpdatePromptRequest(BaseModel):
+    """Request to directly update the current prompt without DSPy refinement."""
+
+    prompt: str = Field(..., description="New prompt text to use")
+
+
+class UpdatePromptResponse(BaseModel):
+    """Response from updating the prompt."""
+
+    success: bool
+    current_prompt: str = ""
+    error: Optional[str] = None
 
 
 class RefineResponse(BaseModel):
