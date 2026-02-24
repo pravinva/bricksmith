@@ -1,27 +1,22 @@
 """Service for managing the diagram refinement loop in web sessions.
 
-Reuses existing components:
-- conversation.build_evaluation_prompt() for LLM Judge evaluation
-- GeminiClient.analyze_image() for image analysis
-- ConversationalRefiner.refine_with_context() for DSPy prompt refinement
-- ArchitectService for image generation resources (logos, image generator, prompts)
+Wraps ConversationChatbot to reuse the exact same generate -> evaluate -> refine
+loop as the CLI `bricksmith chat` command. This ensures prompts are properly built
+with logo constraints, negative prompts, and all enhancement logic.
 """
 
 import asyncio
 import json
 import logging
-import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ...config import load_config
-from ...conversation import build_evaluation_prompt
-from ...conversation_dspy import ConversationalRefiner
+from ...config import AppConfig, load_config
+from ...conversation import ConversationChatbot
 from ...gemini_client import GeminiClient
 from ...image_generator import ImageGenerator
-from ...logos import LogoKitHandler
-from ...models import LogoInfo
+from ...models import ConversationConfig, GenerationSettings
 from ..api.schemas import (
     EvaluationScores,
     GenerationSettingsRequest,
@@ -34,79 +29,110 @@ from ..api.schemas import (
 logger = logging.getLogger(__name__)
 
 
-class _RefinementState:
-    """In-memory state for a single session's refinement loop."""
+def _settings_from_request(
+    settings_req: Optional[GenerationSettingsRequest],
+) -> Optional[GenerationSettings]:
+    """Convert a web GenerationSettingsRequest to the models.GenerationSettings used by the chatbot."""
+    if settings_req is None:
+        return None
 
-    def __init__(self, session_id: str, original_prompt: str):
-        self.session_id = session_id
-        self.original_prompt = original_prompt
-        self.current_prompt = original_prompt
-        self.current_image_url: Optional[str] = None
-        self.status = "idle"  # idle, generating, evaluating, refining
-        self.iterations: list[RefinementIterationSchema] = []
+    from ...conversation import GENERATION_PRESETS
 
-    def to_response(self) -> RefinementStateResponse:
-        return RefinementStateResponse(
-            session_id=self.session_id,
-            status=self.status,
-            original_prompt=self.original_prompt,
-            current_prompt=self.current_prompt,
-            current_image_url=self.current_image_url,
-            iterations=self.iterations,
-            iteration_count=len(self.iterations),
+    # Start from preset if provided, otherwise defaults
+    if settings_req.preset and settings_req.preset in GENERATION_PRESETS:
+        settings = GENERATION_PRESETS[settings_req.preset].model_copy()
+    else:
+        settings = GenerationSettings()
+
+    # Explicit overrides
+    if settings_req.image_size is not None:
+        settings.image_size = settings_req.image_size
+    if settings_req.aspect_ratio is not None:
+        settings.aspect_ratio = settings_req.aspect_ratio
+
+    return settings
+
+
+def _image_url_from_path(image_path: Path) -> str:
+    """Convert a local image path like outputs/2026-02-24/chat-xyz/iteration_1.png to an API URL."""
+    parts = image_path.parts
+    try:
+        idx = parts.index("outputs")
+        relative = "/".join(parts[idx + 1 :])
+        return f"/api/images/{relative}"
+    except ValueError:
+        return f"/api/images/{image_path.name}"
+
+
+def _resolve_image_generator(
+    config: AppConfig,
+    image_provider: Optional[str] = None,
+    openai_api_key: Optional[str] = None,
+    vertex_api_key: Optional[str] = None,
+) -> Optional[ImageGenerator]:
+    """Create an image generator for the given provider, or None to use the default."""
+    if image_provider == "openai":
+        from ...openai_image_client import OpenAIImageClient
+
+        return OpenAIImageClient(
+            api_key=openai_api_key or None,
+            model=config.image_provider.openai_model,
         )
+    elif image_provider == "databricks":
+        from ...databricks_image_client import DatabricksImageClient
+
+        return DatabricksImageClient(
+            model=config.image_provider.databricks_model,
+            image_model=config.image_provider.databricks_image_model,
+        )
+    elif image_provider == "gemini" and vertex_api_key:
+        return GeminiClient(api_key=vertex_api_key)
+    return None
 
 
 class RefinementService:
-    """Manages per-session refinement state and orchestrates the refinement loop.
+    """Manages per-session refinement using ConversationChatbot.
 
-    Gets image generation resources (logos, image generator, prompt builder) from
-    ArchitectService to avoid duplication.
+    Wraps the same chat loop as the CLI `bricksmith chat` command, ensuring
+    prompts are built with logo constraints, evaluated with the LLM Judge,
+    and refined with DSPy using full session context.
     """
 
     def __init__(self):
-        self._states: dict[str, _RefinementState] = {}
-        self._refiner: Optional[ConversationalRefiner] = None
-        self._gemini_analyzer: Optional[GeminiClient] = None
-        # Standalone refinement resources (not backed by architect sessions)
-        self._standalone_logos: dict[str, tuple[LogoKitHandler, list[LogoInfo]]] = {}
-        self._standalone_generators: dict[str, ImageGenerator] = {}
-
-    def _get_refiner(self) -> ConversationalRefiner:
-        """Lazy-initialize DSPy refiner."""
-        if self._refiner is None:
-            self._refiner = ConversationalRefiner()
-        return self._refiner
-
-    def _get_analyzer(self) -> GeminiClient:
-        """Lazy-initialize Gemini client for image analysis."""
-        if self._gemini_analyzer is None:
-            self._gemini_analyzer = GeminiClient()
-        return self._gemini_analyzer
+        self._chatbots: dict[str, ConversationChatbot] = {}
+        # Track raw user prompt separately (chatbot prepends logo section)
+        self._raw_prompts: dict[str, str] = {}
+        # Track iteration schemas for API responses (richer than ConversationTurn)
+        self._iterations: dict[str, list[RefinementIterationSchema]] = {}
+        self._statuses: dict[str, str] = {}  # idle, generating, evaluating, refining
 
     async def start_refinement(self, session_id: str) -> RefinementStateResponse:
         """Start a refinement loop from the current architect session state.
 
-        Gets the diagram prompt from ArchitectService and initializes state.
+        Gets the diagram prompt from ArchitectService and initializes a
+        ConversationChatbot with that prompt.
         """
         from .architect_service import get_architect_service
 
         service = get_architect_service()
-        chatbot = await service._get_or_restore_chatbot(session_id)
-        if chatbot is None:
+        arch_chatbot = await service._get_or_restore_chatbot(session_id)
+        if arch_chatbot is None:
             raise ValueError(f"Session {session_id} not found")
 
-        session = chatbot._session
-        if session is None:
+        arch_session = arch_chatbot._session
+        if arch_session is None:
             raise ValueError(f"No active session for {session_id}")
 
-        arch = session.current_architecture
-        prompt = service._build_diagram_prompt(arch, session.initial_problem)
+        arch = arch_session.current_architecture
+        prompt = service._build_diagram_prompt(arch, arch_session.initial_problem)
 
-        state = _RefinementState(session_id=session_id, original_prompt=prompt)
-        self._states[session_id] = state
+        # Resolve image generator from architect service overrides
+        image_gen = service._session_image_generators.get(session_id)
+        if image_gen is None:
+            provider_override = service._session_provider_overrides.get(session_id)
+            image_gen = _resolve_image_generator(service.config, provider_override)
 
-        return state.to_response()
+        return await self._init_chatbot(session_id, prompt, service.config, image_gen)
 
     async def start_standalone_refinement(
         self,
@@ -115,191 +141,117 @@ class RefinementService:
         openai_api_key: Optional[str] = None,
         vertex_api_key: Optional[str] = None,
     ) -> RefinementStateResponse:
-        """Start a standalone refinement loop from a raw prompt (no architect session).
+        """Start a standalone refinement loop from a raw prompt.
 
-        Loads all logos from the default logo kit and creates refinement state.
+        Creates a ConversationChatbot that loads logos, builds the full prompt
+        with logo constraints, and prepares for the generate/evaluate/refine loop.
         """
         import uuid
 
         session_id = f"standalone-{str(uuid.uuid4())[:8]}"
-
         config = load_config()
-        logo_handler = LogoKitHandler(config=config.logo_kit)
-        logos = logo_handler.load_logo_kit(config.logo_kit.logo_dir)
-        self._standalone_logos[session_id] = (logo_handler, logos)
 
-        # Set up per-session image generator if custom keys provided
-        if image_provider == "openai":
-            from ...openai_image_client import OpenAIImageClient
+        image_gen = _resolve_image_generator(config, image_provider, openai_api_key, vertex_api_key)
 
-            self._standalone_generators[session_id] = OpenAIImageClient(
-                api_key=openai_api_key or None,
-                model=config.image_provider.openai_model,
-            )
-        elif image_provider == "databricks":
-            from ...databricks_image_client import DatabricksImageClient
+        return await self._init_chatbot(session_id, prompt, config, image_gen)
 
-            self._standalone_generators[session_id] = DatabricksImageClient(
-                model=config.image_provider.databricks_model,
-                image_model=config.image_provider.databricks_image_model,
-            )
-        elif image_provider == "gemini" and vertex_api_key:
-            self._standalone_generators[session_id] = GeminiClient(api_key=vertex_api_key)
+    async def _init_chatbot(
+        self,
+        session_id: str,
+        prompt: str,
+        config: AppConfig,
+        image_generator: Optional[ImageGenerator] = None,
+    ) -> RefinementStateResponse:
+        """Create and initialize a ConversationChatbot for the refinement loop."""
+        conv_config = ConversationConfig(
+            auto_refine=True,
+            auto_analyze=True,
+            session_name=session_id,
+        )
 
-        state = _RefinementState(session_id=session_id, original_prompt=prompt)
-        self._states[session_id] = state
+        chatbot = ConversationChatbot(
+            config=config,
+            conv_config=conv_config,
+            image_generator=image_generator,
+        )
 
-        return state.to_response()
+        # start_session loads logos, builds logo section, prepends to prompt
+        await asyncio.to_thread(chatbot.start_session, prompt)
+
+        self._chatbots[session_id] = chatbot
+        self._raw_prompts[session_id] = prompt
+        self._iterations[session_id] = []
+        self._statuses[session_id] = "idle"
+
+        return self._build_state_response(session_id)
 
     async def generate_and_evaluate(
         self,
         session_id: str,
         settings_req: Optional[GenerationSettingsRequest] = None,
     ) -> RefinementIterationResponse:
-        """Generate an image from current prompt and evaluate it with LLM Judge.
+        """Generate an image and evaluate it with the LLM Judge.
 
-        Returns a RefinementIterationResponse with the full iteration data.
+        Uses ConversationChatbot.run_iteration() for generation (same as CLI)
+        and ConversationChatbot.auto_evaluate() for scoring.
         """
-        from .architect_service import get_architect_service
-
-        state = self._states.get(session_id)
-        if state is None:
+        chatbot = self._chatbots.get(session_id)
+        if chatbot is None or chatbot._session is None:
             return RefinementIterationResponse(
                 success=False, error="No refinement in progress for this session"
             )
 
-        service = get_architect_service()
-
-        # Determine if this is a standalone or session-based refinement
-        is_standalone = session_id in self._standalone_logos
-
-        if not is_standalone:
-            chatbot = await service._get_or_restore_chatbot(session_id)
-            if chatbot is None:
-                return RefinementIterationResponse(success=False, error="Session not found")
-        else:
-            chatbot = None
-
         try:
-            # Phase 1: Generate image(s)
-            state.status = "generating"
+            self._statuses[session_id] = "generating"
 
-            # Resolve generation settings
-            gen_kwargs: dict = {}
-            num_variants = 1
-            if settings_req:
-                gen_kwargs = settings_req.to_generation_kwargs()
-                num_variants = settings_req.num_variants or 1
+            gen_settings = _settings_from_request(settings_req)
+            num_variants = (
+                settings_req.num_variants if settings_req and settings_req.num_variants else None
+            )
+            current_prompt = chatbot._session.get_latest_prompt()
 
-            # Build logo parts depending on mode
-            logo_parts = []
-            if is_standalone:
-                logo_handler, logos = self._standalone_logos[session_id]
-                for logo in logos:
-                    logo_part = logo_handler.to_image_part(logo)
-                    logo_parts.append(logo_part)
-            else:
-                session = chatbot._session
-                arch = session.current_architecture if session else {}
-                components = arch.get("components", [])
-                logos_used: set[str] = set()
-                for comp in components:
-                    logo_name = comp.get("logo_name")
-                    if logo_name and logo_name not in logos_used:
-                        try:
-                            logo = chatbot.logo_handler.get_logo(logo_name)
-                            logo_part = chatbot.logo_handler.to_image_part(logo)
-                            logo_parts.append(logo_part)
-                            logos_used.add(logo_name)
-                        except KeyError:
-                            pass
-
-            # Get image generator: standalone > per-session > default
-            if is_standalone and session_id in self._standalone_generators:
-                gen = self._standalone_generators[session_id]
-            elif not is_standalone:
-                image_generator = service._session_image_generators.get(session_id)
-                if image_generator is None:
-                    from ...databricks_image_client import DatabricksImageClient
-                    from ...openai_image_client import OpenAIImageClient
-
-                    provider_override = service._session_provider_overrides.get(session_id)
-                    if provider_override == "openai":
-                        image_generator = OpenAIImageClient(
-                            model=service.config.image_provider.openai_model
-                        )
-                    elif provider_override == "databricks":
-                        image_generator = DatabricksImageClient(
-                            model=service.config.image_provider.databricks_model,
-                            image_model=service.config.image_provider.databricks_image_model,
-                        )
-                    elif provider_override == "gemini":
-                        image_generator = GeminiClient()
-                    else:
-                        image_generator = service._image_generator
-                gen = image_generator
-            else:
-                gen = service._image_generator
-
-            # Create output directory
-            iteration_num = len(state.iterations) + 1
-            run_id = f"refine-{session_id}-{iteration_num}-" f"{datetime.now().strftime('%H%M%S')}"
-            date_str = datetime.now().strftime("%Y-%m-%d")
-            output_dir = Path("outputs") / date_str / run_id
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            # Generate variant(s)
-            image_urls: list[str] = []
-            first_image_path: Optional[Path] = None
-            for v in range(num_variants):
-                image_bytes, response_text, metadata = await asyncio.to_thread(
-                    gen.generate_image,
-                    prompt=state.current_prompt,
-                    logo_parts=logo_parts,
-                    **gen_kwargs,
-                )
-                filename = "diagram.png" if v == 0 else f"diagram_v{v + 1}.png"
-                image_path = output_dir / filename
-                with open(image_path, "wb") as f:
-                    f.write(image_bytes)
-                url = f"/api/images/{date_str}/{run_id}/{filename}"
-                image_urls.append(url)
-                if v == 0:
-                    first_image_path = image_path
-
-            image_url = image_urls[0]
-            state.current_image_url = image_url
-
-            # Phase 2: Evaluate first variant with LLM Judge
-            state.status = "evaluating"
-            eval_prompt = build_evaluation_prompt("architect")
-
-            analyzer = self._get_analyzer()
-            eval_response = await asyncio.to_thread(
-                analyzer.analyze_image,
-                str(first_image_path),
-                eval_prompt,
-                0.2,
+            # Generate image(s) using the same logic as CLI `bricksmith chat`
+            turn = await asyncio.to_thread(
+                chatbot.run_iteration,
+                prompt=current_prompt,
+                settings=gen_settings,
+                is_retry=len(chatbot._session.turns) > 0,
+                num_variants_override=num_variants,
             )
 
-            # Parse evaluation JSON (same pattern as conversation.py auto_evaluate)
-            json_match = re.search(r"\{[\s\S]*\}", eval_response)
+            # Evaluate with LLM Judge (same as CLI auto-refine mode)
+            self._statuses[session_id] = "evaluating"
+            score, feedback = await asyncio.to_thread(chatbot.auto_evaluate, turn)
+
+            # End MLflow run (run_iteration leaves it open for scoring)
+            try:
+                chatbot.mlflow_tracker.log_metrics({"score": score})
+                chatbot.mlflow_tracker.end_run("FINISHED")
+            except Exception:
+                pass
+
+            # Add turn to session
+            chatbot._session.add_turn(turn)
+
+            # Build image URLs from saved paths
+            image_urls = [_image_url_from_path(p) for p in turn.variant_paths]
+            if not image_urls:
+                image_urls = [_image_url_from_path(turn.image_path)]
+            image_url = _image_url_from_path(turn.image_path)
+
+            # Parse evaluation scores from visual_analysis if available
             scores = None
-            overall_score = None
             strengths: list[str] = []
             issues: list[str] = []
             improvements: list[str] = []
-            feedback = ""
 
-            if json_match:
+            if turn.visual_analysis:
                 try:
-                    eval_data = json.loads(json_match.group())
+                    eval_data = json.loads(turn.visual_analysis)
                     raw_scores = eval_data.get("scores", {})
-                    overall_score = int(round(eval_data.get("overall_score", 0)))
                     strengths = eval_data.get("strengths", [])
                     issues = eval_data.get("issues", [])
                     improvements = eval_data.get("actionable_improvements", [])
-                    feedback = eval_data.get("feedback_for_refinement", "")
 
                     scores = EvaluationScores(
                         information_hierarchy=raw_scores.get("information_hierarchy", 0),
@@ -309,15 +261,15 @@ class RefinementService:
                         data_flow_legibility=raw_scores.get("data_flow_legibility", 0),
                         text_readability=raw_scores.get("text_readability", 0),
                     )
-                except (json.JSONDecodeError, ValueError) as e:
-                    logger.warning("Failed to parse evaluation JSON: %s", e)
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
             iteration = RefinementIterationSchema(
-                iteration=iteration_num,
-                prompt_used=state.current_prompt,
+                iteration=turn.iteration,
+                prompt_used=turn.prompt_used,
                 image_url=image_url,
                 image_urls=image_urls,
-                overall_score=overall_score,
+                overall_score=score,
                 scores=scores,
                 strengths=strengths,
                 issues=issues,
@@ -327,81 +279,100 @@ class RefinementService:
                 created_at=datetime.now().isoformat(),
             )
 
-            state.iterations.append(iteration)
-            state.status = "idle"
+            self._iterations.setdefault(session_id, []).append(iteration)
+            self._statuses[session_id] = "idle"
 
             return RefinementIterationResponse(success=True, iteration=iteration)
 
         except Exception as e:
             logger.error("Error in generate_and_evaluate for %s: %s", session_id, e, exc_info=True)
-            state.status = "idle"
+            self._statuses[session_id] = "idle"
+            # Try to end MLflow run on error
+            try:
+                chatbot.mlflow_tracker.end_run("FAILED")
+            except Exception:
+                pass
             return RefinementIterationResponse(success=False, error=str(e))
 
     async def refine_prompt(self, session_id: str, user_feedback: str) -> RefineResponse:
         """Refine the current prompt using DSPy with user feedback.
 
-        Uses ConversationalRefiner.refine_with_context() to generate a new prompt.
+        Uses ConversationChatbot.refine_prompt() which passes full session history,
+        original prompt (with logo constraints), and visual analysis to DSPy.
         """
-        state = self._states.get(session_id)
-        if state is None:
+        chatbot = self._chatbots.get(session_id)
+        if chatbot is None or chatbot._session is None:
             return RefineResponse(success=False, error="No refinement in progress for this session")
 
-        if not state.iterations:
+        if not chatbot._session.turns:
             return RefineResponse(
                 success=False, error="No iterations yet - generate an image first"
             )
 
         try:
-            state.status = "refining"
+            self._statuses[session_id] = "refining"
 
-            latest = state.iterations[-1]
+            latest_turn = chatbot._session.turns[-1]
+            latest_turn.feedback = user_feedback
 
-            # Store user feedback on the latest iteration
-            latest.user_feedback = user_feedback
+            # Store user feedback on the iteration schema too
+            iterations = self._iterations.get(session_id, [])
+            if iterations:
+                iterations[-1].user_feedback = user_feedback
 
-            # Build session history for DSPy context
-            history = [
-                {
-                    "iteration": it.iteration,
-                    "score": it.overall_score,
-                    "feedback": it.user_feedback or it.feedback_for_refinement,
-                }
-                for it in state.iterations
-            ]
+            current_prompt = chatbot._session.get_latest_prompt()
 
-            refiner = self._get_refiner()
-            refined_prompt, reasoning, expected_improvement = await asyncio.to_thread(
-                refiner.refine_with_context,
-                session_history=json.dumps(history),
-                original_prompt=state.original_prompt,
-                current_prompt=state.current_prompt,
-                feedback=user_feedback or latest.feedback_for_refinement,
-                score=latest.overall_score or 5,
-                visual_analysis="; ".join(latest.issues) if latest.issues else "",
+            # Refine using DSPy with full session context (same as CLI)
+            refined_prompt = await asyncio.to_thread(
+                chatbot.refine_prompt,
+                current_prompt=current_prompt,
+                turn=latest_turn,
             )
 
-            state.current_prompt = refined_prompt
-            latest.refinement_reasoning = reasoning
-            state.status = "idle"
+            # Store reasoning on iteration schema
+            if iterations and latest_turn.refinement_reasoning:
+                iterations[-1].refinement_reasoning = latest_turn.refinement_reasoning
+
+            self._statuses[session_id] = "idle"
 
             return RefineResponse(
                 success=True,
                 refined_prompt=refined_prompt,
-                reasoning=reasoning,
-                expected_improvement=expected_improvement,
+                reasoning=latest_turn.refinement_reasoning or "",
+                expected_improvement="",
             )
 
         except Exception as e:
             logger.error("Error in refine_prompt for %s: %s", session_id, e, exc_info=True)
-            state.status = "idle"
+            self._statuses[session_id] = "idle"
             return RefineResponse(success=False, error=str(e))
 
     def get_state(self, session_id: str) -> Optional[RefinementStateResponse]:
         """Get the current refinement state for a session."""
-        state = self._states.get(session_id)
-        if state is None:
+        if session_id not in self._chatbots:
             return None
-        return state.to_response()
+        return self._build_state_response(session_id)
+
+    def _build_state_response(self, session_id: str) -> RefinementStateResponse:
+        """Build a RefinementStateResponse from chatbot state."""
+        chatbot = self._chatbots[session_id]
+        session = chatbot._session
+        iterations = self._iterations.get(session_id, [])
+        status = self._statuses.get(session_id, "idle")
+
+        current_image_url = None
+        if iterations:
+            current_image_url = iterations[-1].image_url
+
+        return RefinementStateResponse(
+            session_id=session_id,
+            status=status,
+            original_prompt=self._raw_prompts.get(session_id, ""),
+            current_prompt=session.get_latest_prompt() if session else "",
+            current_image_url=current_image_url,
+            iterations=iterations,
+            iteration_count=len(iterations),
+        )
 
 
 # Singleton instance
