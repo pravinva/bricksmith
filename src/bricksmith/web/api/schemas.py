@@ -475,6 +475,11 @@ class StartStandaloneRefinementRequest(BaseModel):
         None, description="Path to a prompt file on the server (read server-side)"
     )
     image_provider: Optional[Literal["gemini", "openai", "databricks"]] = None
+    gemini_model: Optional[str] = Field(
+        None,
+        description="Gemini model ID: gemini-3-pro-image-preview (Nano Banana Pro) "
+        "or gemini-2.5-flash-image (Nano Banana)",
+    )
     openai_api_key: Optional[str] = None
     vertex_api_key: Optional[str] = None
     persona: Optional[Literal["architect", "executive", "developer", "auto"]] = Field(

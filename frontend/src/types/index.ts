@@ -271,6 +271,7 @@ export interface StartStandaloneRefinementRequest {
   prompt?: string;
   prompt_file?: string;
   image_provider?: 'gemini' | 'openai' | 'databricks';
+  gemini_model?: string;
   openai_api_key?: string;
   vertex_api_key?: string;
   persona?: 'architect' | 'executive' | 'developer' | 'auto';
@@ -279,6 +280,19 @@ export interface StartStandaloneRefinementRequest {
   folder?: string;
   num_variants?: number;
 }
+
+export const GEMINI_MODELS = [
+  {
+    value: 'gemini-3-pro-image-preview',
+    label: 'Nano Banana Pro',
+    desc: 'Best quality, reasoning-driven (default)',
+  },
+  {
+    value: 'gemini-2.5-flash-image',
+    label: 'Nano Banana',
+    desc: 'Faster, cheaper, good for iteration',
+  },
+] as const;
 
 // Generation settings types
 

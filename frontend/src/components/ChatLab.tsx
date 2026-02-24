@@ -14,6 +14,7 @@ import type {
   PromptFileItem,
   StartStandaloneRefinementRequest,
 } from '../types';
+import { GEMINI_MODELS } from '../types';
 
 // ---------------------------------------------------------------------------
 // CLI command parser
@@ -89,6 +90,8 @@ export function ChatLab() {
   const [numVariants, setNumVariants] = useState(1);
   const [folder, setFolder] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [geminiModel, setGeminiModel] = useState('gemini-3-pro-image-preview');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
@@ -144,10 +147,14 @@ export function ChatLab() {
 
     let request: StartStandaloneRefinementRequest;
 
+    // Common fields for all request modes
+    const geminiModelOverride = provider === 'gemini' ? geminiModel : undefined;
+
     if (isCliCommand && detected) {
       request = {
         ...detected,
         image_provider: (detected.image_provider || provider) as StartStandaloneRefinementRequest['image_provider'],
+        gemini_model: geminiModelOverride,
         persona: (detected.persona || persona) as StartStandaloneRefinementRequest['persona'],
         aspect_ratio: detected.aspect_ratio || aspectRatio,
         image_size: detected.image_size || imageSize,
@@ -160,6 +167,7 @@ export function ChatLab() {
       request = {
         prompt_file: selectedFile.path,
         image_provider: provider as StartStandaloneRefinementRequest['image_provider'],
+        gemini_model: geminiModelOverride,
         persona: persona as StartStandaloneRefinementRequest['persona'],
         aspect_ratio: aspectRatio,
         image_size: imageSize,
@@ -172,6 +180,7 @@ export function ChatLab() {
       request = {
         prompt: prompt.trim(),
         image_provider: provider as StartStandaloneRefinementRequest['image_provider'],
+        gemini_model: geminiModelOverride,
         persona: persona as StartStandaloneRefinementRequest['persona'],
         aspect_ratio: aspectRatio,
         image_size: imageSize,
@@ -196,7 +205,7 @@ export function ChatLab() {
       setIsStarting(false);
     }
   }, [
-    isCliCommand, detected, selectedFile, prompt, provider, persona,
+    isCliCommand, detected, selectedFile, prompt, provider, persona, geminiModel,
     aspectRatio, imageSize, folder, numVariants, apiKey, startSession, sessionCount,
   ]);
 
@@ -504,6 +513,58 @@ export function ChatLab() {
                   </div>
                 </div>
               </div>
+            </section>
+
+            {/* ── Step 3: Advanced (collapsible) ────────────────────────── */}
+            <section className="bg-white rounded-xl border shadow-sm mb-5">
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen(prev => !prev)}
+                className="w-full px-5 py-3 flex items-center justify-between text-left hover:bg-gray-50 rounded-xl"
+              >
+                <h3 className="text-sm font-semibold text-gray-800">3. Advanced</h3>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {advancedOpen && (
+                <div className="px-5 pb-5 border-t space-y-4">
+                  {/* Gemini model selector */}
+                  {provider === 'gemini' && (
+                    <div className="pt-3">
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                        Gemini model (Nano Banana)
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {GEMINI_MODELS.map(m => (
+                          <button
+                            key={m.value}
+                            onClick={() => setGeminiModel(m.value)}
+                            className={`px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                              geminiModel === m.value
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                            }`}
+                          >
+                            <div className="font-medium">{m.label}</div>
+                            <div className="text-[10px] text-gray-500 mt-0.5">{m.desc}</div>
+                            <div className="text-[10px] font-mono text-gray-400 mt-0.5">{m.value}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {provider !== 'gemini' && (
+                    <p className="pt-3 text-sm text-gray-500">
+                      Model selection is available when using the Gemini provider.
+                    </p>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* ── Start button ──────────────────────────────────────────── */}

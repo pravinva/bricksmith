@@ -46,6 +46,10 @@ class ImageProviderConfig(BaseModel):
         default="gemini",
         description="Backend for diagram image generation: gemini, openai, or databricks",
     )
+    gemini_model: str = Field(
+        default="gemini-3-pro-image-preview",
+        description="Gemini model for image generation (gemini-3-pro-image-preview or gemini-2.5-flash-image)",
+    )
     openai_model: str = Field(
         default="gpt-image-1.5",
         description="OpenAI model when provider is openai (e.g. gpt-image-1.5, gpt-image-1)",

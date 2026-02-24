@@ -33,6 +33,7 @@ async def start_standalone_refinement(
             prompt=request.prompt,
             prompt_file=request.prompt_file,
             image_provider=request.image_provider,
+            gemini_model=request.gemini_model,
             openai_api_key=request.openai_api_key,
             vertex_api_key=request.vertex_api_key,
             persona=request.persona,

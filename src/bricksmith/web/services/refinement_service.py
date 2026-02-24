@@ -67,6 +67,7 @@ def _image_url_from_path(image_path: Path) -> str:
 def _resolve_image_generator(
     config: AppConfig,
     image_provider: Optional[str] = None,
+    gemini_model: Optional[str] = None,
     openai_api_key: Optional[str] = None,
     vertex_api_key: Optional[str] = None,
 ) -> Optional[ImageGenerator]:
@@ -85,8 +86,12 @@ def _resolve_image_generator(
             model=config.image_provider.databricks_model,
             image_model=config.image_provider.databricks_image_model,
         )
-    elif image_provider == "gemini" and vertex_api_key:
-        return GeminiClient(api_key=vertex_api_key)
+    elif image_provider == "gemini":
+        model = gemini_model or config.image_provider.gemini_model
+        return GeminiClient(api_key=vertex_api_key or None, model=model)
+    elif gemini_model:
+        # Gemini model override without explicit provider selection
+        return GeminiClient(model=gemini_model)
     return None
 
 
@@ -139,6 +144,7 @@ class RefinementService:
         prompt: Optional[str] = None,
         prompt_file: Optional[str] = None,
         image_provider: Optional[str] = None,
+        gemini_model: Optional[str] = None,
         openai_api_key: Optional[str] = None,
         vertex_api_key: Optional[str] = None,
         persona: Optional[str] = None,
@@ -175,7 +181,9 @@ class RefinementService:
             session_id = f"standalone-{str(uuid.uuid4())[:8]}"
 
         config = load_config()
-        image_gen = _resolve_image_generator(config, image_provider, openai_api_key, vertex_api_key)
+        image_gen = _resolve_image_generator(
+            config, image_provider, gemini_model, openai_api_key, vertex_api_key
+        )
 
         return await self._init_chatbot(
             session_id,

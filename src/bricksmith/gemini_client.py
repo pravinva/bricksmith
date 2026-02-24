@@ -47,9 +47,7 @@ def retry_with_backoff(
             return func()
         except Exception as e:
             error_str = str(e)
-            is_retryable = any(
-                str(code) in error_str for code in retryable_errors
-            )
+            is_retryable = any(str(code) in error_str for code in retryable_errors)
 
             if not is_retryable or attempt == max_retries:
                 raise
@@ -59,7 +57,9 @@ def retry_with_backoff(
             jitter = random.uniform(0.5, 1.5)
             sleep_time = min(delay * jitter, max_delay)
 
-            print(f"  ⏳ API overloaded (attempt {attempt + 1}/{max_retries + 1}), retrying in {sleep_time:.1f}s...")
+            print(
+                f"  ⏳ API overloaded (attempt {attempt + 1}/{max_retries + 1}), retrying in {sleep_time:.1f}s..."
+            )
             time.sleep(sleep_time)
             delay *= backoff_factor
 
@@ -137,12 +137,16 @@ class GeminiClient:
     available via Google AI Studio, not Vertex AI.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    DEFAULT_MODEL = "gemini-3-pro-image-preview"
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         """Initialize Gemini client.
 
         Args:
             api_key: Google AI API key. If not provided, will look for
                     GEMINI_API_KEY or GOOGLE_CLOUD_API_KEY in environment.
+            model: Gemini model ID for image generation.
+                   Defaults to gemini-3-pro-image-preview (Nano Banana Pro).
 
         Raises:
             ValueError: If API key not found
@@ -158,7 +162,7 @@ class GeminiClient:
 
         # Initialize client
         self.client = genai.Client(api_key=self.api_key)
-        self.model = "gemini-3-pro-image-preview"
+        self.model = model or self.DEFAULT_MODEL
 
     def generate_image(
         self,
@@ -218,12 +222,7 @@ class GeminiClient:
         content_parts.append(types.Part.from_text(text=prompt))
 
         # Create content
-        contents = [
-            types.Content(
-                role="user",
-                parts=content_parts
-            )
-        ]
+        contents = [types.Content(role="user", parts=content_parts)]
 
         # Build generation config with architecture diagram optimizations
         config_kwargs = {
@@ -242,23 +241,27 @@ class GeminiClient:
                 image_size=image_size,
             ),
         }
-        
+
         # Add optional parameters if provided
         if top_k is not None:
             config_kwargs["top_k"] = top_k
-        
+
         # Note: presence_penalty and frequency_penalty may not be available in all SDK versions
         # Uncomment if your SDK version supports them:
         # if presence_penalty is not None:
         #     config_kwargs["presence_penalty"] = presence_penalty
         # if frequency_penalty is not None:
         #     config_kwargs["frequency_penalty"] = frequency_penalty
-        
+
         # Use provided system instruction or default architecture instruction
-        effective_system_instruction = system_instruction if system_instruction is not None else DEFAULT_ARCHITECTURE_SYSTEM_INSTRUCTION
+        effective_system_instruction = (
+            system_instruction
+            if system_instruction is not None
+            else DEFAULT_ARCHITECTURE_SYSTEM_INSTRUCTION
+        )
         if effective_system_instruction:
             config_kwargs["system_instruction"] = effective_system_instruction
-        
+
         generate_content_config = types.GenerateContentConfig(**config_kwargs)
 
         # Call the model with retry logic for transient errors
@@ -284,8 +287,10 @@ class GeminiClient:
                     continue
 
                 # Extract image data
-                if (chunk.candidates[0].content.parts[0].inline_data
-                    and chunk.candidates[0].content.parts[0].inline_data.data):
+                if (
+                    chunk.candidates[0].content.parts[0].inline_data
+                    and chunk.candidates[0].content.parts[0].inline_data.data
+                ):
                     image_data = chunk.candidates[0].content.parts[0].inline_data.data
                 elif chunk.text:
                     response_text.append(chunk.text)
@@ -428,9 +433,7 @@ class GeminiClient:
             }
             mime_type = mime_types.get(suffix, "image/jpeg")
 
-            content_parts.append(
-                types.Part.from_bytes(data=image_data, mime_type=mime_type)
-            )
+            content_parts.append(types.Part.from_bytes(data=image_data, mime_type=mime_type))
 
         # Add analysis prompt
         content_parts.append(types.Part.from_text(text=prompt))
