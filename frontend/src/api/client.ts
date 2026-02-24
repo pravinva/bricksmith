@@ -236,6 +236,12 @@ export const refinementApi = {
 
   getState: (sessionId: string): Promise<RefinementState> =>
     fetchApi(`/sessions/${sessionId}/refinement/state`),
+
+  updatePrompt: (sessionId: string, prompt: string): Promise<{ success: boolean }> =>
+    fetchApi(`/sessions/${sessionId}/refinement/update-prompt`, {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    }),
 };
 
 /**
@@ -265,4 +271,10 @@ export const standaloneRefinementApi = {
 
   getState: (sessionId: string): Promise<RefinementState> =>
     fetchApi(`/refinement/${sessionId}/state`),
+
+  updatePrompt: (sessionId: string, prompt: string): Promise<{ success: boolean }> =>
+    fetchApi(`/refinement/${sessionId}/update-prompt`, {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    }),
 };

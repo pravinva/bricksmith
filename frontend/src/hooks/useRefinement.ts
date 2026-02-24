@@ -27,7 +27,8 @@ export interface UseRefinementReturn {
   startRefinement: (sessionId: string) => Promise<void>;
   startStandaloneRefinement: (request: StartStandaloneRefinementRequest) => Promise<void>;
   generateAndEvaluate: (settings?: GenerationSettingsRequest) => Promise<void>;
-  refinePrompt: (feedback: string, settings?: GenerationSettingsRequest) => Promise<void>;
+  refinePrompt: (feedback: string, settings?: GenerationSettingsRequest, userScore?: number) => Promise<void>;
+  updatePrompt: (prompt: string) => Promise<void>;
   acceptResult: () => void;
   clearError: () => void;
 }
@@ -139,6 +140,7 @@ export function useRefinement(): UseRefinementReturn {
   const refinePrompt = useCallback(async (
     feedback: string,
     settings?: GenerationSettingsRequest,
+    userScore?: number,
   ) => {
     if (!refinementState) return;
 
@@ -149,7 +151,7 @@ export function useRefinement(): UseRefinementReturn {
       const api = getApi();
       const refineResult = await api.refine(
         refinementState.session_id,
-        { user_feedback: feedback },
+        { user_feedback: feedback, user_score: userScore },
       );
 
       if (!refineResult.success) {
@@ -187,6 +189,22 @@ export function useRefinement(): UseRefinementReturn {
     }
   }, [refinementState, getApi]);
 
+  const updatePrompt = useCallback(async (prompt: string) => {
+    if (!refinementState) return;
+
+    setError(null);
+    try {
+      const api = getApi();
+      await api.updatePrompt(refinementState.session_id, prompt);
+      // Update local state
+      setRefinementState(prev =>
+        prev ? { ...prev, current_prompt: prompt } : prev,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update prompt');
+    }
+  }, [refinementState, getApi]);
+
   const acceptResult = useCallback(() => {
     setRefinementState(null);
     setMode('idle');
@@ -210,6 +228,7 @@ export function useRefinement(): UseRefinementReturn {
     startStandaloneRefinement,
     generateAndEvaluate,
     refinePrompt,
+    updatePrompt,
     acceptResult,
     clearError,
   };

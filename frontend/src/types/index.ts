@@ -254,6 +254,7 @@ export interface RefinementIterationResponse {
 
 export interface RefineRequest {
   user_feedback: string;
+  user_score?: number;
 }
 
 export interface RefineResponse {

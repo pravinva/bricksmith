@@ -265,6 +265,7 @@ function App() {
                 onAccept={refinement.acceptResult}
                 onRegenerate={refinement.generateAndEvaluate}
                 onClearError={refinement.clearError}
+                onUpdatePrompt={refinement.updatePrompt}
               />
             ) : (
               <div className="overflow-y-auto h-full p-4 space-y-4">
