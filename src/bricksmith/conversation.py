@@ -35,6 +35,7 @@ from .prompts import PromptBuilder
 # Try to import native MCP client for search functionality
 try:
     from . import mcp_client as native_mcp
+
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False
@@ -142,7 +143,9 @@ def show_chat_help() -> None:
     help_table.add_row("[bold]Selected folder & rename[/bold]", "")
     help_table.add_row("select  /  s", "Copy current image to outputs/selected (or --selected-dir)")
     help_table.add_row("best", "Copy best-scoring image so far to selected folder")
-    help_table.add_row("rename <name>  /  folder <name>", "Rename session folder (e.g. folder my-diagram)")
+    help_table.add_row(
+        "rename <name>  /  folder <name>", "Rename session folder (e.g. folder my-diagram)"
+    )
     help_table.add_row("", "")
 
     # Search
@@ -152,10 +155,16 @@ def show_chat_help() -> None:
 
     # Variants (same prompt, N images, pick best)
     help_table.add_row("[bold]Variants (run same prompt N times, pick best)[/bold]", "")
-    help_table.add_row("v 3  /  variants 3", "Generate 3 images from current prompt, then pick one (2-8)")
-    help_table.add_row("v 3 r creative", "Same, but use a retry preset (e.g. creative, wild) for those variants")
+    help_table.add_row(
+        "v 3  /  variants 3", "Generate 3 images from current prompt, then pick one (2-8)"
+    )
+    help_table.add_row(
+        "v 3 r creative", "Same, but use a retry preset (e.g. creative, wild) for those variants"
+    )
     help_table.add_row("[bold]Joint (feedback + settings)[/bold]", "")
-    help_table.add_row("<text> r creative", "Refine prompt with your text, then generate with that preset")
+    help_table.add_row(
+        "<text> r creative", "Refine prompt with your text, then generate with that preset"
+    )
     help_table.add_row("<text> v 3", "Refine prompt with your text, then generate 3 variants")
     help_table.add_row("", "[dim]One command per line; combine only as 'v N r <preset>'[/dim]")
     help_table.add_row("", "")
@@ -499,8 +508,17 @@ class ConversationChatbot:
             )
             self._reference_style = style_description
             console.print("[green]Reference style extracted successfully[/green]")
-            console.print(Panel(style_description[:500] + "..." if len(style_description) > 500 else style_description,
-                               title="Reference Style", border_style="cyan"))
+            console.print(
+                Panel(
+                    (
+                        style_description[:500] + "..."
+                        if len(style_description) > 500
+                        else style_description
+                    ),
+                    title="Reference Style",
+                    border_style="cyan",
+                )
+            )
             return style_description
         except Exception as e:
             console.print(f"[yellow]Warning: Could not analyze reference image: {e}[/yellow]")
@@ -569,15 +587,14 @@ class ConversationChatbot:
         if self.conv_config.session_name:
             # Sanitize name for filesystem
             import re
-            safe_name = re.sub(r'[^\w\-_]', '_', self.conv_config.session_name)
+
+            safe_name = re.sub(r"[^\w\-_]", "_", self.conv_config.session_name)
             session_id = safe_name[:50]  # Limit length
 
             # If directory already exists, append a short random suffix to avoid
             # collisions when multiple sessions share the same prompt filename.
             candidate_dir = (
-                Path("outputs")
-                / datetime.now().strftime("%Y-%m-%d")
-                / f"chat-{session_id}"
+                Path("outputs") / datetime.now().strftime("%Y-%m-%d") / f"chat-{session_id}"
             )
             if candidate_dir.exists():
                 session_id = f"{session_id}-{str(uuid.uuid4())[:6]}"
@@ -639,21 +656,23 @@ class ConversationChatbot:
 
         try:
             # Log parameters
-            self.mlflow_tracker.log_parameters({
-                "session_id": self._session.session_id,
-                "iteration": iteration,
-                "prompt_template_id": self._session.template_id or "raw",
-                "logo_count": len(self._logos),
-                "temperature": gen_settings.temperature,
-                "top_p": gen_settings.top_p,
-                "top_k": gen_settings.top_k if gen_settings.top_k > 0 else None,
-                "presence_penalty": gen_settings.presence_penalty,
-                "frequency_penalty": gen_settings.frequency_penalty,
-                "image_size": gen_settings.image_size,
-                "aspect_ratio": gen_settings.aspect_ratio,
-                "num_variants": num_variants,
-                "is_retry": is_retry,
-            })
+            self.mlflow_tracker.log_parameters(
+                {
+                    "session_id": self._session.session_id,
+                    "iteration": iteration,
+                    "prompt_template_id": self._session.template_id or "raw",
+                    "logo_count": len(self._logos),
+                    "temperature": gen_settings.temperature,
+                    "top_p": gen_settings.top_p,
+                    "top_k": gen_settings.top_k if gen_settings.top_k > 0 else None,
+                    "presence_penalty": gen_settings.presence_penalty,
+                    "frequency_penalty": gen_settings.frequency_penalty,
+                    "image_size": gen_settings.image_size,
+                    "aspect_ratio": gen_settings.aspect_ratio,
+                    "num_variants": num_variants,
+                    "is_retry": is_retry,
+                }
+            )
 
             # Log prompt
             self.mlflow_tracker.log_prompt(prompt, "prompt.txt")
@@ -715,7 +734,9 @@ class ConversationChatbot:
             # Select variant if multiple were generated
             selected_variant: Optional[int] = None
             if num_variants > 1:
-                console.print(f"\n[green]All {num_variants} variants generated in {generation_time:.1f}s[/green]")
+                console.print(
+                    f"\n[green]All {num_variants} variants generated in {generation_time:.1f}s[/green]"
+                )
                 console.print("[bold]Review the variants and select the best one:[/bold]")
                 for i, vp in enumerate(variant_paths, 1):
                     console.print(f"  [cyan]{i}.[/cyan] {vp}")
@@ -734,7 +755,9 @@ class ConversationChatbot:
                     selected_variant = selection
 
                 selected_path = variant_paths[selected_variant - 1]
-                console.print(f"[bold green]Selected variant {selected_variant}:[/bold green] {selected_path}")
+                console.print(
+                    f"[bold green]Selected variant {selected_variant}:[/bold green] {selected_path}"
+                )
 
                 # Copy selected variant as the canonical iteration image
                 canonical_path = output_dir / f"iteration_{iteration}.png"
@@ -778,7 +801,7 @@ class ConversationChatbot:
                         str(image_path),
                         "Describe this architecture diagram in detail. "
                         "Note: logo placement, text legibility, layout clarity, "
-                        "any visual issues, and overall quality."
+                        "any visual issues, and overall quality.",
                     )
                     turn.visual_analysis = analysis
                 except Exception as e:
@@ -809,8 +832,8 @@ class ConversationChatbot:
                 f"2. Layout clarity (clean, professional, balanced composition)\n"
                 f"3. Text readability (all text is legible)\n"
                 f"4. Data flow clarity (arrows and connections are clear)\n\n"
-                f"Respond with ONLY a JSON object: {{\"best_variant\": <number 1-{len(variant_paths)}>, "
-                f"\"reason\": \"brief explanation\"}}"
+                f'Respond with ONLY a JSON object: {{"best_variant": <number 1-{len(variant_paths)}>, '
+                f'"reason": "brief explanation"}}'
             )
 
             result = self.gemini_client.analyze_images(
@@ -820,7 +843,8 @@ class ConversationChatbot:
             )
 
             import re
-            json_match = re.search(r'\{[\s\S]*\}', result)
+
+            json_match = re.search(r"\{[\s\S]*\}", result)
             if json_match:
                 data = json.loads(json_match.group())
                 best = int(data.get("best_variant", 1))
@@ -854,11 +878,11 @@ class ConversationChatbot:
         cmd = command.strip().lower()
 
         # Check if it's a retry command
-        if not (cmd.startswith('r ') or cmd == 'r' or cmd.startswith('retry')):
+        if not (cmd.startswith("r ") or cmd == "r" or cmd.startswith("retry")):
             return None
 
         # Extract args after 'r' or 'retry'
-        if cmd.startswith('retry'):
+        if cmd.startswith("retry"):
             args = cmd[5:].strip()
         else:
             args = cmd[1:].strip()
@@ -866,6 +890,7 @@ class ConversationChatbot:
         # No args - slight random variation
         if not args:
             import random
+
             base_temp = self.conv_config.temperature
             # Random variation of +/- 0.15
             new_temp = base_temp + random.uniform(-0.15, 0.15)
@@ -901,23 +926,23 @@ class ConversationChatbot:
 
         parts = args.split()
         for part in parts:
-            if '=' in part:
-                key, value = part.split('=', 1)
+            if "=" in part:
+                key, value = part.split("=", 1)
                 try:
-                    if key in ('t', 'temp', 'temperature'):
+                    if key in ("t", "temp", "temperature"):
                         settings.temperature = clamp_temperature(float(value))
-                    elif key in ('p', 'top_p'):
+                    elif key in ("p", "top_p"):
                         settings.top_p = float(value)
-                    elif key in ('k', 'top_k'):
+                    elif key in ("k", "top_k"):
                         settings.top_k = int(value)
-                    elif key in ('pp', 'presence', 'presence_penalty'):
+                    elif key in ("pp", "presence", "presence_penalty"):
                         settings.presence_penalty = float(value)
-                    elif key in ('fp', 'frequency', 'frequency_penalty'):
+                    elif key in ("fp", "frequency", "frequency_penalty"):
                         settings.frequency_penalty = float(value)
-                    elif key in ('size', 'image_size'):
-                        if value.upper() in ('1K', '2K', '4K'):
+                    elif key in ("size", "image_size"):
+                        if value.upper() in ("1K", "2K", "4K"):
                             settings.image_size = value.upper()
-                    elif key in ('ar', 'aspect_ratio', 'ratio'):
+                    elif key in ("ar", "aspect_ratio", "ratio"):
                         settings.aspect_ratio = value
                 except ValueError:
                     pass
@@ -1018,9 +1043,7 @@ class ConversationChatbot:
     def _get_current_output_dir(self) -> Path:
         """Return the current session output directory."""
         try:
-            created_date = datetime.fromisoformat(
-                self._session.created_at
-            ).strftime("%Y-%m-%d")
+            created_date = datetime.fromisoformat(self._session.created_at).strftime("%Y-%m-%d")
         except (ValueError, TypeError):
             created_date = datetime.now().strftime("%Y-%m-%d")
         return Path("outputs") / created_date / f"chat-{self._session.session_id}"
@@ -1041,9 +1064,7 @@ class ConversationChatbot:
         safe = re.sub(r"[^\w\-_]", "_", new_name.strip())[:50] or "session"
         new_session_id = safe
         try:
-            created_date = datetime.fromisoformat(
-                self._session.created_at
-            ).strftime("%Y-%m-%d")
+            created_date = datetime.fromisoformat(self._session.created_at).strftime("%Y-%m-%d")
         except (ValueError, TypeError):
             created_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -1125,8 +1146,7 @@ class ConversationChatbot:
                 if best_turn:
                     selected_dir = self._get_selected_dir()
                     dest = (
-                        selected_dir
-                        / f"{self._session.session_id}_iter_{best_turn.iteration}.png"
+                        selected_dir / f"{self._session.session_id}_iter_{best_turn.iteration}.png"
                     )
                     shutil.copy2(best_turn.image_path, dest)
                     console.print(
@@ -1139,10 +1159,14 @@ class ConversationChatbot:
 
             # Rename session folder
             rename_cmd = feedback.strip().lower()
-            if rename_cmd.startswith("rename ") or rename_cmd.startswith("folder ") or rename_cmd.startswith("name "):
+            if (
+                rename_cmd.startswith("rename ")
+                or rename_cmd.startswith("folder ")
+                or rename_cmd.startswith("name ")
+            ):
                 for prefix in ("rename ", "folder ", "name "):
                     if rename_cmd.startswith(prefix):
-                        new_name = feedback.strip()[len(prefix):].strip()
+                        new_name = feedback.strip()[len(prefix) :].strip()
                         break
                 else:
                     new_name = ""
@@ -1160,7 +1184,7 @@ class ConversationChatbot:
                     continue
                 for prefix in ("search ", "glean "):
                     if search_cmd.startswith(prefix):
-                        query = feedback.strip()[len(prefix):].strip()
+                        query = feedback.strip()[len(prefix) :].strip()
                         break
                 else:
                     query = ""
@@ -1236,7 +1260,11 @@ class ConversationChatbot:
                 try:
                     feedback_path = Path(feedback.strip())
                     if feedback_path.exists() and feedback_path.suffix.lower() in [
-                        ".png", ".jpg", ".jpeg", ".webp", ".gif"
+                        ".png",
+                        ".jpg",
+                        ".jpeg",
+                        ".webp",
+                        ".gif",
                     ]:
                         console.print(f"[cyan]Using as reference image: {feedback_path}[/cyan]")
                         self.analyze_reference_image(feedback_path)
@@ -1297,7 +1325,8 @@ class ConversationChatbot:
 
             # Parse JSON response
             import re
-            json_match = re.search(r'\{[\s\S]*\}', eval_response)
+
+            json_match = re.search(r"\{[\s\S]*\}", eval_response)
             if not json_match:
                 raise ValueError("No JSON found in evaluation response")
 
@@ -1322,8 +1351,13 @@ class ConversationChatbot:
                 score_table.add_row(label, f"[{color}]{score_val}/10[/{color}]")
 
             score_table.add_row("", "")
-            overall_color = "green" if overall_score >= 8 else "yellow" if overall_score >= 6 else "red"
-            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/10[/bold {overall_color}]")
+            overall_color = (
+                "green" if overall_score >= 8 else "yellow" if overall_score >= 6 else "red"
+            )
+            score_table.add_row(
+                "[bold]Overall[/bold]",
+                f"[bold {overall_color}]{overall_score}/10[/bold {overall_color}]",
+            )
 
             console.print(score_table)
 
@@ -1354,6 +1388,12 @@ class ConversationChatbot:
 
         except Exception as e:
             console.print(f"[yellow]Auto-evaluation failed: {e}[/yellow]")
+            if self.conv_config.auto_refine:
+                # In auto/web mode, return a default score instead of blocking on stdin
+                console.print("[yellow]Using default score (5) for auto mode[/yellow]")
+                turn.score = 5
+                turn.feedback = f"Auto-evaluation failed: {e}. Please review manually."
+                return 5, turn.feedback
             console.print("[yellow]Falling back to manual feedback...[/yellow]")
             score, feedback, _retry, _variants = self.collect_feedback(turn)
             return score, feedback
@@ -1386,7 +1426,8 @@ class ConversationChatbot:
 
             # Parse JSON response
             import re
-            json_match = re.search(r'\{[\s\S]*\}', eval_response)
+
+            json_match = re.search(r"\{[\s\S]*\}", eval_response)
             if not json_match:
                 raise ValueError("No JSON found in evaluation response")
 
@@ -1410,8 +1451,13 @@ class ConversationChatbot:
                 score_table.add_row(label, f"[{color}]{score_val}/10[/{color}]")
 
             score_table.add_row("", "")
-            overall_color = "green" if overall_score >= 8 else "yellow" if overall_score >= 6 else "red"
-            score_table.add_row("[bold]Overall[/bold]", f"[bold {overall_color}]{overall_score}/10[/bold {overall_color}]")
+            overall_color = (
+                "green" if overall_score >= 8 else "yellow" if overall_score >= 6 else "red"
+            )
+            score_table.add_row(
+                "[bold]Overall[/bold]",
+                f"[bold {overall_color}]{overall_score}/10[/bold {overall_color}]",
+            )
 
             console.print(score_table)
 
@@ -1464,6 +1510,7 @@ class ConversationChatbot:
 
         # Run refinement with status update
         import time
+
         start_time = time.time()
 
         try:
@@ -1482,7 +1529,9 @@ class ConversationChatbot:
             console.print(f"[red]  DSPy refinement failed after {elapsed:.1f}s: {e}[/red]")
             console.print("[yellow]  Falling back to appending feedback to prompt...[/yellow]")
             # Fallback: just append feedback to prompt
-            feedback_section = f"\n\n---\nREFINEMENT FEEDBACK (MUST ADDRESS):\n{turn.feedback}\n---\n"
+            feedback_section = (
+                f"\n\n---\nREFINEMENT FEEDBACK (MUST ADDRESS):\n{turn.feedback}\n---\n"
+            )
             return current_prompt + feedback_section
 
         # Store reasoning
@@ -1523,27 +1572,32 @@ class ConversationChatbot:
 
         variants_info = (
             f"Variants per iteration: {self.conv_config.num_variants}\n"
-            if self.conv_config.num_variants > 1 else ""
+            if self.conv_config.num_variants > 1
+            else ""
         )
         help_hint = (
-            "" if self.conv_config.auto_refine
+            ""
+            if self.conv_config.auto_refine
             else "Type [bold]help[/bold] or [bold]?[/bold] during feedback for all commands"
         )
         max_iter_display = (
-            "no limit" if self.conv_config.max_iterations == 0
+            "no limit"
+            if self.conv_config.max_iterations == 0
             else str(self.conv_config.max_iterations)
         )
-        console.print(Panel(
-            f"Starting conversation refinement loop\n"
-            f"Mode: [bold]{mode_label}[/bold]\n"
-            f"Target score: {self.conv_config.target_score}\n"
-            f"Max iterations: {max_iter_display}\n"
-            f"Resolution: {self.conv_config.image_size} ({self.conv_config.aspect_ratio})\n"
-            + variants_info
-            + help_hint,
-            title="Conversation Session",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                f"Starting conversation refinement loop\n"
+                f"Mode: [bold]{mode_label}[/bold]\n"
+                f"Target score: {self.conv_config.target_score}\n"
+                f"Max iterations: {max_iter_display}\n"
+                f"Resolution: {self.conv_config.image_size} ({self.conv_config.aspect_ratio})\n"
+                + variants_info
+                + help_hint,
+                title="Conversation Session",
+                border_style="cyan",
+            )
+        )
 
         try:
             while (
@@ -1553,16 +1607,22 @@ class ConversationChatbot:
                 # Generate (with optional custom settings from retry)
                 is_retry = current_settings is not None
                 try:
-                    turn = self.run_iteration(current_prompt, settings=current_settings, is_retry=is_retry)
+                    turn = self.run_iteration(
+                        current_prompt, settings=current_settings, is_retry=is_retry
+                    )
                 except Exception as gen_error:
                     console.print(f"\n[red]Generation failed: {gen_error}[/red]")
-                    console.print("[yellow]'r' to retry, 'r 0.5' for different temp, 'done' or 'end' to exit, 'help' for all options[/yellow]")
+                    console.print(
+                        "[yellow]'r' to retry, 'r 0.5' for different temp, 'done' or 'end' to exit, 'help' for all options[/yellow]"
+                    )
                     recovery = _prompt_with_history("Retry?", "r")
                     if recovery.strip().lower() in ("done", "end"):
                         self._session.status = ConversationStatus.COMPLETED
                         break
                     # Parse as retry command, default to 'r' (random temp jitter)
-                    current_settings = self._parse_retry_command(recovery) or self._parse_retry_command("r")
+                    current_settings = self._parse_retry_command(
+                        recovery
+                    ) or self._parse_retry_command("r")
                     continue
 
                 # Reset settings after use (one-shot for retries)
@@ -1577,7 +1637,9 @@ class ConversationChatbot:
                         retry_settings = None
                         num_variants_override = None
                     else:
-                        score, feedback, retry_settings, num_variants_override = self.collect_feedback(turn)
+                        score, feedback, retry_settings, num_variants_override = (
+                            self.collect_feedback(turn)
+                        )
 
                     if num_variants_override is not None:
                         # User asked for N variants (or joint: written feedback + " v N")
@@ -1695,7 +1757,9 @@ class ConversationChatbot:
         # Show best result
         best = self._session.get_best_turn()
         if best:
-            console.print(f"\n[bold green]Best result:[/bold green] Iteration {best.iteration} (Score: {best.score})")
+            console.print(
+                f"\n[bold green]Best result:[/bold green] Iteration {best.iteration} (Score: {best.score})"
+            )
             console.print(f"  Image: {best.image_path}")
             console.print(f"  Run ID: {best.run_id}")
 
@@ -1722,17 +1786,19 @@ class ConversationChatbot:
         resume_cmd = f"bricksmith chat --resume {session_file.parent}"
 
         console.print()
-        console.print(Panel(
-            f"[bold green]Session saved![/bold green] {num_turns} iteration(s) completed\n"
-            f"{best_info}\n"
-            f"\n"
-            f"[bold]To resume this session:[/bold]\n"
-            f"  [cyan]{resume_cmd}[/cyan]\n"
-            f"\n"
-            f"[dim]Session file: {session_file}[/dim]",
-            title="Resume Later",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[bold green]Session saved![/bold green] {num_turns} iteration(s) completed\n"
+                f"{best_info}\n"
+                f"\n"
+                f"[bold]To resume this session:[/bold]\n"
+                f"  [cyan]{resume_cmd}[/cyan]\n"
+                f"\n"
+                f"[dim]Session file: {session_file}[/dim]",
+                title="Resume Later",
+                border_style="green",
+            )
+        )
 
     def _save_session(self, current_prompt: Optional[str] = None) -> Path:
         """Save session to JSON file for crash recovery.
@@ -1765,7 +1831,9 @@ class ConversationChatbot:
             "current_prompt": current_prompt or self._session.get_latest_prompt(),
             "status": self._session.status.value,
             "created_at": self._session.created_at,
-            "diagram_spec_path": str(self._session.diagram_spec_path) if self._session.diagram_spec_path else None,
+            "diagram_spec_path": (
+                str(self._session.diagram_spec_path) if self._session.diagram_spec_path else None
+            ),
             "template_id": self._session.template_id,
             "turns": [
                 {
@@ -1789,7 +1857,11 @@ class ConversationChatbot:
                 "target_score": self.conv_config.target_score,
                 "auto_analyze": self.conv_config.auto_analyze,
                 "auto_refine": self.conv_config.auto_refine,
-                "reference_image": str(self.conv_config.reference_image) if self.conv_config.reference_image else None,
+                "reference_image": (
+                    str(self.conv_config.reference_image)
+                    if self.conv_config.reference_image
+                    else None
+                ),
                 "session_name": self.conv_config.session_name,
                 "temperature": self.conv_config.temperature,
                 "top_p": self.conv_config.top_p,
@@ -1846,15 +1918,17 @@ class ConversationChatbot:
                 if session_file.exists():
                     try:
                         data = json.loads(session_file.read_text())
-                        sessions.append({
-                            "path": session_dir,
-                            "session_id": data.get("session_id", "unknown"),
-                            "turns": len(data.get("turns", [])),
-                            "status": data.get("status", "unknown"),
-                            "created_at": data.get("created_at", ""),
-                            "last_saved": data.get("_last_saved", ""),
-                            "initial_prompt_preview": data.get("initial_prompt", "")[:80],
-                        })
+                        sessions.append(
+                            {
+                                "path": session_dir,
+                                "session_id": data.get("session_id", "unknown"),
+                                "turns": len(data.get("turns", [])),
+                                "status": data.get("status", "unknown"),
+                                "created_at": data.get("created_at", ""),
+                                "last_saved": data.get("_last_saved", ""),
+                                "initial_prompt_preview": data.get("initial_prompt", "")[:80],
+                            }
+                        )
                     except (json.JSONDecodeError, KeyError):
                         continue
 
@@ -1898,12 +1972,12 @@ class ConversationChatbot:
         iteration_nums = set()
 
         for pf in prompt_files:
-            match = re.search(r'iteration_(\d+)_prompt\.txt', pf.name)
+            match = re.search(r"iteration_(\d+)_prompt\.txt", pf.name)
             if match:
                 iteration_nums.add(int(match.group(1)))
 
         for img in image_files:
-            match = re.search(r'iteration_(\d+)\.png', img.name)
+            match = re.search(r"iteration_(\d+)\.png", img.name)
             if match:
                 iteration_nums.add(int(match.group(1)))
 
@@ -1913,17 +1987,19 @@ class ConversationChatbot:
 
             prompt_used = prompt_file.read_text() if prompt_file.exists() else ""
 
-            turns.append({
-                "iteration": iteration,
-                "prompt_used": prompt_used,
-                "run_id": f"reconstructed-{session_id}-iter-{iteration}",
-                "image_path": str(image_file) if image_file.exists() else "",
-                "generation_time_seconds": 0.0,
-                "score": None,
-                "feedback": None,
-                "visual_analysis": None,
-                "refinement_reasoning": None,
-            })
+            turns.append(
+                {
+                    "iteration": iteration,
+                    "prompt_used": prompt_used,
+                    "run_id": f"reconstructed-{session_id}-iter-{iteration}",
+                    "image_path": str(image_file) if image_file.exists() else "",
+                    "generation_time_seconds": 0.0,
+                    "score": None,
+                    "feedback": None,
+                    "visual_analysis": None,
+                    "refinement_reasoning": None,
+                }
+            )
 
         # Use the first iteration's prompt as initial_prompt
         initial_prompt = ""
@@ -1991,7 +2067,9 @@ class ConversationChatbot:
                 raise FileNotFoundError(
                     f"No session.json or iteration files found in {session_dir}"
                 )
-            console.print("[yellow]No session.json found - reconstructed session from iteration files[/yellow]")
+            console.print(
+                "[yellow]No session.json found - reconstructed session from iteration files[/yellow]"
+            )
         else:
             # Load session data
             session_data = json.loads(session_file.read_text())
@@ -2009,7 +2087,11 @@ class ConversationChatbot:
             target_score=saved_config.get("target_score", 10),
             auto_analyze=saved_config.get("auto_analyze", True),
             auto_refine=saved_config.get("auto_refine", False),
-            reference_image=Path(saved_config["reference_image"]) if saved_config.get("reference_image") else None,
+            reference_image=(
+                Path(saved_config["reference_image"])
+                if saved_config.get("reference_image")
+                else None
+            ),
             session_name=saved_config.get("session_name"),
             temperature=saved_config.get("temperature", 0.8),
             top_p=saved_config.get("top_p", 0.95),
@@ -2017,7 +2099,9 @@ class ConversationChatbot:
             presence_penalty=saved_config.get("presence_penalty", 0.1),
             frequency_penalty=saved_config.get("frequency_penalty", 0.1),
             logo_dir=effective_logo_dir,
-            evaluation_persona=EvaluationPersona(saved_config.get("evaluation_persona", "architect")),
+            evaluation_persona=EvaluationPersona(
+                saved_config.get("evaluation_persona", "architect")
+            ),
             image_size=saved_config.get("image_size", "2K"),
             aspect_ratio=saved_config.get("aspect_ratio", "16:9"),
             num_variants=saved_config.get("num_variants", 1),
@@ -2086,7 +2170,11 @@ class ConversationChatbot:
             created_at=session_data.get("created_at", datetime.now().isoformat()),
             status=status,
             template_id=session_data.get("template_id"),
-            diagram_spec_path=Path(session_data["diagram_spec_path"]) if session_data.get("diagram_spec_path") else None,
+            diagram_spec_path=(
+                Path(session_data["diagram_spec_path"])
+                if session_data.get("diagram_spec_path")
+                else None
+            ),
         )
 
         # Restore turns, recovering prompt_used from disk if not in session data
