@@ -8,7 +8,7 @@ import type { ChatMessage } from '../types';
 
 interface ChatProps {
   messages: ChatMessage[];
-  onSendMessage: (message: string) => Promise<unknown>;
+  onSendMessage: (message: string, imageBase64?: string, imageFilename?: string) => Promise<unknown>;
   isSending: boolean;
   isLoading: boolean;
   readyForOutput: boolean;
@@ -28,8 +28,11 @@ export function Chat({
   disabled = false,
 }: ChatProps) {
   const [input, setInput] = useState('');
+  const [attachedImageBase64, setAttachedImageBase64] = useState<string | null>(null);
+  const [attachedImageFilename, setAttachedImageFilename] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -46,8 +49,39 @@ export function Chat({
     if (!input.trim() || isSending || disabled) return;
 
     const message = input.trim();
+    const imgBase64 = attachedImageBase64 ?? undefined;
+    const imgFilename = attachedImageFilename ?? undefined;
     setInput('');
-    await onSendMessage(message);
+    setAttachedImageBase64(null);
+    setAttachedImageFilename(null);
+    await onSendMessage(message, imgBase64, imgFilename);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size (max 10MB)
+    const validTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the data:image/...;base64, prefix
+      const base64 = result.split(',')[1];
+      setAttachedImageBase64(base64);
+      setAttachedImageFilename(file.name);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset file input so the same file can be re-selected
+    e.target.value = '';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -83,6 +117,15 @@ export function Chat({
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
+                {message.attachedImageBase64 && (
+                  <div className="mb-2">
+                    <img
+                      src={`data:image/png;base64,${message.attachedImageBase64}`}
+                      alt="Attached image"
+                      className="rounded border border-white/30 max-h-48 w-auto"
+                    />
+                  </div>
+                )}
                 {message.imageUrl && (
                   <a
                     href={message.imageUrl}
@@ -166,7 +209,46 @@ export function Chat({
 
       {/* Input area */}
       <form onSubmit={handleSubmit} className="border-t p-4">
+        {/* Image attachment preview */}
+        {attachedImageBase64 && (
+          <div className="mb-2 flex items-center gap-2">
+            <img
+              src={`data:image/png;base64,${attachedImageBase64}`}
+              alt="Attachment preview"
+              className="h-16 w-auto rounded border border-gray-300"
+            />
+            <span className="text-sm text-gray-500 truncate max-w-[200px]">
+              {attachedImageFilename}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setAttachedImageBase64(null); setAttachedImageFilename(null); }}
+              className="text-gray-400 hover:text-red-500 text-lg leading-none"
+              title="Remove attachment"
+            >
+              &times;
+            </button>
+          </div>
+        )}
         <div className="flex space-x-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isSending}
+            className="px-3 py-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Attach image"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+            </svg>
+          </button>
           <textarea
             ref={inputRef}
             value={input}

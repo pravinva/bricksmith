@@ -79,6 +79,8 @@ class ArchitectService:
         reference_prompt_path: Optional[str] = None,
         reference_image_base64: Optional[str] = None,
         reference_image_filename: Optional[str] = None,
+        reference_images_base64: Optional[list[str]] = None,
+        reference_images_filenames: Optional[list[str]] = None,
         mcp_enrichment: Optional[MCPEnrichmentOptions] = None,
     ) -> SessionResponse:
         """Create a new architect session.
@@ -92,8 +94,10 @@ class ArchitectService:
             vertex_api_key: Optional per-session Gemini/Vertex key
             reference_prompt: Optional existing prompt text as reference
             reference_prompt_path: Optional path to prompt file to load as reference
-            reference_image_base64: Optional base64-encoded reference image
-            reference_image_filename: Optional original filename for MIME detection
+            reference_image_base64: Optional base64-encoded reference image (single, backward compat)
+            reference_image_filename: Optional original filename for MIME detection (single)
+            reference_images_base64: Optional list of base64-encoded reference images
+            reference_images_filenames: Optional filenames corresponding to reference_images_base64
             mcp_enrichment: Optional MCP enrichment configuration
 
         Returns:
@@ -151,13 +155,26 @@ class ArchitectService:
         chatbot._custom_context = custom_context or ""
         chatbot._reference_prompt = resolved_reference_prompt
 
-        # Analyze reference image if provided
-        if reference_image_base64:
+        # Analyze reference image(s) if provided
+        # Build list: multi-image field first, then fall back to single-image field
+        images_to_analyze: list[tuple[str, Optional[str]]] = []
+        if reference_images_base64:
+            for i, img_b64 in enumerate(reference_images_base64):
+                fname = (
+                    reference_images_filenames[i]
+                    if reference_images_filenames and i < len(reference_images_filenames)
+                    else None
+                )
+                images_to_analyze.append((img_b64, fname))
+        elif reference_image_base64:
+            images_to_analyze.append((reference_image_base64, reference_image_filename))
+
+        for img_b64, fname in images_to_analyze:
             try:
-                image_data = base64.b64decode(reference_image_base64)
+                image_data = base64.b64decode(img_b64)
                 suffix = ".png"
-                if reference_image_filename:
-                    ext = Path(reference_image_filename).suffix.lower()
+                if fname:
+                    ext = Path(fname).suffix.lower()
                     if ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
                         suffix = ext
                 with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -332,12 +349,16 @@ class ArchitectService:
         self,
         session_id: str,
         message: str,
+        image_base64: Optional[str] = None,
+        image_filename: Optional[str] = None,
     ) -> Optional[MessageResponse]:
         """Send a message in a session and get the response.
 
         Args:
             session_id: Session ID
             message: User's message
+            image_base64: Optional base64-encoded image to analyze as context
+            image_filename: Optional original filename for MIME detection
 
         Returns:
             MessageResponse with AI response and updated state
@@ -345,6 +366,30 @@ class ArchitectService:
         chatbot = await self._get_or_restore_chatbot(session_id)
         if chatbot is None:
             return None
+
+        # Analyze mid-chat image if provided
+        if image_base64:
+            try:
+                image_data = base64.b64decode(image_base64)
+                suffix = ".png"
+                if image_filename:
+                    ext = Path(image_filename).suffix.lower()
+                    if ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                        suffix = ext
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                    tmp.write(image_data)
+                    tmp_path = Path(tmp.name)
+                try:
+                    chatbot.analyze_reference_image(tmp_path)
+                    logger.info(
+                        "Mid-chat image analyzed for session %s (%d chars)",
+                        session_id,
+                        len(chatbot._reference_image_analysis),
+                    )
+                finally:
+                    tmp_path.unlink(missing_ok=True)
+            except Exception as e:
+                logger.warning("Failed to analyze mid-chat image: %s", e)
 
         # Process through chatbot
         response, ready_for_output = chatbot.process_user_input(message)

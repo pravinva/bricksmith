@@ -55,7 +55,7 @@ interface UseArchitectReturn {
   ) => Promise<void>;
   selectSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
-  sendMessage: (message: string) => Promise<MessageResponse | null>;
+  sendMessage: (message: string, imageBase64?: string, imageFilename?: string) => Promise<MessageResponse | null>;
   generateOutput: () => Promise<void>;
   generatePreview: (settings?: GenerationSettingsRequest) => Promise<void>;
   clearError: () => void;
@@ -257,7 +257,11 @@ export function useArchitect(): UseArchitectReturn {
   /**
    * Send a message in the current session.
    */
-  const sendMessage = useCallback(async (message: string): Promise<MessageResponse | null> => {
+  const sendMessage = useCallback(async (
+    message: string,
+    imageBase64?: string,
+    imageFilename?: string,
+  ): Promise<MessageResponse | null> => {
     if (!currentSession) {
       setError('No active session');
       return null;
@@ -266,17 +270,20 @@ export function useArchitect(): UseArchitectReturn {
     setIsSending(true);
     setError(null);
     try {
-      // Add user message immediately
+      // Add user message immediately (with image thumbnail if attached)
       const userMessage: ChatMessage = {
         role: 'user',
         content: message,
         timestamp: new Date().toISOString(),
+        attachedImageBase64: imageBase64,
       };
       setMessages(prev => [...prev, userMessage]);
 
       // Send to API
       const response = await chatApi.sendMessage(currentSession.session_id, {
         message,
+        image_base64: imageBase64,
+        image_filename: imageFilename,
       });
 
       // Add assistant response

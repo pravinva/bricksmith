@@ -61,15 +61,15 @@ class ArchitectConversationSignature(dspy.Signature):
 class ArchitectPromptGenerationSignature(dspy.Signature):
     """Generate a high-quality diagram prompt from the architect conversation.
 
-    Create a professional prompt suitable for Gemini image generation that
-    captures the architecture discussed in the conversation. The prompt should
-    match the quality and structure of consulting-firm architecture diagrams.
+    Create a professional, visually striking prompt suitable for Gemini image
+    generation that captures the architecture discussed in the conversation.
+    The prompt should result in consulting-firm quality architecture diagrams.
 
-    CRITICAL: If a reference_prompt is provided, treat it as the primary source
-    of truth for style, structure, and content. Preserve its wording, layout
-    instructions, and visual directives as much as possible. Only modify it to
-    incorporate new components/connections from the conversation and architecture
-    JSON. If no reference_prompt is provided, generate a new prompt from scratch.
+    Be creative with visual layout, grouping, and styling while keeping the
+    technical content accurate. If a reference_prompt is provided, use it as
+    a starting point but feel free to enhance, restructure, or improve it
+    based on the conversation. Prioritize producing the best possible diagram
+    over strict preservation of the original wording.
     """
 
     conversation_summary: str = dspy.InputField(
@@ -83,24 +83,17 @@ class ArchitectPromptGenerationSignature(dspy.Signature):
     )
     style_preferences: str = dspy.InputField(desc="Any stated visual preferences or requirements")
     reference_prompt: str = dspy.InputField(
-        desc="The user's original diagram prompt to use as the base. "
-        "CRITICAL: When provided, preserve its structure, wording, and style. "
-        "Merge in any new components or connections from the architecture JSON, "
-        "but keep the original prompt's voice and layout instructions intact. "
-        "If empty, generate a new prompt from scratch."
+        desc="Optional starting prompt to build from. Use as inspiration for content "
+        "and structure, but freely enhance, reorganize, or improve based on the "
+        "conversation and architecture JSON. If empty, generate from scratch."
     )
 
     diagram_prompt: str = dspy.OutputField(
-        desc="Complete prompt for diagram generation. "
-        "If a reference_prompt was provided, this should be a refined version of it "
-        "that incorporates conversation feedback while preserving the original style. "
-        "If no reference_prompt was provided, create a new prompt with: "
-        "1) LOGO KIT section with available logos and rules "
-        "2) DESIGN PHILOSOPHY with target audience and visual style "
-        "3) CANVAS & TYPOGRAPHY specifications "
-        "4) DIAGRAM CONTENT with detailed component and connection descriptions "
-        "5) VISUAL RULES with DO/DO NOT guidelines. "
-        "Make it professional and detailed enough for high-quality generation."
+        desc="Complete, creative prompt for diagram generation. "
+        "Include: 1) LOGO KIT section 2) DESIGN PHILOSOPHY 3) CANVAS & TYPOGRAPHY "
+        "4) DIAGRAM CONTENT with rich component and connection descriptions "
+        "5) VISUAL RULES. Be creative with layout suggestions, color schemes, "
+        "and grouping strategies. Make it detailed and visually ambitious."
     )
     prompt_rationale: str = dspy.OutputField(
         desc="Brief explanation of the prompt structure and key design choices"
@@ -162,7 +155,7 @@ class ArchitectRefiner(dspy.Module):
         self.lm = dspy.LM(
             model=f"databricks/{self.model_name}",
             max_tokens=16384,
-            temperature=0.4,  # Slightly higher for more conversational responses
+            temperature=0.7,  # Higher for more creative, varied outputs
         )
 
         # Initialize chain-of-thought modules using thread-local context

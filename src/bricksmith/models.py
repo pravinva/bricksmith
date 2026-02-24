@@ -460,8 +460,8 @@ class ArchitectConfig(BaseModel):
     reference_prompt: Optional[Path] = Field(
         default=None, description="Existing diagram prompt to use as reference/starting point"
     )
-    reference_image: Optional[Path] = Field(
-        default=None, description="Reference architecture image to analyze at session start"
+    reference_images: Optional[list[Path]] = Field(
+        default=None, description="Reference architecture image(s) to analyze at session start"
     )
     output_format: str = Field(
         default="prompt", description="Output format: 'prompt' for generate-raw"

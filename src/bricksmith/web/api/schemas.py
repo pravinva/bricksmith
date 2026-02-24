@@ -79,6 +79,12 @@ class CreateSessionRequest(BaseModel):
     reference_image_filename: Optional[str] = Field(
         None, description="Original filename for MIME type detection"
     )
+    reference_images_base64: Optional[list[str]] = Field(
+        None, description="List of base64-encoded reference images"
+    )
+    reference_images_filenames: Optional[list[str]] = Field(
+        None, description="Filenames corresponding to reference_images_base64"
+    )
     mcp_enrichment: Optional[MCPEnrichmentOptions] = Field(
         None, description="MCP enrichment configuration"
     )
@@ -107,6 +113,12 @@ class SendMessageRequest(BaseModel):
     """Request to send a message in a session."""
 
     message: str = Field(..., description="User message or command")
+    image_base64: Optional[str] = Field(
+        None, description="Base64-encoded image to analyze as context"
+    )
+    image_filename: Optional[str] = Field(
+        None, description="Original filename for MIME type detection"
+    )
 
 
 class MessageResponse(BaseModel):

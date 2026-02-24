@@ -51,6 +51,8 @@ async def send_message(
         response = await service.send_message(
             session_id=session_id,
             message=request.message,
+            image_base64=request.image_base64,
+            image_filename=request.image_filename,
         )
     except Exception as e:
         logger.error("Error in send_message for %s: %s", session_id, e, exc_info=True)

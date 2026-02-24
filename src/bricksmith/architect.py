@@ -213,7 +213,10 @@ class ArchitectChatbot:
         return self._refiner
 
     def analyze_reference_image(self, image_path: Path) -> str:
-        """Analyze a reference architecture image and store the result.
+        """Analyze a reference architecture image and append the result.
+
+        Multiple images can be analyzed - each analysis is appended with a
+        numbered header. Works for both session-start and mid-chat images.
 
         Args:
             image_path: Path to the reference image file
@@ -226,7 +229,11 @@ class ArchitectChatbot:
         analysis = client.analyze_image(
             str(image_path), ARCHITECT_REFERENCE_IMAGE_PROMPT, temperature=0.2
         )
-        self._reference_image_analysis = analysis
+        # Count existing analyses by counting the header markers
+        count = self._reference_image_analysis.count("[IMAGE ")
+        header = f"[IMAGE {count + 1}: {image_path.name}]"
+        separator = "\n\n" if self._reference_image_analysis else ""
+        self._reference_image_analysis += f"{separator}{header}\n{analysis}"
         console.print(f"  [green]Analysis complete ({len(analysis)} chars)[/green]")
         return analysis
 
@@ -235,7 +242,7 @@ class ArchitectChatbot:
         initial_problem: str,
         context_file: Optional[Path] = None,
         reference_prompt: Optional[Path] = None,
-        reference_image: Optional[Path] = None,
+        reference_images: Optional[list[Path]] = None,
     ) -> ArchitectSession:
         """Start a new architect session.
 
@@ -243,7 +250,7 @@ class ArchitectChatbot:
             initial_problem: Description of the architecture problem
             context_file: Optional file with domain/customer context
             reference_prompt: Optional existing diagram prompt to use as reference
-            reference_image: Optional reference architecture image to analyze
+            reference_images: Optional reference architecture image(s) to analyze
 
         Returns:
             New ArchitectSession
@@ -277,9 +284,11 @@ class ArchitectChatbot:
             )
             self._reference_prompt = self.arch_config.reference_prompt.read_text()
 
-        # Analyze reference image if provided
-        ref_image = reference_image or self.arch_config.reference_image
-        if ref_image:
+        # Analyze reference image(s) if provided
+        ref_images = reference_images or (
+            self.arch_config.reference_images if self.arch_config.reference_images else []
+        )
+        for ref_image in ref_images:
             self.analyze_reference_image(ref_image)
 
         # Create session ID from name or generate random

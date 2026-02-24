@@ -34,6 +34,8 @@ async def create_session(request: CreateSessionRequest) -> SessionResponse:
         reference_prompt_path=request.reference_prompt_path,
         reference_image_base64=request.reference_image_base64,
         reference_image_filename=request.reference_image_filename,
+        reference_images_base64=request.reference_images_base64,
+        reference_images_filenames=request.reference_images_filenames,
         mcp_enrichment=request.mcp_enrichment,
     )
     return session

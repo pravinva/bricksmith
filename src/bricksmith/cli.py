@@ -1532,7 +1532,8 @@ def chat(
 @click.option(
     "--reference-image",
     type=click.Path(exists=True, path_type=Path),
-    help="Reference architecture diagram image to analyze and use as context",
+    multiple=True,
+    help="Reference architecture diagram image(s) to analyze. Can be specified multiple times.",
 )
 @click.option(
     "--output-format",
@@ -1591,7 +1592,7 @@ def architect(
     logo_dir: Optional[Path],
     context: Optional[Path],
     reference_prompt: Optional[Path],
-    reference_image: Optional[Path],
+    reference_image: tuple[Path, ...],
     output_format: str,
     output_file: Optional[Path],
     max_turns: int,
@@ -1737,7 +1738,7 @@ def architect(
                 max_turns=max_turns,
                 context_file=context,
                 reference_prompt=reference_prompt,
-                reference_image=reference_image,
+                reference_images=list(reference_image) if reference_image else None,
                 output_format=output_format,
                 session_name=name,
                 logo_dir=logo_dir,
@@ -1757,7 +1758,7 @@ def architect(
                 initial_problem=problem,
                 context_file=context,
                 reference_prompt=reference_prompt,
-                reference_image=reference_image,
+                reference_images=list(reference_image) if reference_image else None,
             )
 
             # Run conversation

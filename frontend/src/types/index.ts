@@ -54,11 +54,15 @@ export interface CreateSessionRequest {
   reference_prompt_path?: string;
   reference_image_base64?: string;
   reference_image_filename?: string;
+  reference_images_base64?: string[];
+  reference_images_filenames?: string[];
   mcp_enrichment?: MCPEnrichmentOptions;
 }
 
 export interface SendMessageRequest {
   message: string;
+  image_base64?: string;
+  image_filename?: string;
 }
 
 export interface MessageResponse {
@@ -93,6 +97,7 @@ export interface ChatMessage {
   timestamp: string;
   architecture?: ArchitectureState;
   imageUrl?: string;
+  attachedImageBase64?: string;
 }
 
 export interface TurnSchema {
