@@ -1,5 +1,10 @@
 /**
- * Main application component for Bricksmith Architect.
+ * Main application component for Bricksmith.
+ *
+ * Three tabs:
+ *   - Chat Lab: the primary workflow (mirrors `bricksmith chat` CLI)
+ *   - Architect Studio: conversational architecture design
+ *   - Best Results: browse previous outputs
  */
 
 import { useArchitect } from './hooks/useArchitect';
@@ -10,14 +15,14 @@ import { RefinementPanel } from './components/RefinementPanel';
 import { SessionList } from './components/SessionList';
 import { StatusPanel } from './components/StatusPanel';
 import { BestResults } from './components/BestResults';
-import { PromptEntry } from './components/PromptEntry';
+import { ChatLab } from './components/ChatLab';
 import { useState, useCallback } from 'react';
-import type { BestResultItem, StartStandaloneRefinementRequest } from './types';
+import type { BestResultItem } from './types';
 
-type AppMode = 'home' | 'architect' | 'refinement' | 'best';
+type AppMode = 'chat' | 'architect' | 'best';
 
 function App() {
-  const [mode, setMode] = useState<AppMode>('home');
+  const [mode, setMode] = useState<AppMode>('chat');
   const refinement = useRefinement();
   const {
     sessions,
@@ -63,44 +68,11 @@ function App() {
     });
   };
 
-  const handleRefineFromResult = useCallback((result: BestResultItem) => {
-    const promptText = result.full_prompt || result.prompt_preview;
-    if (!promptText) return;
-    setMode('refinement');
-    void refinement.startStandaloneRefinement({ prompt: promptText });
-  }, [refinement]);
-
   const handleStartRefinement = useCallback(() => {
     if (currentSession) {
       refinement.startRefinement(currentSession.session_id);
     }
   }, [currentSession, refinement]);
-
-  const handleStartArchitectFromHome = useCallback((
-    prompt: string,
-    context?: string,
-    authOptions?: Parameters<typeof createSession>[2],
-  ) => {
-    setMode('architect');
-    void createSession(prompt, context, authOptions);
-  }, [createSession]);
-
-  const handleStartRefinementFromHome = useCallback((
-    request: StartStandaloneRefinementRequest,
-  ) => {
-    setMode('refinement');
-    void refinement.startStandaloneRefinement(request);
-  }, [refinement]);
-
-  const handleSelectSessionFromHome = useCallback((sessionId: string) => {
-    setMode('architect');
-    selectSession(sessionId);
-  }, [selectSession]);
-
-  const handleAcceptRefinement = useCallback(() => {
-    refinement.acceptResult();
-    setMode('home');
-  }, [refinement]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -114,12 +86,8 @@ function App() {
               className="w-10 h-10 rounded-lg object-cover border border-gray-200 bg-white"
             />
             <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              Bricksmith Architect
-            </h1>
-            <p className="text-sm text-gray-500">
-              Collaborative architecture diagram design
-            </p>
+              <h1 className="text-xl font-bold text-gray-900">Bricksmith</h1>
+              <p className="text-sm text-gray-500">Architecture diagram generation</p>
             </div>
           </div>
           {mode === 'architect' && currentSession && (
@@ -133,7 +101,6 @@ function App() {
                     ? 'bg-amber-100 text-amber-800'
                     : 'bg-gray-100 text-gray-700'
                 }`}
-                title="Image generation auth mode for this session"
               >
                 {credentialMode === 'custom_key'
                   ? `Custom key (${imageProvider})`
@@ -141,22 +108,17 @@ function App() {
               </span>
             </div>
           )}
-          {mode === 'refinement' && refinement.refinementState && (
-            <div className="text-sm text-gray-600">
-              Refinement: <span className="font-mono">{refinement.refinementState.session_id}</span>
-            </div>
-          )}
         </div>
         <div className="mt-3 flex gap-2">
           <button
-            onClick={() => setMode('home')}
+            onClick={() => setMode('chat')}
             className={`px-3 py-1.5 text-sm rounded ${
-              mode === 'home'
+              mode === 'chat'
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Home
+            Chat Lab
           </button>
           <button
             onClick={() => setMode('architect')}
@@ -168,18 +130,6 @@ function App() {
           >
             Architect Studio
           </button>
-          {refinement.isActive && (
-            <button
-              onClick={() => setMode('refinement')}
-              className={`px-3 py-1.5 text-sm rounded ${
-                mode === 'refinement'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Refinement
-            </button>
-          )}
           <button
             onClick={() => setMode('best')}
             className={`px-3 py-1.5 text-sm rounded ${
@@ -210,23 +160,16 @@ function App() {
         </div>
       )}
 
-      {/* Home mode */}
-      {mode === 'home' && (
-        <div className="flex-1 overflow-y-auto">
-          <PromptEntry
-            onStartArchitect={handleStartArchitectFromHome}
-            onStartRefinement={handleStartRefinementFromHome}
-            isLoading={isLoading || refinement.isGenerating}
-            recentSessions={sessions}
-            onSelectSession={handleSelectSessionFromHome}
-          />
+      {/* Chat Lab - primary workflow */}
+      {mode === 'chat' && (
+        <div className="flex-1 overflow-hidden">
+          <ChatLab />
         </div>
       )}
 
-      {/* Architect mode */}
+      {/* Architect Studio */}
       {mode === 'architect' && (
         <div className="flex-1 flex overflow-hidden">
-          {/* Left sidebar - Session list */}
           <aside className="w-72 border-r bg-white flex-shrink-0">
             <SessionList
               sessions={sessions}
@@ -238,7 +181,6 @@ function App() {
             />
           </aside>
 
-          {/* Main area - Chat */}
           <main className="flex-1 flex flex-col min-w-0 bg-white">
             <Chat
               messages={messages}
@@ -252,7 +194,6 @@ function App() {
             />
           </main>
 
-          {/* Right sidebar - Refinement panel or architecture visualization */}
           <aside className="w-96 border-l bg-gray-50 flex-shrink-0 overflow-hidden">
             {refinement.isActive ? (
               <RefinementPanel
@@ -293,37 +234,11 @@ function App() {
         </div>
       )}
 
-      {/* Standalone refinement mode */}
-      {mode === 'refinement' && (
-        <div className="flex-1 overflow-hidden">
-          {refinement.isActive ? (
-            <div className="h-full max-w-5xl mx-auto">
-              <RefinementPanel
-                state={refinement.refinementState!}
-                currentIteration={refinement.currentIteration}
-                isGenerating={refinement.isGenerating}
-                isRefining={refinement.isRefining}
-                error={refinement.error}
-                onRefine={refinement.refinePrompt}
-                onAccept={handleAcceptRefinement}
-                onRegenerate={refinement.generateAndEvaluate}
-                onClearError={refinement.clearError}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <p>No active refinement. Go to Home to start one.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Best results mode */}
+      {/* Best Results */}
       {mode === 'best' && (
         <div className="flex-1 min-h-0">
           <BestResults
             onCreateArchitectSessionFromResult={handleCreateArchitectSessionFromResult}
-            onRefinePrompt={handleRefineFromResult}
           />
         </div>
       )}
