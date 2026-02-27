@@ -266,8 +266,8 @@ def show_run(ctx: Context, run_id: str):
 @click.option(
     "--branding",
     type=click.Path(exists=True, path_type=Path),
-    default="prompts/branding/minimal.txt",
-    help="Path to branding/style guide file (.txt or .md). Use minimal.txt for best logo fidelity.",
+    default="prompts/branding/databricks_default.txt",
+    help="Path to branding/style guide file (.txt or .md). Defaults to Databricks branding.",
 )
 @click.option("--run-name", help="Optional run name for MLflow")
 @click.option(
@@ -341,8 +341,8 @@ def show_run(ctx: Context, run_id: str):
 )
 @click.option(
     "--databricks-style/--no-databricks-style",
-    default=False,
-    help="Apply official Databricks brand style guide (colors, typography, visual style)",
+    default=True,
+    help="Apply official Databricks brand style guide (enabled by default)",
 )
 @click.pass_obj
 def generate_raw(

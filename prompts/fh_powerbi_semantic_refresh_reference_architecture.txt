@@ -1,0 +1,78 @@
+Create a Databricks reference architecture diagram for Power BI semantic model refresh using a metadata-driven framework and Databricks Jobs.
+
+Context:
+- Customer context: Fulton Hogan EDP, 7+ semantic models.
+- Objective: SLA-driven freshness with model-level isolation, lower refresh cost, and better observability.
+
+Style requirements:
+- Use Databricks branding defaults and Databricks visual vibe.
+- Clean white background, flat 2D, no 3D.
+- Left-to-right flow with clear grouped zones.
+- Keep labels concise and executive readable.
+- Include a small legend for cadence/trigger types.
+- CRITICAL text quality: spell-check all visible labels; no typos.
+- Use this exact zone heading text: "Source and Gold Data Foundation" (never "gola").
+
+Architecture zones and content:
+
+Zone 1: Source and Gold Data Foundation
+- Enterprise source domains (AWM, Finance, Operations).
+- Gold Delta tables in Unity Catalog (examples):
+  - gold.awm.fact_dispatch (NRT candidate)
+  - finance and operations gold tables
+- Show table updates as the freshness signal for event-driven workflows.
+
+Zone 2: Metadata Framework in Unity Catalog (configuration as data)
+- Schema: edp_metadata.semantic_refresh
+- Delta metadata tables:
+  1) semantic_models
+  2) table_refresh_config
+  3) refresh_execution_log
+  4) refresh_cost_tracking
+- Show SLA attributes in metadata (e.g., sla_threshold_minutes, refresh_cadence, trigger_mode).
+- Make clear that SLAs are updated via data changes, not code changes.
+
+Zone 3: Workflow Generator and Orchestration
+- Databricks Jobs generator script:
+  - 05_generate_workflows.py
+- One workflow per model per cadence (model-isolated):
+  - AWM-DAILY, AWM-MEDIUM_FREQUENCY, AWM-TABLE_TRIGGERED
+  - Finance-DAILY, Finance-MEDIUM_FREQUENCY
+- Explain isolation visually: failure in one model workflow does not block other models.
+
+Zone 4: Trigger and Refresh Execution Pattern
+- Scheduled triggers (daily / every 4h).
+- Native table_update trigger for NRT domains:
+  - table_names includes gold.awm.fact_dispatch
+  - wait_after_last_change_seconds = 1800 (30-min debounce)
+- Task sequence in each workflow:
+  1) log_start
+  2) refresh_model (Databricks Power BI task - primary)
+  3) log_complete
+  4) capture_costs
+  5) on_failure alert (owner + platform team)
+- Primary refresh mechanism:
+  - Databricks native Power BI task using connection_name + dataset_id.
+- Edge-case fallback:
+  - Power BI REST API refresh for cross-workspace batch or complex conditional logic.
+
+Zone 5: Monitoring, SLA, and Cost Governance
+- Health scorecard and status:
+  - Healthy / Warning / Critical
+- Metrics derived from execution and cost tables:
+  - success_rate_7d
+  - SLA breach count
+  - refresh duration
+  - cost per refresh and projected annual cost
+  - last refresh timestamp / minutes since last refresh
+- Databricks SQL dashboard as single source for operational visibility.
+
+Zone 6: Consumption Layer
+- Power BI semantic models (Import / DirectQuery / Hybrid).
+- Business consumers across AWM, Finance, Operations using trusted refreshed models.
+
+Key design principles to show visually:
+- Model-level refresh (never table-level Power BI refresh).
+- Databricks owns orchestration and freshness; semantic models own serving logic.
+- Native Power BI task first, REST API fallback for edge cases.
+- Event-driven NRT refresh with debounce, no polling notebook loops.

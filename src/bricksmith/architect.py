@@ -25,6 +25,7 @@ from .config import AppConfig
 from .gemini_client import GeminiClient
 from .logos import LogoKitHandler
 from .mcp_context_enricher import MCPContextEnricher, MCPQuery
+from .databricks_style import get_style_prompt
 from .models import (
     ArchitectConfig,
     ArchitectSession,
@@ -33,6 +34,7 @@ from .models import (
 )
 
 console = Console()
+DEFAULT_BRANDING_FILE = Path("prompts/branding/databricks_default.txt")
 
 
 # Prompt template for generating high-quality diagram prompts
@@ -540,8 +542,18 @@ class ArchitectChatbot:
         # Save session with full recovery information
         self._save_session()
 
+        # Ensure generated prompt carries Databricks branding defaults.
+        branded_prompt = prompt
+        if "DATABRICKS BRAND STYLE GUIDE" not in branded_prompt:
+            branding_section = ""
+            if DEFAULT_BRANDING_FILE.exists():
+                branding_section = DEFAULT_BRANDING_FILE.read_text().strip()
+            branded_prompt = "\n\n".join(
+                [s for s in [branding_section, get_style_prompt(), branded_prompt] if s]
+            )
+
         # Save prompt
-        (output_dir / "prompt.txt").write_text(prompt)
+        (output_dir / "prompt.txt").write_text(branded_prompt)
 
         # Save architecture JSON
         (output_dir / "architecture.json").write_text(

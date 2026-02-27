@@ -31,6 +31,7 @@ from .models import (
     GenerationSettings,
 )
 from .prompts import PromptBuilder
+from .databricks_style import get_style_prompt
 
 # Try to import native MCP client for search functionality
 try:
@@ -51,6 +52,7 @@ GENERATION_PRESETS = {
 }
 
 console = Console()
+DEFAULT_BRANDING_FILE = Path("prompts/branding/databricks_default.txt")
 
 # Optional readline for input history (UP/DOWN); not available on Windows
 try:
@@ -581,7 +583,16 @@ class ConversationChatbot:
 
         # Prepend logo section to prompt
         logo_section = self.prompt_builder._build_logo_section(self._logos)
-        initial_prompt = f"{logo_section}\n\n{initial_prompt}"
+        branding_section = ""
+        if DEFAULT_BRANDING_FILE.exists():
+            branding_section = DEFAULT_BRANDING_FILE.read_text().strip()
+
+        sections = [logo_section]
+        if branding_section:
+            sections.append(branding_section)
+        sections.append(get_style_prompt())
+        sections.append(initial_prompt)
+        initial_prompt = "\n\n".join([s for s in sections if s])
 
         # Create session ID from name or generate random
         if self.conv_config.session_name:

@@ -1,4 +1,8 @@
-Clean, minimal design suitable for executive presentations.
-White or light grey background.
-Professional corporate style.
+Databricks reference architecture style.
+Use Databricks palette by default:
+- Navy #1B3139
+- Cyan #00A8E1
+- Lava #FF3621
+- White background #FFFFFF
+Clean, minimal, flat 2D style.
 Use the provided logo kit images exactly as uploaded.

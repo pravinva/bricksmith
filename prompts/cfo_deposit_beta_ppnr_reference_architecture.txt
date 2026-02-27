@@ -1,0 +1,123 @@
+Create a Databricks reference architecture diagram for a banking Treasury + CFO use case focused on:
+1) deposit beta analysis,
+2) PPNR modeling,
+3) PPNR scenario analysis.
+
+Style requirements:
+- Databricks visual vibe: modern, clean, high contrast, minimal clutter.
+- Use Databricks brand palette only:
+  - Navy: #1B3139
+  - Cyan: #00A8E1
+  - Lava: #FF3621
+- White background with subtle zone containers and clear visual hierarchy.
+- Left-to-right flow with clear layers and arrows.
+- Group by zones with titled containers.
+- Use concise labels and include only key table/model names (avoid overloading text).
+- Emphasize production operating cadence (train, register, batch infer, scenario projection, consume).
+- Make Approach 1/2/3 visually distinct with color-coded paths and clear legend.
+
+Show these architecture zones and components:
+
+Zone 1: Source and Ingestion
+- Core banking systems (deposit accounts, account history).
+- General ledger / finance system.
+- Market data source (U.S. Treasury curves + fed funds, e.g., Alpha Vantage ingestion).
+- Databricks ingestion jobs/notebooks writing to Unity Catalog Delta tables.
+
+Zone 2: Lakehouse Data Foundation (Unity Catalog + Delta)
+- Bronze:
+  - cfo_banking_demo.bronze_core_banking.deposit_accounts
+  - cfo_banking_demo.bronze_core_banking.deposit_accounts_historical
+- Silver:
+  - cfo_banking_demo.silver_treasury.yield_curves
+  - cfo_banking_demo.silver_finance.general_ledger
+- Gold:
+  - cfo_banking_demo.gold_finance.nii_projection_quarterly
+  - cfo_banking_demo.gold_finance.ppnr_projection_quarterly
+  - cfo_banking_demo.gold_finance.ppnr_projection_quarterly_ml
+  - cfo_banking_demo.gold_finance.ppnr_scenario_drivers_quarterly
+
+Zone 3: Feature Engineering and ML Training
+- Approach 1 (Static beta for day-to-day ALM):
+  - notebook: Approach1_Enhanced_Deposit_Beta_Model.py
+  - training table: cfo_banking_demo.ml_models.deposit_beta_training_data
+  - registered model alias: cfo_banking_demo.models.deposit_beta_model@champion
+- Approach 2 (Vintage + decay runoff modeling):
+  - notebook: Approach2_Vintage_Analysis_and_Decay_Modeling.py
+  - cohort tables:
+    - cfo_banking_demo.ml_models.deposit_cohort_analysis
+    - cfo_banking_demo.ml_models.cohort_survival_rates
+    - cfo_banking_demo.ml_models.component_decay_metrics
+  - enriched training table:
+    - cfo_banking_demo.ml_models.deposit_beta_training_phase2
+  - runoff forecast table:
+    - cfo_banking_demo.ml_models.deposit_runoff_forecasts
+- Approach 3 (Dynamic beta for stress testing and regulatory narratives):
+  - notebook: Approach3_Dynamic_Beta_and_Stress_Testing.py
+  - inputs from phase2 training table:
+    - cfo_banking_demo.ml_models.deposit_beta_training_phase2
+  - outputs:
+    - cfo_banking_demo.ml_models.dynamic_beta_parameters
+    - cfo_banking_demo.ml_models.stress_test_results
+  - include CCAR baseline/adverse/severely adverse scenario framing.
+- Deposit beta base training table (Approach 1):
+  - cfo_banking_demo.ml_models.deposit_beta_training_data
+- PPNR feature/training tables:
+  - cfo_banking_demo.ml_models.non_interest_income_training_data
+  - cfo_banking_demo.ml_models.non_interest_expense_training_data
+- Training notebooks:
+  - Train_PPNR_Models.py
+- MLflow tracking and model lifecycle.
+- Unity Catalog Model Registry aliases:
+  - cfo_banking_demo.models.deposit_beta_model@champion
+  - cfo_banking_demo.models.non_interest_income_model@champion
+  - cfo_banking_demo.models.non_interest_expense_model@champion
+
+Zone 4: Batch Inference and Scenario Engines
+- Deposit batch inference:
+  - Batch_Inference_Deposit_Beta_Model.py
+  - output: cfo_banking_demo.ml_models.deposit_beta_predictions
+- NII repricing engine:
+  - NII_Repricing_Engine_2Y.py
+- Repricing assumptions tables:
+  - cfo_banking_demo.gold_finance.deposit_repricing_assumptions
+  - cfo_banking_demo.gold_finance.loan_repricing_assumptions
+- NII engine output:
+  - cfo_banking_demo.gold_finance.nii_projection_quarterly
+- Scenario planning engine:
+  - PPNR_Scenario_Planning_Engine.py
+  - scenario catalog + drivers + sensitivity assumptions.
+- Scenario planning tables:
+  - cfo_banking_demo.gold_finance.ppnr_scenario_catalog
+  - cfo_banking_demo.gold_finance.ppnr_scenario_drivers_quarterly
+  - cfo_banking_demo.gold_finance.ppnr_sensitivity_assumptions
+  - cfo_banking_demo.gold_finance.ppnr_projection_quarterly
+- ML scenario inference:
+  - PPNR_Scenario_ML_Inference_2Y.py
+  - loads UC models @champion for non-interest income and expense.
+  - rolls forward 27 months (9 quarters), then publishes quarterly projections.
+  - outputs:
+    - cfo_banking_demo.gold_finance.ppnr_ml_projection_monthly
+    - cfo_banking_demo.gold_finance.ppnr_projection_quarterly_ml
+- Highlight primary macro driver: 2Y Treasury rate path for scenario analysis.
+- Make clear that Approach 1 is operational ALM, while Approach 3 is stress-testing-focused.
+
+Zone 5: Consumption and Decisioning
+- Treasury / CFO web app:
+  - FastAPI backend + Next.js frontend_app.
+  - Deposit Beta dashboard and PPNR dashboard.
+- Databricks SQL executive dashboard pages.
+- ALCO / Finance users consuming baseline vs scenario deltas.
+
+Cross-cutting controls:
+- Unity Catalog governance, lineage, access controls.
+- Scheduled Databricks Workflows orchestration.
+- Monitoring and model governance via MLflow + champion/challenger process.
+- Batch-first operating model (not real-time scoring) for treasury/cfo cadence.
+
+Important narrative to reflect in diagram:
+- Deposit behavior impacts balances and pricing sensitivity.
+- Approach 2 adds cohort survival and runoff dynamics used for forecasting and liquidity planning.
+- Approach 3 adds regime/dynamic beta behavior for stress scenarios and regulatory reporting.
+- Scenario rate shocks (2Y path) flow through NII repricing and non-interest ML models.
+- Final output is quarterly PPNR baseline vs scenario deltas for executive decision support.

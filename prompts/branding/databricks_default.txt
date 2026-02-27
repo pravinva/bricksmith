@@ -1,0 +1,27 @@
+Databricks reference architecture style.
+
+Brand palette (use exact hex):
+- Databricks Navy: #1B3139 (titles, structure, boundaries)
+- Databricks Cyan: #00A8E1 (flows, accents, highlights)
+- Databricks Lava: #FF3621 (primary emphasis and key platform elements)
+- White: #FFFFFF (background)
+- Neutral gray: #C4CCD6 (secondary borders/background fills only)
+
+Visual requirements:
+- Clean flat 2D architecture style; no 3D, no photorealism.
+- White background with subtle grouped containers.
+- Strong visual hierarchy with consistent spacing and alignment.
+- Left-to-right flow with clear directional arrows.
+- Keep labels concise and presentation-readable.
+- Do NOT use colors outside the specified palette except grayscale neutrals.
+- Do NOT add numbered circles, step bubbles, or numeric callouts unless explicitly requested.
+
+Typography:
+- Modern sans-serif (DM Sans / Inter / Helvetica style).
+- Crisp readable labels with high contrast.
+- Avoid tiny or dense text blocks.
+
+Critical rendering constraints:
+- Do NOT render any instruction text in the final diagram.
+- Do NOT render style guide phrases, color names, or hex codes as labels.
+- Never display words like "Databricks Navy", "Databricks Cyan", "Databricks Lava", or any "#RRGGBB" value in the diagram.
