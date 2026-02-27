@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semantic Model Refresh — Fulton Hogan × Databricks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #1B3139;
+      --cyan: #00A8E1;
+      --lava: #FF3621;
+      --light: #F6F7F9;
+      --white: #FFFFFF;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d9e1ea;
+      --sans: "DM Sans", sans-serif;
+      --disp: "Bebas Neue", sans-serif;
+      --mono: "Space Mono", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); color: var(--text); background: var(--light); }
+    nav {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(27, 49, 57, 0.96);
+      border-bottom: 2px solid var(--lava);
+      padding: 10px 20px;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    }
+    nav .brand { color: #fff; font-size: 12px; letter-spacing: 1.8px; font-weight: 700; }
+    nav .links { display: flex; gap: 14px; flex-wrap: wrap; }
+    nav a { color: #d9e4e9; text-decoration: none; font-size: 12px; font-weight: 600; }
+    nav a:hover { color: var(--cyan); }
+    .hero {
+      background: linear-gradient(140deg, var(--navy) 0%, #27434b 100%);
+      color: #fff;
+      padding: 72px 22px 56px;
+      border-bottom: 4px solid var(--lava);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .eyebrow { font-size: 11px; letter-spacing: 3px; color: #96e0f8; margin-bottom: 12px; font-weight: 700; }
+    .hero h1 { font-family: var(--disp); font-size: clamp(54px, 10vw, 102px); line-height: 0.95; letter-spacing: 1px; }
+    .hero h1 em { color: var(--lava); font-style: normal; }
+    .hero p { margin-top: 14px; max-width: 740px; color: #d5e2e8; line-height: 1.7; font-size: 15px; }
+    section { padding: 44px 20px; }
+    .section-head {
+      background: var(--navy);
+      color: #fff;
+      border-left: 6px solid var(--lava);
+      padding: 22px 24px;
+      margin-bottom: 18px;
+    }
+    .section-head .tag { font-size: 10px; letter-spacing: 2.4px; color: #8fe2fa; font-weight: 700; margin-bottom: 8px; }
+    .section-head h2 { font-family: var(--disp); font-size: clamp(32px, 6vw, 56px); line-height: 0.95; }
+    .section-head p { margin-top: 9px; color: #d0dde2; line-height: 1.6; font-size: 14px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--cyan);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+      padding: 18px 18px 16px;
+    }
+    .card h3 { color: var(--navy); margin-bottom: 8px; font-size: 18px; }
+    .card p { color: #374151; line-height: 1.62; font-size: 14px; }
+    .card ul { margin: 8px 0 0 18px; }
+    .card li { margin-bottom: 6px; line-height: 1.5; font-size: 14px; }
+    .code {
+      background: #0b1220;
+      color: #d8e3f0;
+      border: 1px solid #263042;
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.7;
+      white-space: pre;
+    }
+    .pill {
+      display: inline-block;
+      background: #ecf8fd;
+      color: #015f7f;
+      border: 1px solid #aee3f4;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 7px;
+      margin-bottom: 7px;
+    }
+    .summary {
+      border-left: 4px solid var(--lava);
+      background: #fff2ef;
+      border: 1px solid #ffd0c8;
+      padding: 14px 16px;
+      margin-top: 14px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    footer {
+      background: #0f1f26;
+      color: #9fb3be;
+      padding: 20px;
+      font-size: 12px;
+      text-align: center;
+      border-top: 3px solid var(--lava);
+    }
+    @media (max-width: 900px) {
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="brand">DATABRICKS × FULTON HOGAN · EDP</div>
+    <div class="links">
+      <a href="#problem">Problem</a>
+      <a href="#principles">Design</a>
+      <a href="#schema">Schema</a>
+      <a href="#workflows">Workflows</a>
+      <a href="#monitoring">Monitoring</a>
+      <a href="#rollout">Rollout</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow">SEMANTIC MODEL REFRESH · FEB 2026 · v2.0</div>
+      <h1>SEMANTIC MODEL <em>REFRESH</em></h1>
+      <p>Production-ready architecture for SLA-driven freshness across Fulton Hogan semantic models using metadata-driven controls, model-isolated Databricks Jobs, native table update triggers, and integrated Power BI task execution.</p>
+    </div>
+  </header>
+
+  <section id="problem">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="tag">01 · PROBLEM</div>
+        <h2>Current State & Impact</h2>
+        <p>Inconsistent refresh behavior, workflow coupling, and limited observability increase risk for trust, cost, and operational outcomes.</p>
+      </div>
+      <div class="grid3">
+        <article class="card"><h3>Inconsistent Freshness</h3><p>Same Gold data appears in multiple semantic models without standardized refresh policy or confidence in report currency.</p></article>
+        <article class="card"><h3>Cadence Mismatch</h3><p>Low-change data refreshes too often while near-real-time tables may lag, impacting operational decisions.</p></article>
+        <article class="card"><h3>No Isolation</h3><p>Without model-oriented workflow boundaries, one model failure can affect refresh reliability for unrelated models.</p></article>
+      </div>
+      <div class="summary"><strong>Outcome:</strong> elevated operational noise, avoidable cost, and reduced confidence in dashboard freshness.</div>
+    </div>
+  </section>
+
+  <section id="principles">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="tag">02 · SOLUTION DESIGN</div>
+        <h2>Validated Design Principles</h2>
+      </div>
+      <div>
+        <span class="pill">Model-level refresh</span>
+        <span class="pill">One workflow per model per cadence</span>
+        <span class="pill">Native table update triggers</span>
+        <span class="pill">SLAs as data</span>
+        <span class="pill">Power BI task first</span>
+        <span class="pill">Cost + health telemetry</span>
+      </div>
+      <div class="summary" style="margin-top:12px;"><strong>Guiding principle:</strong> Databricks owns freshness orchestration and observability; semantic models own shaping and serving.</div>
+    </div>
+  </section>
+
+  <section id="schema">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="tag">03 · METADATA CONTROL PLANE</div>
+        <h2>Unity Catalog Metadata Schema</h2>
+        <p>Configuration, SLA policy, and execution telemetry are all captured as Delta tables in <code>edp_metadata.semantic_refresh</code>.</p>
+      </div>
+      <div class="grid2">
+        <article class="card">
+          <h3>Core Tables</h3>
+          <ul>
+            <li><code>semantic_models</code> (model registry, owner, query mode)</li>
+            <li><code>table_refresh_config</code> (cadence, trigger mode, SLA threshold)</li>
+            <li><code>refresh_execution_log</code> (status, duration, trigger source)</li>
+            <li><code>refresh_cost_tracking</code> (DBU + estimated USD)</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Representative DDL Shape</h3>
+          <div class="code">CREATE CATALOG IF NOT EXISTS edp_metadata;
+CREATE SCHEMA IF NOT EXISTS edp_metadata.semantic_refresh;
+
+CREATE TABLE semantic_models (...);
+CREATE TABLE table_refresh_config (...);
+CREATE TABLE refresh_execution_log (...);
+CREATE TABLE refresh_cost_tracking (...);</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflows">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="tag">04 · ORCHESTRATION</div>
+        <h2>Model-Based Workflow Architecture</h2>
+      </div>
+      <div class="grid2">
+        <article class="card">
+          <h3>Workflow Pattern</h3>
+          <ul>
+            <li><code>AWM-DAILY</code>, <code>AWM-MEDIUM_FREQUENCY</code>, <code>AWM-TABLE_TRIGGERED</code></li>
+            <li><code>Finance-DAILY</code>, <code>Finance-MEDIUM_FREQUENCY</code>, <code>Finance-TABLE_TRIGGERED</code></li>
+            <li>Failure isolation by model and cadence</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Task Sequence</h3>
+          <ol style="margin-left:18px;">
+            <li><code>log_start</code></li>
+            <li><code>refresh_model</code> (Power BI task)</li>
+            <li><code>log_complete</code></li>
+            <li><code>capture_costs</code></li>
+            <li>Owner/platform notifications on failure</li>
+          </ol>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="monitoring">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="tag">05 · HEALTH & COST</div>
+        <h2>Monitoring Scorecard</h2>
+      </div>
+      <div class="grid3">
+        <article class="card"><h3>Reliability</h3><p>Success rate by model over rolling 7 days.</p></article>
+        <article class="card"><h3>SLA</h3><p>Breach count vs threshold policy from metadata.</p></article>
+        <article class="card"><h3>Cost</h3><p>Cost per refresh and projected annualized spend.</p></article>
+      </div>
+      <div class="summary"><strong>Delivery surface:</strong> Databricks SQL dashboard over metadata and execution logs for operations and leadership visibility.</div>
+    </div>
+  </section>
+
+  <section id="rollout">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="tag">06 · DEPLOYMENT</div>
+        <h2>Rollout Plan</h2>
+      </div>
+      <div class="grid3">
+        <article class="card"><h3>Phase 1 · Pilot</h3><p>Stand up metadata schema, seed pilot models, generate workflows, validate end-to-end refresh and telemetry.</p></article>
+        <article class="card"><h3>Phase 2 · Scale</h3><p>Onboard all models/cadences, tune SLA policy, operationalize dashboard and alerting.</p></article>
+        <article class="card"><h3>Phase 3 · NRT</h3><p>Enable table update triggers for validated domains and tune debounce/thresholds from metadata.</p></article>
+      </div>
+      <div class="summary"><strong>Final picture:</strong> metadata-driven policy + model-isolated jobs + native trigger/task execution + integrated observability.</div>
+    </div>
+  </section>
+
+  <footer>
+    Fulton Hogan Semantic Model Refresh v2.0 · Databricks × EDP
+  </footer>
+</body>
+</html>
