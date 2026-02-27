@@ -1,5 +1,7 @@
 # Bricksmith Architect - Frontend
 
+Repository acknowledgement: includes material and inputs from David O'Keefe.
+
 React + TypeScript frontend for collaborative architecture diagram design.
 
 ## Quick Start

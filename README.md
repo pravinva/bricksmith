@@ -1,5 +1,7 @@
 # Bricksmith
 
+Repository acknowledgement: includes material and inputs from David O'Keefe.
+
 <p align="center">
   <img src="docs/bricksmith/logo.png" alt="Bricksmith logo" width="220" />
 </p>
