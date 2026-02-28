@@ -164,6 +164,18 @@
       border-radius: 6px;
       padding: 2px 6px;
     }
+    .diagram-preview {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .diagram-preview img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
     footer {
       margin-top: 18px;
       color: var(--muted);
@@ -191,10 +203,33 @@
         <a class="btn btn-secondary" href="./FH_Semantic_Refresh_Proposal_v2.md">View Markdown Source</a>
         <a class="btn btn-secondary" href="./FH_Semantic_Refresh_immersive.html">Open Immersive HTML</a>
         <a class="btn btn-secondary" href="./FH_Semantic_Refresh_Diagram.png">Open Architecture Diagram</a>
+        <a class="btn btn-secondary" href="./Banking_Treasury_Reference_Architecture_101.png">Open Banking Treasury 101 Diagram</a>
+        <a class="btn btn-secondary" href="./banking_treasury_detailed.html">Open Banking Treasury Detailed Diagram</a>
       </div>
     </section>
 
     <section class="grid">
+      <article class="card">
+        <h2>Diagram Gallery</h2>
+        <p class="lead">Architecture visuals for executive and technical audiences.</p>
+        <p style="margin-top:10px;">
+          <a href="./Banking_Treasury_Reference_Architecture_101.png">Open Banking Treasury 101</a>
+          &nbsp;|&nbsp;
+          <a href="./banking_treasury_detailed.html">Open Banking Treasury Detailed</a>
+        </p>
+      </article>
+
+      <article class="card">
+        <h2>Banking Treasury Reference Architecture (101)</h2>
+        <p class="lead">Simplified architecture view for executive readability and cross-stream standardization.</p>
+        <div class="diagram-preview">
+          <img src="./Banking_Treasury_Reference_Architecture_101.png" alt="Banking Treasury Reference Architecture 101 diagram" />
+        </div>
+        <p style="margin-top:12px;">
+          <a href="./banking_treasury_detailed.html">View the detailed Banking Treasury architecture diagram</a>
+        </p>
+      </article>
+
       <article class="card">
         <h2>1) The Problem</h2>
         <p class="lead">The EDP supports multiple semantic models with different freshness expectations, but refresh orchestration is inconsistent, coupled, and hard to govern at scale.</p>

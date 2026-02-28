@@ -1,0 +1,89 @@
+Create a simplified Databricks reference architecture diagram (101 version) for a banking Treasury + CFO use case that can be reused across streams.
+
+Objective:
+- Make it easy to digest for broad audiences.
+- Preserve the core operating model without deep implementation detail.
+- Use an abstraction pattern that can be standardized for other domains.
+
+Diagram title:
+- Banking Treasury Reference Architecture
+
+Visual and branding requirements:
+- Databricks visual style: clean, modern, minimal clutter, high readability.
+- Use Databricks brand palette only:
+  - Navy: #1B3139
+  - Cyan: #00A8E1
+  - Lava: #FF3621
+- White background and strong Databricks architecture composition.
+- Left-to-right flow with consistent spacing and alignment.
+- Use short labels (2-4 words where possible).
+- Do not render color names or hex codes as visible text.
+
+Databricks architecture aesthetic (enforce strongly):
+- Zone containers: white fill, navy borders, subtle rounded corners, thin neutral separators.
+- Section headers: navy header bars with white text for each layer.
+- Primary arrows and data flow: cyan lines with clear arrowheads and consistent stroke width.
+- Strategic emphasis elements only: lava for key differentiators (maturity progression and decision outputs).
+- Icons: flat line icons only (database, model, workflow, dashboard), no 3D or gradients.
+- Typography feel: modern sans-serif, medium weight headings, regular body labels, high contrast.
+- Keep overall look executive and "Databricks solution architecture slide" quality.
+- Spelling quality bar: all visible labels must be correctly spelled business terms.
+- Do not invent words, truncate words, or use placeholder text.
+
+Show only these 6 standardized layers (left to right):
+
+Layer 1: Business Sources
+- Core banking events
+- Finance and ledger data
+- Market and macro signals
+
+Layer 2: Lakehouse Foundation
+- Bronze (raw ingest)
+- Silver (conformed data)
+- Gold (finance-ready marts)
+- Unity Catalog governance and lineage (cross-cutting)
+
+Layer 3: Feature and Model Factory
+- Shared feature engineering
+- Model training and validation
+- Model registry with champion/challenger aliases
+
+Layer 4: Forecasting and Scenario Engines
+- Deposit beta engine (operational)
+- Runoff and vintage engine (behavioral)
+- Stress and dynamic beta engine (regulatory)
+- PPNR projection engine (quarterly baseline + scenarios)
+
+Layer 5: Orchestration and Monitoring
+- Scheduled workflows (batch cadence)
+- Data quality checks
+- Model performance and drift monitoring
+
+Layer 6: Decision and Consumption
+- Treasury and CFO dashboards
+- Executive scenario compare (baseline vs adverse)
+- Planning and ALCO decision support
+
+Narrative callouts (small side notes):
+- Weekly/monthly batch operating model (not real-time).
+- Final output: quarterly PPNR deltas and explainable drivers.
+
+Standardization guidance to convey visually:
+- Show reusable blueprint blocks as clean named capability groups only:
+  - Source Adapters
+  - Medallion Foundation
+  - Model Factory
+  - Scenario Engine
+  - Decision Layer
+- Do not place the word "template" anywhere in the diagram.
+- Keep table/notebook names out of the 101 diagram.
+- Emphasize pattern over implementation specifics.
+
+Place the 3-approach explanation in a separate legend panel outside the main flow:
+- Put this panel at top-right or bottom-right margin, not inside process boxes.
+- Title: "Approach Progression"
+- Bullets:
+  - Approach 1: Static beta for daily ALM support
+  - Approach 2: Vintage and runoff for behavior-aware forecasting
+  - Approach 3: Dynamic beta and stress for regulatory scenarios
+- Ensure this legend never overlaps architecture boxes, arrows, or labels.

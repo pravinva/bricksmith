@@ -61,6 +61,8 @@ outputs/
 !docs/bricksmith/logo.png
 !docs/bricksmith/logo-mascot.png
 !docs/FH_Semantic_Refresh_Diagram.png
+!docs/Banking_Treasury_Reference_Architecture_101.png
+!docs/Banking_Treasury_Reference_Architecture_Detailed.png
 
 # OS
 .DS_Store
