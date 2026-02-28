@@ -64,6 +64,7 @@ outputs/
 !docs/Banking_Treasury_Reference_Architecture_101.png
 !docs/Banking_Treasury_Reference_Architecture_Detailed.png
 !docs/PowerBI_Task_Databricks_Reference_Architecture.png
+!docs/Semantic_Model_Refresh_Implementation_Blueprint.png
 
 # OS
 .DS_Store
