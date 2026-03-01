@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet" />
+  <title>Semantic Refresh Code Snippets</title>
+  <style>
+    :root {
+      --dbx-navy: #1B3139;
+      --line: #d1d5db;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 18px 40px; }
+    .hero {
+      background: linear-gradient(140deg, var(--dbx-navy) 0%, #264652 70%, #2d5a68 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 22px 24px;
+      box-shadow: 0 12px 28px rgba(27, 49, 57, 0.2);
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.2; }
+    .hero p { margin: 0; color: #dbe7eb; }
+    .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-block;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      border: 1px solid #85cce5;
+      color: #d8f3fd;
+    }
+    .card {
+      margin-top: 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    }
+    .card h2 {
+      margin: 0 0 6px;
+      color: var(--dbx-navy);
+      font-size: 21px;
+    }
+    .card p { margin: 0 0 10px; color: var(--muted); }
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #f8fbfd;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Semantic Refresh Code Snippets</h1>
+      <p>Shareable implementation snippets curated from the complete code package.</p>
+      <div class="actions">
+        <a class="btn" href="./FH_Semantic_Refresh_immersive.html#implementation">Back to immersive page</a>
+        <a class="btn" href="./semantic_model_refresh_directory_structure.html">Directory structure page</a>
+        <a class="btn" href="./FH_Semantic_Refresh_immersive_high_quality_v2.pdf">High-quality PDF</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>1) Create Metadata Schema</h2>
+      <p>Core Unity Catalog metadata tables for model registry, config, logs, and cost tracking.</p>
+      <pre><code>CREATE CATALOG IF NOT EXISTS edp_metadata;
+CREATE SCHEMA IF NOT EXISTS edp_metadata.semantic_refresh;
+
+CREATE TABLE IF NOT EXISTS edp_metadata.semantic_refresh.semantic_models (...);
+CREATE TABLE IF NOT EXISTS edp_metadata.semantic_refresh.table_refresh_config (...);
+CREATE TABLE IF NOT EXISTS edp_metadata.semantic_refresh.refresh_execution_log (...);
+CREATE TABLE IF NOT EXISTS edp_metadata.semantic_refresh.refresh_cost_tracking (...);</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>2) Create Power BI Connections</h2>
+      <p>Unity Catalog connection objects used by native Databricks Power BI tasks.</p>
+      <pre><code>CREATE CONNECTION IF NOT EXISTS edp_powerbi.awm_workspace
+TYPE powerbi
+OPTIONS (
+  workspaceId '&lt;AWM_WORKSPACE_GUID&gt;',
+  credential (
+    tenant_id '&lt;AZURE_TENANT_ID&gt;',
+    client_id '&lt;SERVICE_PRINCIPAL_CLIENT_ID&gt;',
+    client_secret '&lt;SERVICE_PRINCIPAL_SECRET&gt;'
+  )
+);
+
+GRANT USAGE ON CONNECTION edp_powerbi.awm_workspace TO `powerbi-refresh-sp`;</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>3) Native Power BI Task (Workflow)</h2>
+      <p>Model-level refresh task with retries and timeout control.</p>
+      <pre><code>Task(
+  task_key="refresh_model",
+  power_bi_task=PowerBITask(
+    connection_name=model.connection_name,
+    dataset_id=model.dataset_id,
+    refresh_type="full"
+  ),
+  depends_on=[TaskDependency(task_key="log_start")],
+  timeout_seconds=7200,
+  max_retries=2
+)</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>4) Table Update Trigger Workflow</h2>
+      <p>Near real-time execution when Gold tables are updated.</p>
+      <pre><code>trigger=TriggerSettings(
+  table_update=TableUpdateTriggerConfiguration(
+    table_names=model.source_tables,
+    condition=TableUpdateTriggerCondition.ANY_UPDATE,
+    wait_after_last_change_seconds=model.min_interval * 60
+  )
+)</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>5) SLA Monitoring Query</h2>
+      <p>Detect SLA breaches from metadata with tier-prioritized ordering.</p>
+      <pre><code>SELECT m.model_name, m.sla_tier, c.table_name, c.sla_threshold_minutes,
+       CAST((unix_timestamp(current_timestamp()) - unix_timestamp(c.last_refresh_timestamp)) / 60 AS INT) AS minutes_since
+FROM edp_metadata.semantic_refresh.table_refresh_config c
+JOIN edp_metadata.semantic_refresh.semantic_models m ON c.model_id = m.model_id
+WHERE c.is_active = true
+  AND c.sla_threshold_minutes IS NOT NULL
+  AND (c.last_refresh_timestamp IS NULL OR
+       CAST((unix_timestamp(current_timestamp()) - unix_timestamp(c.last_refresh_timestamp)) / 60 AS INT) > c.sla_threshold_minutes);</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>6) Add New Model Template</h2>
+      <p>Operational template for onboarding new semantic models.</p>
+      <pre><code>INSERT INTO edp_metadata.semantic_refresh.semantic_models
+(model_id, model_name, workspace_id, dataset_id, connection_name,
+ query_mode, sla_tier, description, owner_email, is_active)
+VALUES
+  ('&lt;MODEL_ID&gt;', '&lt;MODEL_NAME&gt;', '&lt;WORKSPACE_GUID&gt;', '&lt;DATASET_GUID&gt;',
+   'edp_powerbi.&lt;workspace_name&gt;', 'Import', 'T1', '&lt;Description&gt;',
+   '&lt;owner@email.com&gt;', true);</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>7) Change SLA Threshold Template</h2>
+      <p>Data-driven SLA updates without code deployment.</p>
+      <pre><code>UPDATE edp_metadata.semantic_refresh.table_refresh_config
+SET sla_threshold_minutes = 2000,
+    updated_at = current_timestamp()
+WHERE config_id = 'finance_fact_invoices';</code></pre>
+    </section>
+  </main>
+</body>
+</html>

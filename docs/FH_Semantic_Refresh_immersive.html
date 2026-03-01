@@ -273,6 +273,15 @@ footer { background: #111F2B; border-top: 3px solid var(--orange); padding: 30px
   .tf-line { display: none; }
   .sf-n { min-width: 130px; }
 }
+
+/* PRINT: disable reveal gating so PDF is not blank */
+@media print {
+  .rev {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -906,6 +915,10 @@ scheduled = spark.sql(</span><span class="cs">"""
         <a href="./semantic_model_refresh_directory_structure.html">Open detailed directory structure page</a>
         &nbsp;|&nbsp;
         <a href="./semantic_model_refresh_quick_reference.html">Open quick reference page</a>
+        &nbsp;|&nbsp;
+        <a href="./semantic_refresh_code_snippets.html">Open shareable code snippets page</a>
+        &nbsp;|&nbsp;
+        <a href="./FH_Semantic_Refresh_immersive_high_quality_v2.pdf">Download high-quality PDF</a>
       </div>
     </div>
   </div>
