@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+  <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet" />
+  <title>Semantic Refresh Complete Code Package</title>
+  <style>
+    :root {
+      --dbx-navy: #1B3139;
+      --line: #d1d5db;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 44px; }
+    .hero {
+      background: linear-gradient(140deg, var(--dbx-navy) 0%, #264652 70%, #2d5a68 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 22px 24px;
+      box-shadow: 0 12px 28px rgba(27, 49, 57, 0.2);
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.2; }
+    .hero p { margin: 0; color: #dbe7eb; }
+    .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-block;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      border: 1px solid #85cce5;
+      color: #d8f3fd;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    }
+    .muted { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    .md h1, .md h2, .md h3, .md h4 { color: var(--dbx-navy); margin-top: 1.1em; margin-bottom: 0.5em; }
+    .md h1 { font-size: 30px; }
+    .md h2 { font-size: 22px; }
+    .md h3 { font-size: 18px; }
+    .md p, .md li { font-size: 14px; }
+    .md ul, .md ol { padding-left: 22px; }
+    .md pre {
+      margin: 10px 0 16px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #f8fbfd;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .md code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 1px 5px;
+    }
+    .md pre code {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font-size: 12px;
+    }
+    .md table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 14px; }
+    .md th, .md td { border-bottom: 1px solid var(--line); text-align: left; padding: 8px; }
+    .md th { color: var(--dbx-navy); }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Semantic Refresh Complete Code Package</h1>
+      <p>Full code in a readable HTML format for sharing and review.</p>
+      <div class="actions">
+        <a class="btn" href="./FH_Semantic_Refresh_immersive.html#implementation">Back to immersive page</a>
+        <a class="btn" href="./semantic_refresh_code_snippets.html">Open code snippets page</a>
+        <a class="btn" href="./semantic_refresh_complete_code.md">Open raw markdown</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="muted">Rendered from <code>semantic_refresh_complete_code.md</code></div>
+      <article id="content" class="md">Loading full code package...</article>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    (async function () {
+      const container = document.getElementById("content");
+      try {
+        const response = await fetch("./semantic_refresh_complete_code.md");
+        const md = await response.text();
+        marked.setOptions({ gfm: true, breaks: false });
+        container.innerHTML = marked.parse(md);
+      } catch (e) {
+        container.textContent = "Unable to render markdown content.";
+      }
+    }());
+  </script>
+</body>
+</html>
