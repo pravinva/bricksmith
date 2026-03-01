@@ -129,6 +129,7 @@ Deployment phases:
 
 Implementation references:
 - Full code snippets (shareable): https://pravinva.github.io/bricksmith/semantic_refresh_code_snippets.html
+- Full code package (all files): https://pravinva.github.io/bricksmith/semantic_refresh_complete_code.md
 - Detailed directory structure: https://pravinva.github.io/bricksmith/semantic_model_refresh_directory_structure.html
 - Quick reference: https://pravinva.github.io/bricksmith/semantic_model_refresh_quick_reference.html
 - High-quality PDF: https://pravinva.github.io/bricksmith/FH_Semantic_Refresh_immersive_high_quality_v2.pdf
