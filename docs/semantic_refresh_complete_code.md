@@ -382,7 +382,7 @@ for model in scheduled_models:
         ],
         schedule=schedule,
         email_notifications=JobEmailNotifications(
-            on_failure=[model.owner_email, "data.platform@fultonhogan.com"]
+            on_failure=[model.owner_email, "<platform-support-distribution>"]
         ),
         tags={"ModelId": model.model_id, "SLATier": model.sla_tier or 'T2'}
     )
@@ -1279,7 +1279,7 @@ INSERT INTO table_refresh_config VALUES (...);
 Time: 15-30 minutes
 
 ## Support
-data.platform@fultonhogan.com
+<platform-support-distribution>
 ```
 
 ---
